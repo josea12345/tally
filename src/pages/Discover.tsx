@@ -218,16 +218,18 @@ export default function Discover() {
           />
         </div>
         <CategoryTabs value={category} onChange={setCategory} />
-        <div className="mt-3">
-          <LocationStrip
-            state={locState}
-            effectiveLabel={effective.label}
-            fromGps={effective.source === 'gps'}
-            profileCity={profile?.city}
-            onLocate={locate}
-            onUseCity={useCity}
-          />
-        </div>
+        {locState.status !== 'on' && (
+          <div className="mt-3">
+            <LocationStrip
+              state={locState}
+              effectiveLabel={effective.label}
+              fromGps={effective.source === 'gps'}
+              profileCity={profile?.city}
+              onLocate={locate}
+              onUseCity={useCity}
+            />
+          </div>
+        )}
       </div>
 
       {tastemakers.length > 0 && tab === 'putons' && (
