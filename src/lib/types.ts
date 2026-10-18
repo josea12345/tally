@@ -23,6 +23,24 @@ export function isPlaceCategory(c: Category): boolean {
   return PLACE_CATEGORIES.includes(c)
 }
 
+export interface CategoryGroup {
+  id: string
+  label: string
+  categories: Category[]
+}
+
+/**
+ * Discover filter groups: display-only buckets over the flat leaf categories.
+ * No data change — a drop keeps its leaf category; the group just ORs them.
+ * Location rules stay per-leaf: recipes are global like music/movies, spots
+ * narrow to near-you.
+ */
+export const CATEGORY_GROUPS: CategoryGroup[] = [
+  { id: 'food', label: 'Food & Drink', categories: ['food_drink', 'recipes'] },
+  { id: 'places', label: 'Places & Shops', categories: ['places', 'shops'] },
+  { id: 'entertainment', label: 'Entertainment', categories: ['movies_tv', 'music'] },
+]
+
 export interface Profile {
   id: string
   username: string

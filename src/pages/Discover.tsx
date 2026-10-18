@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useFeedVotes } from '../lib/feedVotes'
 import type { Category, Drop, DropStats, Profile, Verdict } from '../lib/types'
-import { MEDIA_CATEGORIES, isPlaceCategory } from '../lib/types'
+import { MEDIA_CATEGORIES, CATEGORY_GROUPS, isPlaceCategory } from '../lib/types'
 import { winRateFor } from '../lib/stats'
 import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
@@ -41,7 +41,7 @@ export default function Discover() {
   const { user, profile } = useAuth()
   const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
-  const [category, setCategory] = useState<Category | 'all'>('all')
+  const [group, setGroup] = useState<string>('all')
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [drops, setDrops] = useState<Drop[]>([])
@@ -69,7 +69,10 @@ export default function Discover() {
           .select('*, author:profiles(*)')
           .order('created_at', { ascending: false })
           .limit(150)
-        if (category !== 'all') q = q.eq('category', category)
+        if (group !== 'all') {
+          const g = CATEGORY_GROUPS.find((x) => x.id === group)
+          if (g) q = q.in('category', g.categories)
+        }
         if (debounced) {
           const like = `%${debounced.replace(/[%_]/g, '')}%`
           q = q.or(`title.ilike.${like},description.ilike.${like},city.ilike.${like},neighborhood.ilike.${like}`)
@@ -151,7 +154,7 @@ export default function Discover() {
     return () => {
       live = false
     }
-  }, [category, debounced, user])
+  }, [group, debounced, user])
 
   const visible = useMemo(() => {
     let list = drops
@@ -240,7 +243,7 @@ export default function Discover() {
             className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
-        <CategoryTabs value={category} onChange={setCategory} />
+        <CategoryTabs value={group} onChange={setGroup} />
         {locState.status !== 'on' && (
           <div className="mt-3">
             <LocationStrip

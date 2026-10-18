@@ -1,22 +1,18 @@
-import type { Category } from '../lib/types'
-import { ALL_CATEGORIES, CATEGORY_LABELS } from '../lib/types'
+import { CATEGORY_GROUPS } from '../lib/types'
 
+/** Discover filter row: Everything + the three buckets. Four pills, no scroll maze. */
 export default function CategoryTabs({
   value,
   onChange,
-  includeAll = true,
 }: {
-  value: Category | 'all'
-  onChange: (c: Category | 'all') => void
-  includeAll?: boolean
+  value: string
+  onChange: (id: string) => void
 }) {
   return (
     <div className="rail-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      {includeAll && (
-        <Tab active={value === 'all'} onClick={() => onChange('all')} label="Everything" />
-      )}
-      {ALL_CATEGORIES.map((c) => (
-        <Tab key={c} active={value === c} onClick={() => onChange(c)} label={CATEGORY_LABELS[c]} />
+      <Tab active={value === 'all'} onClick={() => onChange('all')} label="Everything" />
+      {CATEGORY_GROUPS.map((g) => (
+        <Tab key={g.id} active={value === g.id} onClick={() => onChange(g.id)} label={g.label} />
       ))}
     </div>
   )
