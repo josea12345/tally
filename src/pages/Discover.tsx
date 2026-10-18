@@ -25,7 +25,7 @@ function AlertsBell() {
     <button
       onClick={() => navigate('/notifications')}
       aria-label="Notifications"
-      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line text-fog transition hover:border-lime hover:text-lime"
+      className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line text-fog transition hover:border-lime hover:text-lime"
     >
       <AlertIcon className="h-5 w-5" />
       {unread > 0 && (
@@ -212,19 +212,19 @@ export default function Discover() {
 
   return (
     <div>
-      <div className="sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-3 pt-4 backdrop-blur">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-display text-xl font-bold tracking-tight">
+      <div className="sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-2 pt-3 backdrop-blur">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="font-display text-lg font-bold tracking-tight">
             TALLY<span className="text-lime">.</span>
           </div>
           <AlertsBell />
         </div>
-        <div className="mb-3 flex gap-1 rounded-full bg-ink-3 p-1">
+        <div className="mb-2 flex gap-1 rounded-full bg-ink-3 p-1">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-2 text-sm font-black transition ${
+              className={`flex-1 rounded-full py-1.5 text-sm font-black transition ${
                 tab === t.id ? 'bg-lime text-ink' : 'text-mute hover:text-fog'
               }`}
             >
@@ -232,15 +232,12 @@ export default function Discover() {
             </button>
           ))}
         </div>
-        <p className="mb-3 text-[11px] leading-snug text-mute">
-          Food & drink and shops narrow to near you — movies, TV and music travel everywhere.
-        </p>
-        <div className="mb-3">
+        <div className="mb-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search a put-on…"
-            className="w-full rounded-full border border-line bg-ink-2 px-4 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
         <CategoryTabs value={category} onChange={setCategory} />
