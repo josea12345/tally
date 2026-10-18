@@ -383,6 +383,14 @@ export default function Composer({ editId }: { editId?: string }) {
           items={mediaList}
           onAdd={(added) => setMediaList((m) => [...m, ...added].slice(0, MAX_CAROUSEL_ITEMS))}
           onRemove={(i) => setMediaList((m) => m.filter((_, j) => j !== i))}
+          onReorder={(from, to) =>
+            setMediaList((m) => {
+              const next = [...m]
+              const [item] = next.splice(from, 1)
+              next.splice(to, 0, item)
+              return next
+            })
+          }
         />
       </div>
 
