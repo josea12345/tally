@@ -50,16 +50,22 @@ export default function Camera() {
       setCamState('unavailable')
       return
     }
+    // Never hang on the spinner: bail to the native-camera fallback after 10s.
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
     const attempts: MediaStreamConstraints[] = [
       { video: { facingMode: mode }, audio: true },
       { video: { facingMode: mode } },
     ]
     for (const constraints of attempts) {
       try {
-        const stream = await md.getUserMedia(constraints)
+        const stream = await withTimeout(md.getUserMedia(constraints), 10000)
         streamRef.current = stream
         if (videoRef.current) {
           videoRef.current.srcObject = stream
+          // set as a property — React's muted attribute is unreliable and an
+          // unmuted preview would cause audio feedback
+          videoRef.current.muted = true
           await videoRef.current.play().catch(() => {})
         }
         setCamState('live')
