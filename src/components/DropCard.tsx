@@ -60,14 +60,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
               <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
             </div>
 
-            <h3 className="mt-1 font-display text-xl font-bold leading-snug tracking-tight">{drop.title}</h3>
-            {drop.score != null && (
-              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-lime/50 bg-lime/10 px-3 py-0.5">
-                <span className="text-sm font-black text-lime">{drop.score}</span>
-                <span className="text-[10px] font-bold text-mute">/10 author's call</span>
-              </span>
-            )}
-            <p className="mt-1 text-[15px] leading-relaxed text-fog/90">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="font-display text-lg font-bold leading-snug tracking-tight">{drop.title}</h3>
+              {drop.score != null && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-lime/50 bg-lime/10 px-2 py-px">
+                  <span className="text-xs font-black text-lime">{drop.score}</span>
+                  <span className="text-[9px] font-bold text-mute">/10 author's call</span>
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[15px] leading-relaxed text-fog/90">
               <span className="font-bold text-lime">Hear me out — </span>
               {drop.description}
             </p>
