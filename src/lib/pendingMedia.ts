@@ -9,6 +9,7 @@ export interface PendingRawMedia {
 export interface PendingUpload {
   url: string
   type: 'photo' | 'video'
+  posterUrl?: string
 }
 
 let raw: PendingRawMedia | null = null

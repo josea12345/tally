@@ -10,8 +10,9 @@ import {
   trimVideoFront,
   canTrimVideo,
 } from '../lib/video'
+import { extractFrames, capturePoster, type VideoFrame } from '../lib/poster'
 
-/** After video capture: preview, enforce the 10s cap (trim or retake), then composer. */
+/** After video capture: preview, enforce the 5s cap (trim or retake), then composer. */
 export default function VideoReview() {
   const { user } = useAuth()
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
@@ -21,6 +22,8 @@ export default function VideoReview() {
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('Next')
   const [error, setError] = useState<string | null>(null)
+  const [frames, setFrames] = useState<VideoFrame[]>([])
+  const [coverIdx, setCoverIdx] = useState(0)
 
   useEffect(() => {
     if (!user) {
@@ -39,13 +42,32 @@ export default function VideoReview() {
     getVideoDuration(pending.blob)
       .then(setDuration)
       .catch(() => setDuration(null))
+    // cover-frame thumbnails: nice to have, never block the flow
+    extractFrames(pending.blob, 9)
+      .then(setFrames)
+      .catch(() => setFrames([]))
     return () => URL.revokeObjectURL(url)
   }, [user])
 
   const tooLong = duration != null && duration > CLIP_MAX_SECONDS + 0.5
 
-  const uploadBlob = async (b: Blob, fileName: string) => {
+  const uploadBlob = async (b: Blob, fileName: string, coverTime: number | null) => {
     if (!user) return
+    // cover poster (optional — the clip still posts without one)
+    let posterUrl: string | undefined
+    if (coverTime != null) {
+      try {
+        const poster = await capturePoster(b, coverTime)
+        const ppath = `${user.id}/${crypto.randomUUID()}.jpg`
+        const { error: pErr } = await supabase.storage
+          .from('drop-media')
+          .upload(ppath, poster, { contentType: 'image/jpeg', upsert: false })
+        if (pErr) throw pErr
+        posterUrl = supabase.storage.from('drop-media').getPublicUrl(ppath).data.publicUrl
+      } catch {
+        posterUrl = undefined
+      }
+    }
     const ext = (fileName.split('.').pop() || 'mp4').toLowerCase().slice(0, 5)
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`
     const { error: upErr } = await supabase.storage
@@ -53,9 +75,11 @@ export default function VideoReview() {
       .upload(path, b, { contentType: b.type || 'video/mp4', upsert: false })
     if (upErr) throw upErr
     const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
-    setPendingUpload({ url: data.publicUrl, type: 'video' })
+    setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl })
     navigate('/create')
   }
+
+  const coverTime = frames.length > 0 ? frames[Math.min(coverIdx, frames.length - 1)].time : null
 
   const next = async () => {
     if (!blob || !user || tooLong) return
@@ -63,7 +87,7 @@ export default function VideoReview() {
     setBusyLabel('Uploading…')
     setError(null)
     try {
-      await uploadBlob(blob, name)
+      await uploadBlob(blob, name, coverTime)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
     } finally {
@@ -80,7 +104,7 @@ export default function VideoReview() {
     try {
       const trimmed = await trimVideoFront(blob, CLIP_MAX_SECONDS)
       setBusyLabel('Uploading…')
-      await uploadBlob(trimmed, 'clip.mp4')
+      await uploadBlob(trimmed, 'clip.mp4', coverTime)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Trim failed — please retake a shorter clip.')
     } finally {
@@ -125,6 +149,29 @@ export default function VideoReview() {
           {duration != null ? formatDuration(duration) : '…'} / 0:{String(CLIP_MAX_SECONDS).padStart(2, '0')}
         </span>
       </div>
+
+      {frames.length > 0 && (
+        <div className="px-4 pt-3">
+          <div className="mb-1.5 text-center text-[11px] font-black uppercase tracking-widest text-mute">
+            Cover frame
+          </div>
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+            {frames.map((f, i) => (
+              <button
+                key={i}
+                onClick={() => setCoverIdx(i)}
+                disabled={busy}
+                className={`h-16 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                  i === coverIdx ? 'border-lime' : 'border-transparent opacity-60'
+                }`}
+                aria-label={`Use frame ${i + 1} as cover`}
+              >
+                <img src={f.url} alt="" className="h-full w-full object-cover" draggable={false} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {tooLong && (
         <div className="px-4 pt-3">

@@ -6,6 +6,7 @@ const MAX_BYTES = 20 * 1024 * 1024
 export interface UploadedMedia {
   url: string
   type: 'photo' | 'video'
+  posterUrl?: string
 }
 
 /** Photo / short-video upload to the drop-media bucket at <userId>/<uuid>.<ext>. */

@@ -64,7 +64,7 @@ export default function Composer({ editId }: { editId?: string }) {
   useEffect(() => {
     if (editId) return
     const p = takePendingUpload()
-    if (p) setMedia({ url: p.url, type: p.type })
+    if (p) setMedia({ url: p.url, type: p.type, posterUrl: p.posterUrl })
   }, [editId])
 
   // Edit mode: load the drop.
@@ -96,7 +96,7 @@ export default function Composer({ editId }: { editId?: string }) {
         setSiteUrl(d.external_label === 'Official site' ? (d.external_url ?? '') : '')
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
-        if (d.media_url) setMedia({ url: d.media_url, type: d.media_type ?? 'photo' })
+        if (d.media_url) setMedia({ url: d.media_url, type: d.media_type ?? 'photo', posterUrl: d.media_poster_url ?? undefined })
         if (d.score != null) setScore(d.score)
         if (d.latitude != null && d.longitude != null) {
           setPinned({
@@ -176,6 +176,7 @@ export default function Composer({ editId }: { editId?: string }) {
         maps_url: mapsUrl,
         media_url: media?.url ?? null,
         media_type: media?.type ?? null,
+        media_poster_url: media?.posterUrl ?? null,
         external_url: externalUrl,
         external_label: externalLabel,
         tip: tip.trim() || null,

@@ -46,6 +46,7 @@ export interface Drop {
   maps_url: string | null
   media_url: string | null
   media_type: 'photo' | 'video' | null
+  media_poster_url: string | null
   external_url: string | null
   external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | null
   tip: string | null

@@ -188,7 +188,7 @@ export default function DropDetail({ id }: { id: string }) {
       {drop.media_url && (
         <div className="border-b border-line">
           {drop.media_type === 'video' ? (
-            <video src={drop.media_url} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
+            <video src={drop.media_url} poster={drop.media_poster_url ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
           ) : (
             <img src={drop.media_url} alt={drop.title} className="max-h-[420px] w-full object-cover" />
           )}

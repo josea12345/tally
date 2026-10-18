@@ -65,7 +65,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave }: Props) {
           {drop.media_url && (
             <div className="mt-3 overflow-hidden rounded-2xl border border-line">
               {drop.media_type === 'video' ? (
-                <video src={drop.media_url} controls playsInline preload="metadata" className="max-h-96 w-full bg-black" />
+                <video src={drop.media_url} poster={drop.media_poster_url ?? undefined} controls playsInline preload="metadata" className="max-h-96 w-full bg-black" />
               ) : (
                 <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-96 w-full object-cover" />
               )}

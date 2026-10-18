@@ -18,7 +18,7 @@ function stopTracks(stream: MediaStream | null) {
 /**
  * Vine-style in-app camera with a Snapchat-vibe UI: full-screen viewfinder.
  * Tap the big button for a photo. Hold to record — release to pause, hold
- * again to keep building the clip (10s total), checkmark when it's done.
+ * again to keep building the clip (5s total), checkmark when it's done.
  * Falls back to the native camera when the browser won't grant camera access.
  */
 export default function Camera() {
@@ -314,7 +314,7 @@ export default function Camera() {
         <p className="absolute left-0 right-0 top-20 px-6 text-center text-sm font-bold text-red-400">{error}</p>
       )}
 
-      {/* segmented clip progress — Vine-style blocks filling to 10s */}
+      {/* segmented clip progress — Vine-style blocks filling to 5s */}
       {camState === 'live' && (segments.length > 0 || recording) && (
         <div className="absolute left-0 right-0 top-16 px-5">
           <div className="flex h-1 gap-1">

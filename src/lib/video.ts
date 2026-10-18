@@ -1,6 +1,6 @@
-/** Video helpers: duration reads and client-side trimming to the 10s cap. */
+/** Video helpers: duration reads and client-side trimming to the 5s cap. */
 
-export const CLIP_MAX_SECONDS = 10
+export const CLIP_MAX_SECONDS = 5
 
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
