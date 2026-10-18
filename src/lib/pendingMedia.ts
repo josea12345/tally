@@ -1,8 +1,9 @@
-/** One-shot handoff for the camera → filter → composer flow. Not persisted. */
+/** One-shot handoff for the camera → review → composer flow. Not persisted. */
 
-export interface PendingRawPhoto {
+export interface PendingRawMedia {
   blob: Blob
   name: string
+  kind: 'photo' | 'video'
 }
 
 export interface PendingUpload {
@@ -10,14 +11,14 @@ export interface PendingUpload {
   type: 'photo' | 'video'
 }
 
-let raw: PendingRawPhoto | null = null
+let raw: PendingRawMedia | null = null
 let upload: PendingUpload | null = null
 
-export function setPendingRawPhoto(blob: Blob, name: string) {
-  raw = { blob, name }
+export function setPendingRawMedia(blob: Blob, name: string, kind: 'photo' | 'video') {
+  raw = { blob, name, kind }
 }
 
-export function takePendingRawPhoto(): PendingRawPhoto | null {
+export function takePendingRawMedia(): PendingRawMedia | null {
   const p = raw
   raw = null
   return p

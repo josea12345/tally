@@ -6,6 +6,7 @@ import Discover from './pages/Discover'
 import DropDetail from './pages/DropDetail'
 import Composer from './pages/Composer'
 import Filter from './pages/Filter'
+import VideoReview from './pages/VideoReview'
 import Saved from './pages/Saved'
 import Profile from './pages/Profile'
 import People from './pages/People'
@@ -14,7 +15,7 @@ import CameraButton from './components/CameraButton'
 import LeaderboardRail from './components/LeaderboardRail'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'saved' | 'profile' | 'people'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'saved' | 'profile' | 'people'
   param?: string
 }
 
@@ -29,6 +30,7 @@ export function parseHash(): Route {
   if (a === 'profile') return { name: 'profile' }
   if (a === 'create') return { name: 'create' }
   if (a === 'filter') return { name: 'filter' }
+  if (a === 'video') return { name: 'video' }
   if (a === 'saved') return { name: 'saved' }
   if (a === 'people') return { name: 'people' }
   if (a === 'onboarding') return { name: 'onboarding' }
@@ -238,6 +240,8 @@ export default function App() {
         return <Composer />
       case 'filter':
         return <Filter />
+      case 'video':
+        return <VideoReview />
       case 'edit':
         return <Composer editId={route.param!} />
       case 'saved':

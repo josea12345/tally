@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import { PHOTO_FILTERS, applyFilterToBlob } from '../lib/filters'
-import { takePendingRawPhoto, setPendingUpload } from '../lib/pendingMedia'
+import { takePendingRawMedia, setPendingUpload } from '../lib/pendingMedia'
 
 /** After the camera: pick a filter, bake it in, then continue to the composer. */
 export default function Filter() {
@@ -19,8 +19,8 @@ export default function Filter() {
       navigate('/auth')
       return
     }
-    const pending = takePendingRawPhoto()
-    if (!pending) {
+    const pending = takePendingRawMedia()
+    if (!pending || pending.kind !== 'photo') {
       navigate('/create')
       return
     }
