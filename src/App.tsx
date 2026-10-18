@@ -12,13 +12,14 @@ import Profile from './pages/Profile'
 import Search from './pages/Search'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import FollowList from './pages/FollowList'
 import InstallBanner from './components/InstallBanner'
 import TallyIcon from './components/TallyIcon'
 import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following'
   param?: string
 }
 
@@ -29,6 +30,8 @@ export function parseHash(): Route {
   const [a, b] = parts
   if (a === 'drop' && b) return { name: 'drop', param: b }
   if (a === 'edit' && b) return { name: 'edit', param: b }
+  if (a === 'followers' && b) return { name: 'followers', param: b }
+  if (a === 'following' && b) return { name: 'following', param: b }
   if (a === 'profile' && b) return { name: 'profile', param: decodeURIComponent(b) }
   if (a === 'profile') return { name: 'profile' }
   if (a === 'create') return { name: 'create' }
@@ -249,6 +252,10 @@ export default function App() {
         return <Composer editId={route.param!} />
       case 'saved':
         return <Saved />
+      case 'followers':
+        return <FollowList profileId={route.param!} kind="followers" />
+      case 'following':
+        return <FollowList profileId={route.param!} kind="following" />
       case 'profile':
         return <Profile id={route.param} />
       case 'search':

@@ -290,9 +290,6 @@ export default function Profile({ id }: { id?: string }) {
               {profile.display_name || `@${profile.username}`}
             </h1>
             <p className="text-sm text-mute">@{profile.username}{profile.city ? ` · ${profile.city}` : ''}</p>
-            <p className="mt-1 text-sm text-mute">
-              <b className="text-fog">{followers}</b> followers · <b className="text-fog">{following}</b> following
-            </p>
           </div>
           {isOwn ? (
             <div className="flex shrink-0 items-center gap-2">
@@ -375,16 +372,24 @@ export default function Profile({ id }: { id?: string }) {
 
         {/* stat row */}
         <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-          {[
-            ['Drops', stats?.drops ?? 0],
-            ['Saved', stats?.savedByOthers ?? 0],
-            ['Verdicts', stats?.verdictsReceived ?? 0],
-          ].map(([label, val]) => (
-            <div key={label as string} className="rounded-2xl border border-line bg-ink-2 px-2 py-3">
-              <div className="text-xl font-black tabular-nums">{val}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-mute">{label}</div>
-            </div>
-          ))}
+          <div className="rounded-2xl border border-line bg-ink-2 px-2 py-3">
+            <div className="text-xl font-black tabular-nums">{stats?.drops ?? 0}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Drops</div>
+          </div>
+          <button
+            onClick={() => navigate(`/followers/${profile.id}`)}
+            className="press rounded-2xl border border-line bg-ink-2 px-2 py-3"
+          >
+            <div className="text-xl font-black tabular-nums">{followers}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Followers</div>
+          </button>
+          <button
+            onClick={() => navigate(`/following/${profile.id}`)}
+            className="press rounded-2xl border border-line bg-ink-2 px-2 py-3"
+          >
+            <div className="text-xl font-black tabular-nums">{following}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Following</div>
+          </button>
           <div className="rounded-2xl border border-lime/40 bg-lime/5 px-2 py-3" title="Win rate regressed toward 50 until volume earns it. Starts at 50 — real verdicts move it.">
             <div className="text-xl font-black tabular-nums text-lime">
               {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
@@ -406,9 +411,9 @@ export default function Profile({ id }: { id?: string }) {
         )}
         {r && r.rate != null && (
           <p className="mt-2 text-center text-xs text-mute">
-            {r.wins} W · {r.losses} L across {r.total} verdicts — saves don't count as visits.
+            {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
             <br />
-            Taste Score starts at 50 — real verdicts move it.
+            Taste Score starts at 50 — real verdicts move it. Saves don't count as visits.
           </p>
         )}
 
