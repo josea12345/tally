@@ -45,9 +45,13 @@ export interface Drop {
   latitude: number | null
   longitude: number | null
   maps_url: string | null
-  media_url: string | null
-  media_type: 'photo' | 'video' | null
-  media_poster_url: string | null
+  media_url: string | null // legacy single-media (pre-carousel); prefer dropMedia()
+  media_type: 'photo' | 'video' | null // legacy; prefer dropMedia()
+  media_poster_url: string | null // legacy; prefer dropMedia()
+  /** Carousel: parallel arrays, position = order. Item 1 is the cover. */
+  media_urls: string[]
+  media_types: ('photo' | 'video')[]
+  media_poster_urls: (string | null)[]
   external_url: string | null
   external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | null
   tip: string | null
@@ -124,3 +128,32 @@ export type LocationState =
   | { status: 'denied' }
   | { status: 'unavailable' }
   | { status: 'timeout' }
+
+export interface CarouselItem {
+  url: string
+  type: 'photo' | 'video'
+  posterUrl?: string | null
+}
+
+/**
+ * The drop's media as an ordered carousel (item 1 = cover). Reads the arrays;
+ * falls back to the legacy single-media columns for rows written before the
+ * carousel migration — so the feed never breaks mid-rollout.
+ */
+export function dropMedia(d: Pick<Drop, 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_url' | 'media_type' | 'media_poster_url'>): CarouselItem[] {
+  const urls = d.media_urls ?? []
+  if (urls.length > 0) {
+    return urls.map((url, i) => ({
+      url,
+      type: d.media_types?.[i] ?? 'photo',
+      posterUrl: d.media_poster_urls?.[i] ?? null,
+    }))
+  }
+  if (d.media_url) {
+    return [{ url: d.media_url, type: d.media_type ?? 'photo', posterUrl: d.media_poster_url ?? null }]
+  }
+  return []
+}
+
+/** Hard cap: 10 items per carousel, like Instagram. */
+export const MAX_CAROUSEL_ITEMS = 10

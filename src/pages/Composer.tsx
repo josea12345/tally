@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, PlaceSuggestion } from '../lib/types'
-import { ALL_CATEGORIES, CATEGORY_LABELS, isPlaceCategory } from '../lib/types'
+import { ALL_CATEGORIES, CATEGORY_LABELS, MAX_CAROUSEL_ITEMS, dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace, mapsUrlForQuery } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
-import { takePendingUpload } from '../lib/pendingMedia'
+import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
 import EmptyState from '../components/EmptyState'
 
 type LinkKind = 'auto' | 'paste' | 'none'
@@ -44,7 +44,7 @@ export default function Composer({ editId }: { editId?: string }) {
   const [pasteUrl, setPasteUrl] = useState('')
   const [linkKind, setLinkKind] = useState<LinkKind>('auto')
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [media, setMedia] = useState<UploadedMedia | null>(null)
+  const [mediaList, setMediaList] = useState<UploadedMedia[]>([])
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
   const [score, setScore] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -60,12 +60,25 @@ export default function Composer({ editId }: { editId?: string }) {
     setCity((c) => c || profile?.city || 'Miami')
   }, [user, profile])
 
-  // Camera flow: a filtered photo waiting from the filter screen.
+  // Camera flow: a filtered photo or trimmed clip waiting from the camera screens.
+  // Appended to the draft so the carousel survives the camera round-trip.
   useEffect(() => {
     if (editId) return
+    const draft = getDraftMedia()
     const p = takePendingUpload()
-    if (p) setMedia({ url: p.url, type: p.type, posterUrl: p.posterUrl })
+    const next = [...draft]
+    if (p) {
+      next.push({ url: p.url, type: p.type, posterUrl: p.posterUrl })
+    }
+    if (next.length > 0) setMediaList(next.slice(0, MAX_CAROUSEL_ITEMS))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId])
+
+  // Draft autosave: keeps attached media across the camera round-trip (which remounts).
+  useEffect(() => {
+    if (editId) return
+    setDraftMedia(mediaList)
+  }, [mediaList, editId])
 
   // Edit mode: load the drop.
   useEffect(() => {
@@ -96,7 +109,11 @@ export default function Composer({ editId }: { editId?: string }) {
         setSiteUrl(d.external_label === 'Official site' ? (d.external_url ?? '') : '')
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
-        if (d.media_url) setMedia({ url: d.media_url, type: d.media_type ?? 'photo', posterUrl: d.media_poster_url ?? undefined })
+        if (d.media_url || (d.media_urls?.length ?? 0) > 0) {
+          setMediaList(
+            dropMedia(d).map((m) => ({ url: m.url, type: m.type, posterUrl: m.posterUrl ?? undefined })),
+          )
+        }
         if (d.score != null) setScore(d.score)
         if (d.latitude != null && d.longitude != null) {
           setPinned({
@@ -174,9 +191,9 @@ export default function Composer({ editId }: { editId?: string }) {
         latitude: pinned?.latitude ?? null,
         longitude: pinned?.longitude ?? null,
         maps_url: mapsUrl,
-        media_url: media?.url ?? null,
-        media_type: media?.type ?? null,
-        media_poster_url: media?.posterUrl ?? null,
+        media_urls: mediaList.map((m) => m.url),
+        media_types: mediaList.map((m) => m.type),
+        media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
         external_url: externalUrl,
         external_label: externalLabel,
         tip: tip.trim() || null,
@@ -191,6 +208,7 @@ export default function Composer({ editId }: { editId?: string }) {
       } else {
         const { data, error: insErr } = await supabase.from('drops').insert(row).select('id').single()
         if (insErr) throw insErr
+        clearDraftMedia()
         navigate(`/drop/${(data as { id: string }).id}`)
       }
     } catch (e) {
@@ -294,7 +312,12 @@ export default function Composer({ editId }: { editId?: string }) {
       </div>
 
       <div className="mt-3">
-        <MediaUpload userId={user.id} current={media} onUploaded={setMedia} onClear={() => setMedia(null)} />
+        <MediaUpload
+          userId={user.id}
+          items={mediaList}
+          onAdd={(added) => setMediaList((m) => [...m, ...added].slice(0, MAX_CAROUSEL_ITEMS))}
+          onRemove={(i) => setMediaList((m) => m.filter((_, j) => j !== i))}
+        />
       </div>
 
       <button

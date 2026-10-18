@@ -8,6 +8,8 @@ import VerdictBox from '../components/VerdictBox'
 import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
+import MediaCarousel from '../components/MediaCarousel'
+import { dropMedia } from '../lib/types'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import TallyIcon from '../components/TallyIcon'
@@ -186,13 +188,18 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
       )}
 
-      {drop.media_url && (
-        <div className="border-b border-line">
-          {drop.media_type === 'video' ? (
-            <video src={drop.media_url} poster={drop.media_poster_url ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
-          ) : (
-            <img src={drop.media_url} alt={drop.title} className="max-h-[420px] w-full object-cover" />
-          )}
+      {dropMedia(drop).length > 0 && (
+        <div className="border-b border-line px-4 py-3">
+          <MediaCarousel
+            items={dropMedia(drop)}
+            renderItem={(it) =>
+              it.type === 'video' ? (
+                <video src={it.url} poster={it.posterUrl ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
+              ) : (
+                <img src={it.url} alt={drop.title} className="max-h-[420px] w-full object-cover" />
+              )
+            }
+          />
         </div>
       )}
 

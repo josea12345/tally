@@ -6,6 +6,8 @@ import LinkChips from './LinkChips'
 import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
+import MediaCarousel from './MediaCarousel'
+import { dropMedia } from '../lib/types'
 import TallyIcon from './TallyIcon'
 
 interface Props {
@@ -20,6 +22,7 @@ interface Props {
 
 export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0 }: Props) {
   const author = drop.author
+  const items = dropMedia(drop)
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
@@ -102,15 +105,19 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           )}
         </div>
 
-        {drop.media_url ? (
-          <div className="relative mt-3 overflow-hidden rounded-2xl border border-line bg-black" onClick={(e) => e.stopPropagation()}>
-            {drop.media_type === 'video' ? (
-              <FeedVideo src={drop.media_url} poster={drop.media_poster_url} />
-            ) : (
-              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[260px] w-full object-cover" />
-            )}
-            {/* bottom action bar, overlaid on the media */}
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10">
+        {items.length > 0 ? (
+          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+            <MediaCarousel
+              items={items}
+              renderItem={(it) =>
+                it.type === 'video' ? (
+                  <FeedVideo src={it.url} poster={it.posterUrl} />
+                ) : (
+                  <img src={it.url} alt={drop.title} loading="lazy" className="max-h-[260px] w-full object-cover" />
+                )
+              }
+              overlay={
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10">
               <button
                 onClick={toggleSave}
                 aria-label={saved ? 'Untally' : 'Tally'}
@@ -146,6 +153,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
               </button>
             </div>
+              }
+            />
           </div>
         ) : (
           /* text-only drop: compact action row below */

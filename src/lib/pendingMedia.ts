@@ -34,3 +34,25 @@ export function takePendingUpload(): PendingUpload | null {
   upload = null
   return p
 }
+
+/** Composer draft: attached media survives the camera → review → composer
+ * round-trip (which remounts the composer). Cleared on successful post. */
+export interface DraftMediaItem {
+  url: string
+  type: 'photo' | 'video'
+  posterUrl?: string
+}
+
+let draft: DraftMediaItem[] = []
+
+export function getDraftMedia(): DraftMediaItem[] {
+  return draft
+}
+
+export function setDraftMedia(d: DraftMediaItem[]) {
+  draft = d
+}
+
+export function clearDraftMedia() {
+  draft = []
+}

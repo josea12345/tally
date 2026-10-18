@@ -1,6 +1,7 @@
 /** Canvas-rendered 1080×1920 taste card PNG for sharing drops to stories. */
 import type { Drop } from './types'
 import { winRateFor } from './stats'
+import { dropMedia } from './types'
 import type { Verdict } from './types'
 
 const W = 1080
@@ -48,11 +49,12 @@ export async function renderTasteCard(
   ctx.fillStyle = '#0a0a0b'
   ctx.fillRect(0, 0, W, H)
 
-  // Photo or typographic cover (top ~55%)
+  // Photo or typographic cover (top ~55%) — carousel cover = item 1
   const coverH = Math.floor(H * 0.55)
   let drewPhoto = false
-  if (drop.media_url && drop.media_type === 'photo') {
-    const img = await loadImage(drop.media_url)
+  const first = dropMedia(drop)[0]
+  if (first && first.type === 'photo') {
+    const img = await loadImage(first.url)
     if (img) {
       const scale = Math.max(W / img.width, coverH / img.height)
       const dw = img.width * scale

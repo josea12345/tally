@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, Profile } from '../lib/types'
+import { dropMedia } from '../lib/types'
 import { Avatar, navigate } from '../App'
 import FollowButton from '../components/FollowButton'
 import EmptyState from '../components/EmptyState'
@@ -9,7 +10,7 @@ import { timeAgo } from '../lib/format'
 
 type Tab = 'people' | 'drops'
 
-interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'media_type' | 'media_poster_url' | 'media_url'> {
+interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_type' | 'media_poster_url' | 'media_url'> {
   author: Pick<Profile, 'username' | 'display_name' | 'avatar_url'> | null
 }
 
@@ -34,7 +35,7 @@ export default function Search() {
     let live = true
     supabase
       .from('drops')
-      .select('id, title, description, score, created_at, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
+      .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(15)
       .then(({ data }) => {
@@ -63,7 +64,7 @@ export default function Search() {
           .limit(20),
         supabase
           .from('drops')
-          .select('id, title, description, score, created_at, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
+          .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
           .or(`title.ilike.${like},description.ilike.${like}`)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -175,7 +176,8 @@ function PersonRow({ profile: p }: { profile: Profile }) {
 }
 
 function DropRow({ drop: d }: { drop: DropHit }) {
-  const thumb = d.media_type === 'video' ? (d.media_poster_url || undefined) : d.media_url || undefined
+  const first = dropMedia(d)[0]
+  const thumb = first ? (first.type === 'video' ? first.posterUrl || undefined : first.url) : undefined
   return (
     <li>
       <button
