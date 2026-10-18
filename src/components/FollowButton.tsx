@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { notify } from '../lib/notify'
 
 export default function FollowButton({ followeeId, onChange }: { followeeId: string; onChange?: () => void }) {
   const { user } = useAuth()
@@ -36,8 +37,11 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
         await supabase.from('follows').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
         setFollowing(false)
       } else {
-        await supabase.from('follows').insert({ follower_id: user.id, followee_id: followeeId })
-        setFollowing(true)
+        const { error } = await supabase.from('follows').insert({ follower_id: user.id, followee_id: followeeId })
+        if (!error) {
+          setFollowing(true)
+          void notify(followeeId, user.id, 'follow')
+        }
       }
       onChange?.()
     } finally {

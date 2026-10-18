@@ -302,6 +302,7 @@ export default function DropDetail({ id }: { id: string }) {
         <div className="mt-6">
           <Comments
             dropId={drop.id}
+            authorId={drop.author_id}
             onCountChange={(n) => setStats((s) => ({ ...s, comments: n }))}
           />
         </div>

@@ -28,6 +28,7 @@ export interface Profile {
   bio: string | null
   city: string | null
   avatar_url: string | null
+  is_private: boolean
   created_at: string
   updated_at: string
 }

@@ -4,13 +4,16 @@ import { useAuth } from '../context/AuthContext'
 import type { Comment, Profile } from '../lib/types'
 import { timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
+import { notify } from '../lib/notify'
 
 /** Threaded conversation on a drop: list + post + delete-own. */
 export default function Comments({
   dropId,
+  authorId,
   onCountChange,
 }: {
   dropId: string
+  authorId?: string
   onCountChange?: (n: number) => void
 }) {
   const { user } = useAuth()
@@ -63,6 +66,7 @@ export default function Comments({
       setComments(next)
       onCountChange?.(next.length)
       setBody('')
+      if (authorId) void notify(authorId, user.id, 'comment', dropId)
     } catch {
       /* keep the draft; a toast system doesn't exist yet */
     } finally {

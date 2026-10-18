@@ -192,7 +192,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
         {showComments && (
           <div className="pt-2" onClick={(e) => e.stopPropagation()}>
-            <Comments dropId={drop.id} onCountChange={setCommentCount} />
+            <Comments dropId={drop.id} authorId={drop.author_id} onCountChange={setCommentCount} />
           </div>
         )}
       </article>

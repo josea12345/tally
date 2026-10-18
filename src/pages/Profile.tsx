@@ -11,6 +11,7 @@ import BadgeList from '../components/BadgeList'
 import { useFeedVotes } from '../lib/feedVotes'
 import TallyMarks from '../components/TallyMarks'
 import CountUp from '../components/CountUp'
+import Saved from './Saved'
 
 interface ProfileStats {
   drops: number
@@ -34,6 +35,7 @@ export default function Profile({ id }: { id?: string }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ display_name: '', bio: '', city: '', avatar_url: '' })
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
 
   const isOwn = user?.id === profileId
 
@@ -268,12 +270,30 @@ export default function Profile({ id }: { id?: string }) {
         </div>
       </div>
 
-      <div className="px-4 pt-2">
-        <h2 className="py-3 text-lg font-black">
-          {isOwn ? 'Your drops' : `@${profile.username}'s drops`} · {drops.length}
-        </h2>
-      </div>
-      {drops.length === 0 ? (
+      {isOwn ? (
+        <div className="flex gap-2 px-4 pt-4">
+          {(['drops', 'tallies'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-full px-5 py-1.5 text-sm font-black capitalize transition ${
+                tab === t ? 'bg-lime text-ink' : 'border border-line text-mute'
+              }`}
+            >
+              {t === 'drops' ? `Drops · ${drops.length}` : 'Tallies'}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="px-4 pt-2">
+          <h2 className="py-3 text-lg font-black">
+            {`@${profile.username}'s drops`} · {drops.length}
+          </h2>
+        </div>
+      )}
+      {tab === 'tallies' && isOwn ? (
+        <Saved bare />
+      ) : drops.length === 0 ? (
         <EmptyState
           title={isOwn ? 'No drops yet' : 'No drops yet'}
           body={isOwn ? 'Your first put-on is waiting. Drop something worth knowing.' : `Hear @${profile.username} out soon — nothing dropped yet.`}
@@ -292,7 +312,7 @@ export default function Profile({ id }: { id?: string }) {
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setDropStats)}
+            onVote={(v) => vote(d.id, v, setDropStats, d.author_id)}
             revealDelay={(i % 6) * 70}
           />
         ))

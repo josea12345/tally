@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Verdict } from '../lib/types'
 import { navigate } from '../App'
+import { notify } from '../lib/notify'
 
 const TRIED_COPY: Record<string, string> = {
   movies_tv: 'I watched it — mark as tried',
@@ -64,6 +65,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       )
       if (error) throw error
       setJustVoted(verdict)
+      void notify(drop.author_id, user.id, verdict, drop.id)
       onChanged()
     } finally {
       setBusy(false)

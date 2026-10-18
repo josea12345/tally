@@ -8,15 +8,16 @@ import Composer from './pages/Composer'
 import Filter from './pages/Filter'
 import VideoReview from './pages/VideoReview'
 import Saved from './pages/Saved'
-import TallyIcon from './components/TallyIcon'
 import Profile from './pages/Profile'
-import People from './pages/People'
+import Search from './pages/Search'
+import Notifications from './pages/Notifications'
 import InstallBanner from './components/InstallBanner'
+import { useUnreadCount } from './lib/useNotifications'
 import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications'
   param?: string
 }
 
@@ -34,7 +35,8 @@ export function parseHash(): Route {
   if (a === 'video') return { name: 'video' }
   if (a === 'camera') return { name: 'camera' }
   if (a === 'saved') return { name: 'saved' }
-  if (a === 'people') return { name: 'people' }
+  if (a === 'search') return { name: 'search' }
+  if (a === 'notifications') return { name: 'notifications' }
   if (a === 'onboarding') return { name: 'onboarding' }
   if (a === 'auth') return { name: 'auth' }
   return { name: 'home' }
@@ -59,9 +61,10 @@ function useRoute(): Route {
 
 function MobileNav({ route }: { route: Route }) {
   const { profile } = useAuth()
+  const unread = useUnreadCount()
   const active = (n: string) =>
     (route.name === 'home' && n === 'home') || route.name === (n as Route['name'])
-  const tab = (n: { name: 'home' | 'saved' | 'create' | 'profile'; label: string; icon: string }) => (
+  const tab = (n: { name: 'home' | 'search' | 'notifications' | 'profile'; label: string; icon: string; badge?: number }) => (
     <button
       key={n.name}
       onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
@@ -69,17 +72,20 @@ function MobileNav({ route }: { route: Route }) {
       aria-label={n.label}
     >
       <span
-        className={`flex h-8 w-8 items-center justify-center rounded-full text-xl ${
+        className={`relative flex h-8 w-8 items-center justify-center rounded-full text-xl ${
           active(n.name) ? 'bg-lime text-ink' : 'text-mute'
         }`}
       >
-        {n.name === 'saved' ? (
-          <TallyIcon saved={active(n.name)} className="h-5 w-5" />
-        ) : n.name === 'profile' && profile?.avatar_url ? (
+        {n.name === 'profile' && profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
         ) : (
           n.icon
         )}
+        {n.badge ? (
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
+            {n.badge > 9 ? '9+' : n.badge}
+          </span>
+        ) : null}
       </span>
       <span className={`text-[10px] font-semibold ${active(n.name) ? 'text-lime' : 'text-mute'}`}>
         {n.label}
@@ -90,7 +96,7 @@ function MobileNav({ route }: { route: Route }) {
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
-        {tab({ name: 'saved', label: 'Tallies', icon: '♡' })}
+        {tab({ name: 'search', label: 'Search', icon: '⌕' })}
         <div className="flex items-start justify-center">
           <button
             onClick={() => navigate('/camera')}
@@ -107,7 +113,7 @@ function MobileNav({ route }: { route: Route }) {
             </svg>
           </button>
         </div>
-        {tab({ name: 'create', label: 'Create', icon: '+' })}
+        {tab({ name: 'notifications', label: 'Alerts', icon: '🔔', badge: unread })}
         {tab({ name: 'profile', label: 'Profile', icon: '◯' })}
       </div>
     </nav>
@@ -119,8 +125,8 @@ function DesktopRail() {
   const { profile } = useAuth()
   const items = [
     { label: 'Discover', path: '/', match: 'home' },
-    { label: 'People', path: '/people', match: 'people' },
-    { label: 'Tallies', path: '/saved', match: 'saved' },
+    { label: 'Search', path: '/search', match: 'search' },
+    { label: 'Alerts', path: '/notifications', match: 'notifications' },
     { label: 'Profile', path: '/profile', match: 'profile' },
   ]
   return (
@@ -246,8 +252,10 @@ export default function App() {
         return <Saved />
       case 'profile':
         return <Profile id={route.param} />
-      case 'people':
-        return <People />
+      case 'search':
+        return <Search />
+      case 'notifications':
+        return <Notifications />
       case 'home':
       default:
         return user ? <Discover /> : <Landing mode="landing" />

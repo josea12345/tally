@@ -304,7 +304,7 @@ export default function Discover() {
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setStats)}
+            onVote={(v) => vote(d.id, v, setStats, d.author_id)}
             revealDelay={(i % 6) * 70}
           />
         ))

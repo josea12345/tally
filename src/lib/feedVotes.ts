@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
+import { notify } from './notify'
 import type { DropStats } from './types'
 
 export type VoteValue = 'W' | 'L'
@@ -53,6 +54,7 @@ export function useFeedVotes() {
       dropId: string,
       v: VoteValue,
       setStats: React.Dispatch<React.SetStateAction<Map<string, DropStats>>>,
+      authorId?: string,
     ) => {
       if (!user) {
         navigate('/auth')
@@ -68,6 +70,7 @@ export function useFeedVotes() {
           { onConflict: 'user_id,drop_id' },
         )
         if (error) throw error
+        if (authorId) void notify(authorId, user.id, v, dropId)
       } catch {
         // revert the optimistic update
         setMyVotes((m) => {

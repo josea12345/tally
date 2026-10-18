@@ -8,7 +8,7 @@ import EmptyState from '../components/EmptyState'
 
 import { useFeedVotes } from '../lib/feedVotes'
 
-export default function Saved() {
+export default function Saved({ bare = false }: { bare?: boolean }) {
   const { user } = useAuth()
   const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [drops, setDrops] = useState<Drop[]>([])
@@ -75,10 +75,12 @@ export default function Saved() {
 
   return (
     <div>
-      <div className="border-b border-line px-4 pb-3 pt-5">
-        <h1 className="text-2xl font-black tracking-tight">Tallies</h1>
-        <p className="text-sm text-mute">Everything people put you on to.</p>
-      </div>
+      {!bare && (
+        <div className="border-b border-line px-4 pb-3 pt-5">
+          <h1 className="text-2xl font-black tracking-tight">Tallies</h1>
+          <p className="text-sm text-mute">Everything people put you on to.</p>
+        </div>
+      )}
       {drops.length === 0 ? (
         <EmptyState
           title="No tallies yet"
@@ -98,7 +100,7 @@ export default function Saved() {
             saved
             onToggleSave={() => unsave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setStats)}
+            onVote={(v) => vote(d.id, v, setStats, d.author_id)}
             revealDelay={(i % 6) * 70}
           />
         ))
