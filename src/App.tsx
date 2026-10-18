@@ -11,11 +11,11 @@ import Saved from './pages/Saved'
 import Profile from './pages/Profile'
 import People from './pages/People'
 import InstallBanner from './components/InstallBanner'
-import CameraButton from './components/CameraButton'
 import LeaderboardRail from './components/LeaderboardRail'
+import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'saved' | 'profile' | 'people'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people'
   param?: string
 }
 
@@ -31,6 +31,7 @@ export function parseHash(): Route {
   if (a === 'create') return { name: 'create' }
   if (a === 'filter') return { name: 'filter' }
   if (a === 'video') return { name: 'video' }
+  if (a === 'camera') return { name: 'camera' }
   if (a === 'saved') return { name: 'saved' }
   if (a === 'people') return { name: 'people' }
   if (a === 'onboarding') return { name: 'onboarding' }
@@ -88,24 +89,20 @@ function MobileNav({ route }: { route: Route }) {
         {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
         {tab({ name: 'saved', label: 'Saved', icon: '♡' })}
         <div className="flex items-start justify-center">
-          <CameraButton>
-            {(open) => (
-              <button
-                onClick={open}
-                aria-label="Take a photo"
-                className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-7 w-7">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
-                  />
-                  <circle cx="12" cy="13.5" r="3.4" />
-                </svg>
-              </button>
-            )}
-          </CameraButton>
+          <button
+            onClick={() => navigate('/camera')}
+            aria-label="Open camera"
+            className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-7 w-7">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
+              />
+              <circle cx="12" cy="13.5" r="3.4" />
+            </svg>
+          </button>
         </div>
         {tab({ name: 'create', label: 'Create', icon: '+' })}
         {tab({ name: 'profile', label: 'Profile', icon: '◯' })}
@@ -145,24 +142,20 @@ function DesktopRail() {
       >
         Put someone on
       </button>
-      <CameraButton>
-        {(open) => (
-          <button
-            onClick={open}
-            className="mt-2 flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-lg font-bold text-fog transition hover:border-lime hover:text-lime"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
-              />
-              <circle cx="12" cy="13.5" r="3.4" />
-            </svg>
-            Camera
-          </button>
-        )}
-      </CameraButton>
+      <button
+        onClick={() => navigate('/camera')}
+        className="mt-2 flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-lg font-bold text-fog transition hover:border-lime hover:text-lime"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
+          />
+          <circle cx="12" cy="13.5" r="3.4" />
+        </svg>
+        Camera
+      </button>
       {profile && (
         <div className="mt-auto flex items-center gap-3">
           <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={40} />
@@ -242,6 +235,8 @@ export default function App() {
         return <Filter />
       case 'video':
         return <VideoReview />
+      case 'camera':
+        return <Camera />
       case 'edit':
         return <Composer editId={route.param!} />
       case 'saved':
@@ -256,7 +251,7 @@ export default function App() {
     }
   }
 
-  const showChrome = authed
+  const showChrome = authed && route.name !== 'camera'
 
   return (
     <div className="min-h-screen bg-ink text-fog">

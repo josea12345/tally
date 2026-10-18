@@ -10,7 +10,6 @@ import {
   trimVideoFront,
   canTrimVideo,
 } from '../lib/video'
-import CameraButton from '../components/CameraButton'
 
 /** After video capture: preview, enforce the 10s cap (trim or retake), then composer. */
 export default function VideoReview() {
@@ -144,17 +143,13 @@ export default function VideoReview() {
                   {busy ? busyLabel : `Keep first ${CLIP_MAX_SECONDS}s`}
                 </button>
               )}
-              <CameraButton>
-                {(open) => (
-                  <button
-                    onClick={open}
-                    disabled={busy}
-                    className="flex-1 rounded-full border border-line py-2.5 text-sm font-black text-fog disabled:opacity-50"
-                  >
-                    Retake
-                  </button>
-                )}
-              </CameraButton>
+              <button
+                onClick={() => navigate('/camera')}
+                disabled={busy}
+                className="flex-1 rounded-full border border-line py-2.5 text-sm font-black text-fog disabled:opacity-50"
+              >
+                Retake
+              </button>
             </div>
           </div>
         </div>
