@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
+import { useBadges } from '../lib/useBadges'
 
 interface FollowRequest {
   follower_id: string
@@ -16,6 +17,16 @@ export default function Settings() {
   const [requests, setRequests] = useState<FollowRequest[]>([])
   const [busy, setBusy] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [dismissed, setDismissed] = useState<string[]>(profile?.dismissed_badges ?? [])
+  const badges = useBadges(user?.id)
+
+  const restoreBadge = async (id: string) => {
+    if (!user) return
+    const next = dismissed.filter((d) => d !== id)
+    setDismissed(next)
+    await supabase.from('profiles').update({ dismissed_badges: next }).eq('id', user.id)
+    refreshProfile()
+  }
 
   useEffect(() => {
     if (!user) {
@@ -23,6 +34,7 @@ export default function Settings() {
       return
     }
     setIsPrivate(profile?.is_private ?? false)
+    setDismissed(profile?.dismissed_badges ?? [])
     let live = true
     supabase
       .from('follow_requests')
@@ -152,6 +164,39 @@ export default function Settings() {
                 ))}
               </ul>
             )}
+          </div>
+        )}
+      </section>
+
+      {/* badges */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Badges</h2>
+        {dismissed.length === 0 ? (
+          <p className="text-sm leading-relaxed text-mute">
+            Nothing shelved. Badges you dismiss on your profile rest here — restore them anytime.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {dismissed.map((id) => {
+              const b = badges?.find((x) => x.id === id)
+              return (
+                <div key={id} className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-4 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-3 text-lg font-black text-mute">
+                    ✓
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-black">{b?.title ?? id}</div>
+                    {b && <div className="truncate text-xs text-mute">{b.detail}</div>}
+                  </div>
+                  <button
+                    onClick={() => restoreBadge(id)}
+                    className="press shrink-0 rounded-full border border-lime px-4 py-1.5 text-xs font-black text-lime transition hover:bg-lime hover:text-ink"
+                  >
+                    Restore
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </section>

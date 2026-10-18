@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import type { Drop, Verdict } from '../lib/types'
-import { badgesFor, firstDropCount, type Badge } from '../lib/stats'
+import { useBadges } from '../lib/useBadges'
 
 /**
  * "Earned on the record" — transparent badges computed from real verdict data.
  * The profile owner can dismiss a badge (×); dismissal is stored on the
- * profile so it stays gone.
+ * profile so it stays gone (restorable in Settings).
  */
 export default function BadgeList({
   profileId,
@@ -19,35 +16,7 @@ export default function BadgeList({
   dismissed: string[]
   onDismiss: (id: string) => void
 }) {
-  const [badges, setBadges] = useState<Badge[] | null>(null)
-
-  useEffect(() => {
-    let live = true
-    const load = async () => {
-      const [{ data: myDrops }, { data: allDrops }, { data: verdicts }, { data: saves }] = await Promise.all([
-        supabase.from('drops').select('*').eq('author_id', profileId),
-        supabase.from('drops').select('id,author_id,title,city,created_at').limit(5000),
-        supabase.from('verdicts').select('*, drop:drops!inner(id,neighborhood)').limit(5000),
-        supabase.from('saves').select('drop_id').limit(5000),
-      ])
-      if (!live) return
-      const mine = new Set(((myDrops ?? []) as Drop[]).map((d) => d.id))
-      const received = ((verdicts ?? []) as Array<Verdict & { drop: Drop }>).filter((v) =>
-        mine.has(v.drop_id)
-      )
-      const savesPerDrop = new Map<string, number>()
-      for (const s of (saves ?? []) as Array<{ drop_id: string }>) {
-        if (!mine.has(s.drop_id)) continue
-        savesPerDrop.set(s.drop_id, (savesPerDrop.get(s.drop_id) ?? 0) + 1)
-      }
-      const first = firstDropCount(profileId, (allDrops ?? []) as Drop[])
-      setBadges(badgesFor((myDrops ?? []) as Drop[], received, savesPerDrop, first))
-    }
-    load()
-    return () => {
-      live = false
-    }
-  }, [profileId])
+  const badges = useBadges(profileId)
 
   if (badges === null) return <p className="py-3 text-center text-xs text-mute">Checking the record…</p>
 
