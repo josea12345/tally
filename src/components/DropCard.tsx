@@ -113,30 +113,30 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         </div>
 
         <div className="mt-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex gap-2">
             <button
               onClick={(e) => castVote(e, 'W')}
-              className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
+              className={`press flex items-center gap-2 rounded-xl border-2 px-4 py-2 transition ${
                 myVote === 'W'
                   ? 'border-lime bg-lime text-ink'
                   : 'border-lime/50 bg-lime/10 text-lime'
               }`}
               aria-label="Vote W"
             >
-              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-2xl font-black`}>W</span>
-              <span className="text-lg font-black">{formatCount(stats.wins)}</span>
+              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-lg font-black`}>W</span>
+              <span className="text-sm font-black">{formatCount(stats.wins)}</span>
             </button>
             <button
               onClick={(e) => castVote(e, 'L')}
-              className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
+              className={`press flex items-center gap-2 rounded-xl border-2 px-4 py-2 transition ${
                 myVote === 'L'
                   ? 'border-miss bg-miss text-white'
                   : 'border-miss/50 bg-miss/10 text-miss'
               }`}
               aria-label="Vote L"
             >
-              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-2xl font-black`}>L</span>
-              <span className="text-lg font-black">{formatCount(stats.losses)}</span>
+              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-lg font-black`}>L</span>
+              <span className="text-sm font-black">{formatCount(stats.losses)}</span>
             </button>
           </div>
           <button
