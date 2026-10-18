@@ -10,12 +10,12 @@ import LinkChips from '../components/LinkChips'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
-import { hitRateFor } from '../lib/stats'
+import { winRateFor } from '../lib/stats'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile } = useAuth()
   const [drop, setDrop] = useState<Drop | null>(null)
-  const [stats, setStats] = useState<DropStats>({ saves: 0, hits: 0, misses: 0, tried: 0 })
+  const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0 })
   const [myVerdict, setMyVerdict] = useState<Verdict | null>(null)
   const [saved, setSaved] = useState(false)
   const [verdicts, setVerdicts] = useState<Verdict[]>([])
@@ -51,8 +51,8 @@ export default function DropDetail({ id }: { id: string }) {
       setVerdicts(vlist)
       setStats({
         saves: (saves ?? []).length,
-        hits: vlist.filter((v) => v.verdict === 'HIT').length,
-        misses: vlist.filter((v) => v.verdict === 'MISS').length,
+        wins: vlist.filter((v) => v.verdict === 'W').length,
+        losses: vlist.filter((v) => v.verdict === 'L').length,
         tried: vlist.filter((v) => v.tried).length,
       })
 
@@ -74,9 +74,9 @@ export default function DropDetail({ id }: { id: string }) {
           .select('verdict')
           .in('drop_id', aIds)
           .limit(5000)
-        const hr = hitRateFor((aVerdicts ?? []) as Verdict[])
+        const hr = winRateFor((aVerdicts ?? []) as Verdict[])
         setAuthorRate(
-          hr.rate == null ? null : `${Math.round(hr.rate * 100)}% hit rate · ${hr.total} verdicts`
+          hr.rate == null ? null : `${Math.round(hr.rate * 100)}% win rate · ${hr.total} verdicts`
         )
       }
     } catch (e) {
@@ -171,7 +171,7 @@ export default function DropDetail({ id }: { id: string }) {
       {!user && (
         <div className="border-b border-line bg-lime px-4 py-3 text-center">
           <p className="text-sm font-black text-ink">
-            Someone put you on — join TALLY to save it and call HIT or MISS.
+            Someone put you on — join TALLY to save it and call W or L.
           </p>
           <button
             onClick={() => navigate('/auth')}
@@ -297,7 +297,7 @@ export default function DropDetail({ id }: { id: string }) {
           <div className="mt-8 rounded-3xl border border-lime/50 bg-ink-2 p-6 text-center">
             <h3 className="mb-2 text-xl font-black">Don't sleep on this</h3>
             <p className="mb-4 text-sm text-mute">
-              Join TALLY to save this drop, try it, and put your own HIT/MISS on the record.
+              Join TALLY to save this drop, try it, and put your own W/L on the record.
             </p>
             <button
               onClick={() => navigate('/auth')}

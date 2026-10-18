@@ -34,8 +34,8 @@ export default function Saved() {
         const vs = (vts ?? []) as Array<{ verdict: string | null }>
         m.set(d.id, {
           saves: s ?? 0,
-          hits: vs.filter((v) => v.verdict === 'HIT').length,
-          misses: vs.filter((v) => v.verdict === 'MISS').length,
+          wins: vs.filter((v) => v.verdict === 'W').length,
+          losses: vs.filter((v) => v.verdict === 'L').length,
           tried: 0,
         })
       }
@@ -86,7 +86,7 @@ export default function Saved() {
           <DropCard
             key={d.id}
             drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, hits: 0, misses: 0, tried: 0 }}
+            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
             saved
             onToggleSave={() => unsave(d.id)}
           />

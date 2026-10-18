@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Profile, Verdict } from '../lib/types'
-import { hitRateFor } from '../lib/stats'
+import { winRateFor } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 import FollowButton from '../components/FollowButton'
 import TasteTwins from '../components/TasteTwins'
@@ -72,7 +72,7 @@ export default function People() {
       const rated: RatedProfile[] = []
       for (const p of (profiles ?? []) as Profile[]) {
         if (p.id === user?.id || followed.has(p.id)) continue
-        const hr = hitRateFor(perAuthor.get(p.id) ?? [])
+        const hr = winRateFor(perAuthor.get(p.id) ?? [])
         if (hr.rate == null) continue
         rated.push({ ...p, rate: hr.rate, total: hr.total })
       }
@@ -133,7 +133,7 @@ export default function People() {
           {user && (
             <section>
               <h2 className="mb-1 text-sm font-black uppercase tracking-widest text-mute">Taste twins</h2>
-              <p className="mb-3 text-xs text-mute">People who HIT what you HIT.</p>
+              <p className="mb-3 text-xs text-mute">People who take the W on what you take the W on.</p>
               <TasteTwins myId={user.id} />
             </section>
           )}

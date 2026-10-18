@@ -39,7 +39,7 @@ export default function BadgeList({ profileId }: { profileId: string }) {
   if (badges.length === 0) {
     return (
       <p className="py-3 text-center text-xs text-mute">
-        No badges yet — badges are earned from real HITs, not given out.
+        No badges yet — badges are earned from real Ws, not given out.
       </p>
     )
   }

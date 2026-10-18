@@ -74,7 +74,7 @@ export interface Verdict {
   user_id: string
   drop_id: string
   tried: boolean
-  verdict: 'HIT' | 'MISS' | null
+  verdict: 'W' | 'L' | null
   created_at: string
   updated_at: string
   user?: Profile
@@ -89,8 +89,8 @@ export interface Follow {
 
 export interface DropStats {
   saves: number
-  hits: number
-  misses: number
+  wins: number
+  losses: number
   tried: number
 }
 

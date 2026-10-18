@@ -1,21 +1,21 @@
-/** Reputation math: hit rates, badges, leaderboard, taste twins. All from real verdict data. */
+/** Reputation math: win rates, badges, leaderboard, taste twins. All from real verdict data. */
 import type { Drop, Profile, Verdict } from './types'
 import { normKey } from './format'
 
-export interface HitRate {
-  hits: number
-  misses: number
+export interface WinRate {
+  wins: number
+  losses: number
   total: number
   rate: number | null // null when not enough data
 }
 
-export const HIT_RATE_MINIMUM = 5
+export const WIN_RATE_MINIMUM = 5
 
-export function hitRateFor(verdicts: Verdict[]): HitRate {
-  const hits = verdicts.filter((v) => v.verdict === 'HIT').length
-  const misses = verdicts.filter((v) => v.verdict === 'MISS').length
-  const total = hits + misses
-  return { hits, misses, total, rate: total >= HIT_RATE_MINIMUM ? hits / total : null }
+export function winRateFor(verdicts: Verdict[]): WinRate {
+  const wins = verdicts.filter((v) => v.verdict === 'W').length
+  const losses = verdicts.filter((v) => v.verdict === 'L').length
+  const total = wins + losses
+  return { wins, losses, total, rate: total >= WIN_RATE_MINIMUM ? wins / total : null }
 }
 
 export interface Badge {
@@ -37,32 +37,32 @@ export function badgesFor(
 ): Badge[] {
   const badges: Badge[] = []
   const decided = verdictsReceived
-    .filter((v) => v.verdict === 'HIT' || v.verdict === 'MISS')
+    .filter((v) => v.verdict === 'W' || v.verdict === 'L')
     .sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at))
 
-  // HIT streak: consecutive HITs from the most recent verdict.
+  // W streak: consecutive Ws from the most recent verdict.
   let streak = 0
   for (const v of decided) {
-    if (v.verdict === 'HIT') streak++
+    if (v.verdict === 'W') streak++
     else break
   }
   if (streak >= 3) {
-    badges.push({ id: 'streak', title: `${streak} HITs in a row`, detail: `Last ${streak} verdicts were all HITs` })
+    badges.push({ id: 'streak', title: `${streak} Ws in a row`, detail: `Last ${streak} verdicts were all Ws` })
   }
 
-  // Neighborhood oracle: a neighborhood with >=5 verdicts, all HIT.
-  const byHood = new Map<string, { hits: number; total: number }>()
+  // Neighborhood oracle: a neighborhood with >=5 verdicts, all W.
+  const byHood = new Map<string, { wins: number; total: number }>()
   for (const v of decided) {
     const hood = v.drop.neighborhood?.trim()
     if (!hood) continue
-    const e = byHood.get(hood) ?? { hits: 0, total: 0 }
+    const e = byHood.get(hood) ?? { wins: 0, total: 0 }
     e.total++
-    if (v.verdict === 'HIT') e.hits++
+    if (v.verdict === 'W') e.wins++
     byHood.set(hood, e)
   }
   for (const [hood, e] of byHood) {
-    if (e.total >= 5 && e.hits === e.total) {
-      badges.push({ id: `oracle-${hood}`, title: `${hood} Oracle`, detail: `${e.hits} of ${e.total} verdicts were HITs` })
+    if (e.total >= 5 && e.wins === e.total) {
+      badges.push({ id: `oracle-${hood}`, title: `${hood} Oracle`, detail: `${e.wins} of ${e.total} verdicts were Ws` })
       break
     }
   }
@@ -111,9 +111,9 @@ export function firstDropCount(authorId: string, allDrops: Drop[]): number {
 
 export interface LeaderboardRow {
   profile: Profile
-  hitRate: number
-  hits: number
-  misses: number
+  winRate: number
+  wins: number
+  losses: number
   verdicts: number
   charted: boolean
 }
@@ -126,30 +126,30 @@ export function buildLeaderboard(
   verdicts: Array<Verdict & { drop: Drop }>,
   sinceIso: string
 ): LeaderboardRow[] {
-  const per = new Map<string, { hits: number; misses: number }>()
+  const per = new Map<string, { wins: number; losses: number }>()
   for (const v of verdicts) {
     if (v.created_at < sinceIso) continue
-    if (v.verdict !== 'HIT' && v.verdict !== 'MISS') continue
-    const e = per.get(v.drop.author_id) ?? { hits: 0, misses: 0 }
-    if (v.verdict === 'HIT') e.hits++
-    else e.misses++
+    if (v.verdict !== 'W' && v.verdict !== 'L') continue
+    const e = per.get(v.drop.author_id) ?? { wins: 0, losses: 0 }
+    if (v.verdict === 'W') e.wins++
+    else e.losses++
     per.set(v.drop.author_id, e)
   }
   const rows: LeaderboardRow[] = []
   for (const [authorId, e] of per) {
     const profile = profiles.get(authorId)
     if (!profile) continue
-    const total = e.hits + e.misses
+    const total = e.wins + e.losses
     rows.push({
       profile,
-      hitRate: total ? e.hits / total : 0,
-      hits: e.hits,
-      misses: e.misses,
+      winRate: total ? e.wins / total : 0,
+      wins: e.wins,
+      losses: e.losses,
       verdicts: total,
       charted: total >= LEADERBOARD_MINIMUM,
     })
   }
-  rows.sort((a, b) => b.hitRate - a.hitRate || b.verdicts - a.verdicts)
+  rows.sort((a, b) => b.winRate - a.winRate || b.verdicts - a.verdicts)
   return rows
 }
 
@@ -159,18 +159,18 @@ export interface TasteTwin {
   sharedPlaces: string[]
 }
 
-/** People who HIT the same drops I HIT — a discovery graph from verdicts. */
+/** People who called W on the same drops I did — a discovery graph from verdicts. */
 export function tasteTwins(
   myId: string,
-  myHitDropIds: Set<string>,
+  myWinDropIds: Set<string>,
   allVerdicts: Verdict[],
   dropsById: Map<string, Drop>,
   profilesById: Map<string, Profile>
 ): TasteTwin[] {
   const per = new Map<string, { places: Set<string> }>()
   for (const v of allVerdicts) {
-    if (v.user_id === myId || v.verdict !== 'HIT') continue
-    if (!myHitDropIds.has(v.drop_id)) continue
+    if (v.user_id === myId || v.verdict !== 'W') continue
+    if (!myWinDropIds.has(v.drop_id)) continue
     const e = per.get(v.user_id) ?? { places: new Set<string>() }
     const d = dropsById.get(v.drop_id)
     if (d) e.places.add(d.title)

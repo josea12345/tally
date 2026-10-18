@@ -81,10 +81,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave }: Props) {
               <span>{formatCount(stats.saves)}</span>
             </button>
             <span className="flex items-center gap-1.5 font-bold text-mute">
-              <span className="text-lime">▲</span> {formatCount(stats.hits)}
+              <span className="text-lime">▲</span> {formatCount(stats.wins)}
             </span>
             <span className="flex items-center gap-1.5 font-bold text-mute">
-              <span className="text-miss">▼</span> {formatCount(stats.misses)}
+              <span className="text-miss">▼</span> {formatCount(stats.losses)}
             </span>
             <button
               onClick={(e) => {

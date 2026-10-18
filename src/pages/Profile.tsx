@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, DropStats, Profile, Verdict } from '../lib/types'
-import { hitRateFor, HIT_RATE_MINIMUM } from '../lib/stats'
+import { winRateFor, WIN_RATE_MINIMUM } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 import DropCard from '../components/DropCard'
 import EmptyState from '../components/EmptyState'
@@ -13,7 +13,7 @@ interface ProfileStats {
   drops: number
   savedByOthers: number
   verdictsReceived: number
-  rate: ReturnType<typeof hitRateFor>
+  rate: ReturnType<typeof winRateFor>
 }
 
 export default function Profile({ id }: { id?: string }) {
@@ -75,12 +75,12 @@ export default function Profile({ id }: { id?: string }) {
         ])
         savedByOthers = (saves ?? []).length
         verdictsReceived = (vts ?? []) as Verdict[]
-        for (const did of ids) m.set(did, { saves: 0, hits: 0, misses: 0, tried: 0 })
+        for (const did of ids) m.set(did, { saves: 0, wins: 0, losses: 0, tried: 0 })
         for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
         for (const v of verdictsReceived) {
           const e = m.get(v.drop_id)!
-          if (v.verdict === 'HIT') e.hits++
-          else if (v.verdict === 'MISS') e.misses++
+          if (v.verdict === 'W') e.wins++
+          else if (v.verdict === 'L') e.losses++
         }
       }
       if (!live) return
@@ -88,8 +88,8 @@ export default function Profile({ id }: { id?: string }) {
       setStats({
         drops: list.length,
         savedByOthers,
-        verdictsReceived: verdictsReceived.filter((v) => v.verdict === 'HIT' || v.verdict === 'MISS').length,
-        rate: hitRateFor(verdictsReceived),
+        verdictsReceived: verdictsReceived.filter((v) => v.verdict === 'W' || v.verdict === 'L').length,
+        rate: winRateFor(verdictsReceived),
       })
 
       if (user) {
@@ -225,12 +225,12 @@ export default function Profile({ id }: { id?: string }) {
             ['Saved', stats?.savedByOthers ?? 0],
             ['Verdicts', stats?.verdictsReceived ?? 0],
             [
-              'Hit rate',
+              'Win rate',
               r && r.rate != null ? `${Math.round(r.rate * 100)}%` : '—',
             ],
           ].map(([label, val]) => (
             <div key={label as string} className="rounded-2xl border border-line bg-ink-2 px-2 py-3">
-              <div className={`text-xl font-black ${label === 'Hit rate' && r?.rate != null ? 'text-lime' : ''}`}>
+              <div className={`text-xl font-black ${label === 'Win rate' && r?.rate != null ? 'text-lime' : ''}`}>
                 {val}
               </div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-mute">{label}</div>
@@ -239,13 +239,13 @@ export default function Profile({ id }: { id?: string }) {
         </div>
         {r && r.rate == null && (
           <p className="mt-2 text-center text-xs text-mute">
-            Not enough data yet — hit rate appears after {HIT_RATE_MINIMUM} verdicts. Missing verdicts never count as
-            hits.
+            Not enough data yet — win rate appears after {WIN_RATE_MINIMUM} verdicts. Missing verdicts never count as
+            wins.
           </p>
         )}
         {r && r.rate != null && (
           <p className="mt-2 text-center text-xs text-mute">
-            {r.hits} HIT · {r.misses} MISS across {r.total} verdicts — saves don't count as visits.
+            {r.wins} W · {r.losses} L across {r.total} verdicts — saves don't count as visits.
           </p>
         )}
 
@@ -275,7 +275,7 @@ export default function Profile({ id }: { id?: string }) {
           <DropCard
             key={d.id}
             drop={{ ...d, author: profile }}
-            stats={dropStats.get(d.id) ?? { saves: 0, hits: 0, misses: 0, tried: 0 }}
+            stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
           />

@@ -66,7 +66,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">@{r.profile.username}</span>
                   <span className="block text-xs text-mute">
-                    {Math.round(r.hitRate * 100)}% · {r.verdicts} verdicts
+                    {Math.round(r.winRate * 100)}% · {r.verdicts} verdicts
                   </span>
                 </span>
               </button>

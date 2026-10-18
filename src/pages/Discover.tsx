@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Profile, Verdict } from '../lib/types'
 import { MEDIA_CATEGORIES, isPlaceCategory } from '../lib/types'
-import { hitRateFor } from '../lib/stats'
+import { winRateFor } from '../lib/stats'
 import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { Avatar, navigate } from '../App'
@@ -66,12 +66,12 @@ export default function Discover() {
           ])
           if (!live) return
           const m = new Map<string, DropStats>()
-          for (const id of ids) m.set(id, { saves: 0, hits: 0, misses: 0, tried: 0 })
+          for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0 })
           for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
           for (const v of (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; tried?: boolean }>) {
             const e = m.get(v.drop_id)!
-            if (v.verdict === 'HIT') e.hits++
-            else if (v.verdict === 'MISS') e.misses++
+            if (v.verdict === 'W') e.wins++
+            else if (v.verdict === 'L') e.losses++
           }
           setStats(m)
         } else {
@@ -101,7 +101,7 @@ export default function Discover() {
           perAuthor.get(a)!.push(v)
         }
         const rated = [...perAuthor.entries()]
-          .map(([authorId, vs]) => ({ authorId, hr: hitRateFor(vs) }))
+          .map(([authorId, vs]) => ({ authorId, hr: winRateFor(vs) }))
           .filter((x) => x.hr.rate != null)
           .sort((a, b) => b.hr.rate! - a.hr.rate! || b.hr.total - a.hr.total)
           .slice(0, 10)
@@ -293,7 +293,7 @@ export default function Discover() {
           <DropCard
             key={d.id}
             drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, hits: 0, misses: 0, tried: 0 }}
+            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
           />

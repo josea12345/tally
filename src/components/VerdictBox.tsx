@@ -21,14 +21,14 @@ interface Props {
   onChanged: () => void
 }
 
-/** Tried-gate → HIT/MISS → animated poll bar → "Called it" payoff. */
+/** Tried-gate → W/L → animated poll bar → "Called it" payoff. */
 export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props) {
   const { user } = useAuth()
   const [busy, setBusy] = useState(false)
-  const [justVoted, setJustVoted] = useState<'HIT' | 'MISS' | null>(null)
+  const [justVoted, setJustVoted] = useState<'W' | 'L' | null>(null)
 
-  const total = stats.hits + stats.misses
-  const hitPct = total === 0 ? 50 : Math.round((stats.hits / total) * 100)
+  const total = stats.wins + stats.losses
+  const winPct = total === 0 ? 50 : Math.round((stats.wins / total) * 100)
 
   const requireAuth = () => {
     if (!user) {
@@ -54,7 +54,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
     }
   }
 
-  const vote = async (verdict: 'HIT' | 'MISS') => {
+  const vote = async (verdict: 'W' | 'L') => {
     if (!requireAuth() || !user) return
     setBusy(true)
     try {
@@ -79,22 +79,22 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       <p className="mb-3 text-xs text-mute">
         {total === 0
           ? 'No verdicts yet — be the first to call it.'
-          : `${total} ${total === 1 ? 'verdict' : 'verdicts'} · ${hitPct}% say it lived up to the drop`}
+          : `${total} ${total === 1 ? 'verdict' : 'verdicts'} · ${winPct}% took the W`}
       </p>
 
       {/* poll-style split bar */}
       <div className="mb-4 flex h-3 overflow-hidden rounded-full bg-ink-3">
-        <div className="poll-fill bg-lime" style={{ width: `${hitPct}%` }} />
-        <div className="poll-fill bg-miss" style={{ width: `${100 - hitPct}%` }} />
+        <div className="poll-fill bg-lime" style={{ width: `${winPct}%` }} />
+        <div className="poll-fill bg-miss" style={{ width: `${100 - winPct}%` }} />
       </div>
       <div className="mb-4 flex justify-between text-xs font-bold">
-        <span className="text-lime">HIT · {stats.hits}</span>
-        <span className="text-miss">MISS · {stats.misses}</span>
+        <span className="text-lime">W · {stats.wins}</span>
+        <span className="text-miss">L · {stats.losses}</span>
       </div>
 
       {justVoted && (
         <div className="banner-pop mb-4 rounded-xl bg-lime px-4 py-3 text-sm font-black text-ink">
-          {justVoted === 'HIT' ? 'Called it: HIT. They put you on.' : 'Called it: MISS. Honest — that’s the game.'}
+          {justVoted === 'W' ? 'Called it: W. They put you on.' : 'Called it: L. Honest — that’s the game.'}
         </div>
       )}
 
@@ -109,22 +109,22 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => vote('HIT')}
+            onClick={() => vote('W')}
             disabled={busy}
             className={`rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'HIT' ? 'bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
+              myVerdict?.verdict === 'W' ? 'bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
             }`}
           >
-            HIT{myVerdict?.verdict === 'HIT' ? ' ✓' : ''}
+            W{myVerdict?.verdict === 'W' ? ' ✓' : ''}
           </button>
           <button
-            onClick={() => vote('MISS')}
+            onClick={() => vote('L')}
             disabled={busy}
             className={`rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'MISS' ? 'bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
+              myVerdict?.verdict === 'L' ? 'bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
             }`}
           >
-            MISS{myVerdict?.verdict === 'MISS' ? ' ✓' : ''}
+            L{myVerdict?.verdict === 'L' ? ' ✓' : ''}
           </button>
         </div>
       )}

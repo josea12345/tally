@@ -86,7 +86,7 @@ export default function PutOnChain({ drop }: Props) {
   if (events.length <= 1) {
     return (
       <p className="py-2 text-sm text-mute">
-        The chain starts here — save it, try it, and call HIT or MISS to keep it going.
+        The chain starts here — save it, try it, and call W or L to keep it going.
       </p>
     )
   }

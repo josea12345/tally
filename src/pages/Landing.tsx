@@ -133,7 +133,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       <div className="mt-10 grid grid-cols-3 gap-3 text-center">
         {[
           ['Drop', 'Put people onto places, movies, music you love'],
-          ['Visit', 'Save drops, try them, call HIT or MISS'],
+          ['Visit', 'Save drops, try them, call W or L'],
           ['Prove it', 'Your hit rate is your reputation'],
         ].map(([t, b]) => (
           <div key={t} className="rounded-2xl border border-line bg-ink-2 p-4">

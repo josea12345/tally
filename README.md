@@ -2,7 +2,7 @@
 
 A mobile-first social web app where people build a reputation for having great taste.
 Users publish "drops" (place / movie / TV / music recommendations), others save them,
-try them, and call **HIT** or **MISS**. Hit rate is the reputation — transparent,
+try them, and call **W** or **L**. Win rate is the reputation — transparent,
 earned, never faked.
 
 **Stack:** Vite + React + TypeScript + Tailwind CSS v4 + Supabase (Auth, Postgres + RLS, Storage).
@@ -53,9 +53,9 @@ npm run build    # type-checks (tsc --noEmit) then vite build → dist/
 - Email/password auth + short onboarding (unique username with live availability check, display name, bio, avatar, city)
 - Discover with **Put Ons / Following / Near me** tabs, category filters, server-side search, tastemaker rail
 - Drop composer: category chips, place autocomplete (Photon + ArcGIS, category-filtered, GPS-biased via "Locate me"), photo/short-video upload to Supabase Storage, per-category link chips (IMDb / Rotten Tomatoes / Spotify / Official site + auto Google Maps link)
-- Saves, tried-gate, one-changeable HIT/MISS verdict per user per drop, animated poll bar, "Called it" payoff
+- Saves, tried-gate, one-changeable W/L verdict per user per drop, animated poll bar, "Called it" payoff
 - Put-on chains (provenance thread), shareable taste-card PNGs (1080×1920), public drop pages with join banners
-- Profiles: follower/following counts, drops / saved-by-others / verdicts-received / hit rate ("Not enough data yet" under 5 verdicts), earned badges (HIT streaks, neighborhood oracle, first-to-drop-it, crowd favorite)
+- Profiles: follower/following counts, drops / saved-by-others / verdicts-received / win rate ("Not enough data yet" under 5 verdicts), earned badges (W streaks, neighborhood oracle, first-to-drop-it, crowd favorite)
 - People page: people search, who-to-follow (ranked by proven taste), taste twins, weekly city leaderboard
 - PWA: manifest, icons, install banner; mobile bottom nav + desktop 3-column layout
 - Voice throughout: "hear me out", "let me put you on", "don't sleep on this"

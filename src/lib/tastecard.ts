@@ -1,6 +1,6 @@
 /** Canvas-rendered 1080×1920 taste card PNG for sharing drops to stories. */
 import type { Drop } from './types'
-import { hitRateFor } from './stats'
+import { winRateFor } from './stats'
 import type { Verdict } from './types'
 
 const W = 1080
@@ -130,10 +130,10 @@ export async function renderTasteCard(
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
 
-  // hit rate pill
-  const hr = hitRateFor(verdicts)
+  // win rate pill
+  const hr = winRateFor(verdicts)
   const pillText =
-    hr.rate == null ? 'Record still building' : `${Math.round(hr.rate * 100)}% hit rate · ${hr.total} verdicts`
+    hr.rate == null ? 'Record still building' : `${Math.round(hr.rate * 100)}% win rate · ${hr.total} verdicts`
   ctx.font = '700 40px Inter, sans-serif'
   const tw = ctx.measureText(pillText).width
   const px = pad
