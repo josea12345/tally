@@ -175,9 +175,31 @@ async function arcgisDetails(s: ArcGISSuggestion): Promise<PlaceSuggestion | nul
   }
 }
 
-function arcgisFitsCategory(s: PlaceSuggestion, category: Category): boolean {
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Place-type hints that are never a food/drink/retail outing, whatever the name. */
+const NON_VENUE_TYPE_HINTS = [
+  'doctor', 'dentist', 'physician', 'surgeon', 'clinic', 'hospital', 'pharmacy',
+  'lawyer', 'attorney', 'law firm', 'accountant', 'insurance', 'realtor',
+]
+
+function arcgisFitsCategory(s: PlaceSuggestion, query: string, category: Category): boolean {
   const kws = ARCGIS_KEYWORDS[category] ?? []
   if (kws.length === 0) return true
+  const name = s.name.toLowerCase()
+  const q = query.trim().toLowerCase()
+  // Direct name hit: the query matches a whole word in the place name.
+  // Trust the geocoder's own ranking over our type keywords here — e.g.
+  // "Kush Brickell" is typed as Restaurant by ArcGIS, but when the user
+  // typed "kush" looking for the bar, the name match is what matters.
+  // (Word-boundary match, and the type must not be a clear non-venue like
+  // Doctor — so "Kushner David S MD" still fails "kushner".)
+  if (q && new RegExp(`\\b${escapeRegExp(q)}\\b`).test(name)) {
+    const t = (s.type ?? '').toLowerCase()
+    if (!NON_VENUE_TYPE_HINTS.some((h) => t.includes(h))) return true
+  }
   const hay = `${s.name} ${s.type}`.toLowerCase()
   return kws.some((k) => hay.includes(k))
 }
@@ -225,7 +247,7 @@ export async function searchPlaces(
     const ag = await arcgisSuggest(q, origin)
     const details = await Promise.all(ag.map(arcgisDetails))
     for (const d of details) {
-      if (d && arcgisFitsCategory(d, category)) {
+      if (d && arcgisFitsCategory(d, q, category)) {
         d.distanceKm = haversineKm(origin, { lat: d.latitude, lon: d.longitude })
         // keep only genuinely local ArcGIS hits (inside ~120km)
         if ((d.distanceKm ?? 9999) < 120) sugs.push(d)
