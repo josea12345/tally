@@ -2,20 +2,18 @@ export type Category =
   | 'food_drink'
   | 'shops'
   | 'places'
-  | 'movies'
-  | 'tv'
+  | 'movies_tv'
   | 'music'
 
 export const PLACE_CATEGORIES: Category[] = ['food_drink', 'shops', 'places']
-export const MEDIA_CATEGORIES: Category[] = ['movies', 'tv', 'music']
+export const MEDIA_CATEGORIES: Category[] = ['movies_tv', 'music']
 export const ALL_CATEGORIES: Category[] = [...PLACE_CATEGORIES, ...MEDIA_CATEGORIES]
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   food_drink: 'Food & Drink',
   shops: 'Shops',
   places: 'Places',
-  movies: 'Movies',
-  tv: 'TV Shows',
+  movies_tv: 'Movies & TV',
   music: 'Music',
 }
 

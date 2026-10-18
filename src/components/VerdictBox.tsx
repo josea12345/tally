@@ -5,8 +5,7 @@ import type { Category, Drop, DropStats, Verdict } from '../lib/types'
 import { navigate } from '../App'
 
 const TRIED_COPY: Record<string, string> = {
-  movies: 'I watched it — mark as tried',
-  tv: 'I watched it — mark as tried',
+  movies_tv: 'I watched it — mark as tried',
   music: 'I listened — mark as tried',
 }
 

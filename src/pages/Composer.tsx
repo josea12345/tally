@@ -21,16 +21,13 @@ const AUTO_LABEL: Record<string, 'IMDb' | 'Rotten Tomatoes' | 'Spotify'> = {
 function autoLink(category: Category, title: string): { url: string; label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' } | null {
   const t = title.trim()
   if (!t) return null
-  if (category === 'movies') return { url: `https://www.imdb.com/find/?q=${encodeURIComponent(t)}`, label: 'IMDb' }
-  if (category === 'tv')
-    return { url: `https://www.rottentomatoes.com/search?search=${encodeURIComponent(t)}`, label: 'Rotten Tomatoes' }
+  if (category === 'movies_tv') return { url: `https://www.imdb.com/find/?q=${encodeURIComponent(t)}`, label: 'IMDb' }
   if (category === 'music') return { url: `https://open.spotify.com/search/${encodeURIComponent(t)}`, label: 'Spotify' }
   return null
 }
 
 const MEDIA_PLACEHOLDER: Record<string, string> = {
-  movies: 'Movie title…',
-  tv: 'Show title…',
+  movies_tv: 'Movie or show title…',
   music: 'Song, album, or artist…',
 }
 
