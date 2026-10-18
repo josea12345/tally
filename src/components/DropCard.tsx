@@ -80,11 +80,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
         </div>
 
         {drop.media_url && (
-          <div className="-mx-4 mt-3 overflow-hidden border-y border-line bg-black" onClick={(e) => e.stopPropagation()}>
+          <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-black" onClick={(e) => e.stopPropagation()}>
             {drop.media_type === 'video' ? (
               <FeedVideo src={drop.media_url} poster={drop.media_poster_url} />
             ) : (
-              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[380px] w-full object-cover" />
+              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[340px] w-full object-cover" />
             )}
           </div>
         )}
