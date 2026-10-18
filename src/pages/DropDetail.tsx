@@ -256,7 +256,7 @@ export default function DropDetail({ id }: { id: string }) {
             }`}
           >
             <TallyIcon saved={saved} className="h-4 w-4" />
-            {saved ? 'Saved' : 'Save'} · {stats.saves}
+            {saved ? 'Tallied' : 'Tally'} · {stats.saves}
           </button>
           <button
             onClick={copyLink}

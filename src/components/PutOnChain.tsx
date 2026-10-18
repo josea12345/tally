@@ -45,7 +45,7 @@ export default function PutOnChain({ drop }: Props) {
         },
       ]
       for (const s of (savesRes.data ?? []) as Array<Save & { user: Profile }>) {
-        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'saved it' })
+        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'tallied it' })
       }
       for (const v of (verdictsRes.data ?? []) as Array<Verdict & { user: Profile }>) {
         if (v.tried) evts.push({ at: v.updated_at, kind: 'tried', actor: v.user, label: 'tried it' })
@@ -86,7 +86,7 @@ export default function PutOnChain({ drop }: Props) {
   if (events.length <= 1) {
     return (
       <p className="py-2 text-sm text-mute">
-        The chain starts here — save it, try it, and call W or L to keep it going.
+        The chain starts here — tally it, try it, and call W or L to keep it going.
       </p>
     )
   }

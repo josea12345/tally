@@ -101,7 +101,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           <button
             onClick={toggleSave}
             className={`press mt-0.5 flex shrink-0 items-center gap-1 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            aria-label={saved ? 'Unsave' : 'Save'}
+            aria-label={saved ? 'Untally' : 'Tally'}
           >
             <span className={heartPop ? 'heart-pop inline-block' : 'inline-block'}>
               <TallyIcon saved={saved} className="h-5 w-5" />

@@ -90,7 +90,7 @@ function MobileNav({ route }: { route: Route }) {
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
-        {tab({ name: 'saved', label: 'Saved', icon: '♡' })}
+        {tab({ name: 'saved', label: 'Tallies', icon: '♡' })}
         <div className="flex items-start justify-center">
           <button
             onClick={() => navigate('/camera')}
@@ -120,7 +120,7 @@ function DesktopRail() {
   const items = [
     { label: 'Discover', path: '/', match: 'home' },
     { label: 'People', path: '/people', match: 'people' },
-    { label: 'Saved', path: '/saved', match: 'saved' },
+    { label: 'Tallies', path: '/saved', match: 'saved' },
     { label: 'Profile', path: '/profile', match: 'profile' },
   ]
   return (

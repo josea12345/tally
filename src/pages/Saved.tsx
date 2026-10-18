@@ -77,13 +77,13 @@ export default function Saved() {
   return (
     <div>
       <div className="border-b border-line px-4 pb-3 pt-5">
-        <h1 className="text-2xl font-black tracking-tight">Saved</h1>
+        <h1 className="text-2xl font-black tracking-tight">Tallies</h1>
         <p className="text-sm text-mute">Everything people put you on to.</p>
       </div>
       {drops.length === 0 ? (
         <EmptyState
-          title="Nothing saved yet"
-          body="When someone puts you on to something, save it here — your shortlist of things worth trying."
+          title="No tallies yet"
+          body="When someone puts you on to something, tally it here — your shortlist of things worth trying."
           action={
             <button onClick={() => navigate('/')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
               Find a put-on
