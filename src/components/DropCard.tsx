@@ -115,17 +115,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
           >
             <span className="text-base">💬</span> {formatCount(stats.comments)}
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const url = `${window.location.origin}${window.location.pathname}#/drop/${drop.id}`
-              navigator.clipboard?.writeText(url).catch(() => {})
-            }}
-            className="press ml-auto text-mute transition hover:text-lime"
-            aria-label="Copy link"
-          >
-            ⤴
-          </button>
         </div>
       </article>
     </Reveal>
