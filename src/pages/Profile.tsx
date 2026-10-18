@@ -21,7 +21,7 @@ interface ProfileStats {
 
 export default function Profile({ id }: { id?: string }) {
   const { user, refreshProfile } = useAuth()
-  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
+  const { myVotes, triedIds, setVotesFromRows, vote } = useFeedVotes()
   const profileId = id ?? user?.id
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<ProfileStats | null>(null)
@@ -293,6 +293,7 @@ export default function Profile({ id }: { id?: string }) {
             onToggleSave={() => toggleSave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setDropStats)}
+            tried={triedIds.has(d.id)}
             revealDelay={(i % 6) * 70}
           />
         ))

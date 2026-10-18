@@ -13,14 +13,16 @@ interface Props {
   onToggleSave: () => void
   myVote: 'W' | 'L' | null
   onVote: (v: 'W' | 'L') => void
+  tried: boolean
   revealDelay?: number
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0 }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, tried, revealDelay = 0 }: Props) {
   const author = drop.author
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
+  const [confirming, setConfirming] = useState<'W' | 'L' | null>(null)
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -31,11 +33,22 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onToggleSave()
   }
 
-  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
-    e.stopPropagation()
+  const doVote = (v: 'W' | 'L') => {
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 380)
     onVote(v)
+  }
+
+  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
+    e.stopPropagation()
+    if (tried || myVote) {
+      // already tried (or already voted) — vote lands immediately
+      setConfirming(null)
+      doVote(v)
+    } else {
+      // quick check: confirm you've tried it before the verdict counts
+      setConfirming((c) => (c === v ? null : v))
+    }
   }
 
   return (
@@ -84,6 +97,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               {drop.description}
             </p>
           </div>
+          <button
+            onClick={toggleSave}
+            className={`press mt-0.5 flex shrink-0 items-center gap-1 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
+            aria-label={saved ? 'Unsave' : 'Save'}
+          >
+            <span className={heartPop ? 'heart-pop inline-block text-lg' : 'inline-block text-lg'}>
+              {saved ? '♥' : '♡'}
+            </span>
+            <span className="text-xs">{formatCount(stats.saves)}</span>
+          </button>
         </div>
 
         {drop.media_url && (
@@ -101,38 +124,61 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         </div>
 
         <div className="mt-2.5 flex items-center gap-5 text-sm">
-          <button
-            onClick={toggleSave}
-            className={`press flex items-center gap-1.5 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            aria-label={saved ? 'Unsave' : 'Save'}
-          >
-            <span className={`text-lg ${heartPop && saved ? 'heart-pop' : ''}`}>{saved ? '♥' : '♡'}</span>
-            <span>{formatCount(stats.saves)}</span>
-          </button>
-          <button
-            onClick={(e) => castVote(e, 'W')}
-            className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            aria-label="Vote W"
-          >
-            <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span> {formatCount(stats.wins)}
-          </button>
-          <button
-            onClick={(e) => castVote(e, 'L')}
-            className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
-            aria-label="Vote L"
-          >
-            <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span> {formatCount(stats.losses)}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/drop/${drop.id}`)
-            }}
-            className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
-            aria-label="Comments"
-          >
-            <span className="text-base">💬</span> {formatCount(stats.comments)}
-          </button>
+          {confirming ? (
+            <>
+              <span className="text-xs font-bold text-fog">Tried it?</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirming(null)
+                  doVote(confirming)
+                }}
+                className={`press rounded-full px-3 py-1 text-sm font-black ${
+                  confirming === 'W' ? 'bg-lime text-graphite' : 'bg-miss text-white'
+                }`}
+                aria-label={`Confirm ${confirming} vote`}
+              >
+                ✓ {confirming}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirming(null)
+                }}
+                className="press font-bold text-mute transition hover:text-fog"
+                aria-label="Cancel vote"
+              >
+                ✕
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={(e) => castVote(e, 'W')}
+                className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
+                aria-label="Vote W"
+              >
+                <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span> {formatCount(stats.wins)}
+              </button>
+              <button
+                onClick={(e) => castVote(e, 'L')}
+                className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
+                aria-label="Vote L"
+              >
+                <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span> {formatCount(stats.losses)}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/drop/${drop.id}`)
+                }}
+                className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
+                aria-label="Comments"
+              >
+                <span className="text-base">💬</span> {formatCount(stats.comments)}
+              </button>
+            </>
+          )}
         </div>
       </article>
     </Reveal>

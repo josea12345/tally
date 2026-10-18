@@ -32,18 +32,24 @@ function shifted(
 export function useFeedVotes() {
   const { user } = useAuth()
   const [myVotes, setMyVotes] = useState<Map<string, VoteValue>>(new Map())
+  const [triedIds, setTriedIds] = useState<Set<string>>(new Set())
 
   const setVotesFromRows = useCallback(
-    (rows: Array<{ drop_id: string; verdict: string | null; user_id?: string }>) => {
+    (rows: Array<{ drop_id: string; verdict: string | null; user_id?: string; tried?: boolean }>) => {
       if (!user) {
         setMyVotes(new Map())
+        setTriedIds(new Set())
         return
       }
       const m = new Map<string, VoteValue>()
+      const t = new Set<string>()
       for (const r of rows) {
-        if (r.user_id === user.id && (r.verdict === 'W' || r.verdict === 'L')) m.set(r.drop_id, r.verdict)
+        if (r.user_id !== user.id) continue
+        if (r.verdict === 'W' || r.verdict === 'L') m.set(r.drop_id, r.verdict)
+        if (r.tried) t.add(r.drop_id)
       }
       setMyVotes(m)
+      setTriedIds(t)
     },
     [user],
   )
@@ -60,7 +66,9 @@ export function useFeedVotes() {
       }
       const prev = myVotes.get(dropId) ?? null
       if (prev === v) return
+      const wasTried = triedIds.has(dropId)
       setMyVotes((m) => new Map(m).set(dropId, v))
+      if (!wasTried) setTriedIds((s) => new Set(s).add(dropId))
       setStats((m) => shifted(m, dropId, prev, v))
       try {
         const { error } = await supabase.from('verdicts').upsert(
@@ -76,11 +84,17 @@ export function useFeedVotes() {
           else n.delete(dropId)
           return n
         })
+        if (!wasTried)
+          setTriedIds((s) => {
+            const n = new Set(s)
+            n.delete(dropId)
+            return n
+          })
         setStats((m) => shifted(m, dropId, v, prev))
       }
     },
-    [user, myVotes],
+    [user, myVotes, triedIds],
   )
 
-  return { myVotes, setVotesFromRows, vote }
+  return { myVotes, triedIds, setVotesFromRows, vote }
 }
