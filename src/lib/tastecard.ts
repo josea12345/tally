@@ -133,7 +133,7 @@ export async function renderTasteCard(
   // win rate pill (+ author's call when they scored it)
   const hr = winRateFor(verdicts)
   const pillText =
-    hr.rate == null ? 'Record still building' : `${Math.round(hr.rate * 100)}% win rate · ${hr.total} verdicts`
+    hr.rate == null ? 'Record still building' : `Taste Score ${hr.score} · ${hr.total} verdicts`
   const callText = drop.score != null ? `${authorName}'s call: ${drop.score}/10` : null
   ctx.font = '700 40px Inter, sans-serif'
   const tw = ctx.measureText(pillText).width

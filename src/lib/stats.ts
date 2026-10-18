@@ -7,15 +7,28 @@ export interface WinRate {
   losses: number
   total: number
   rate: number | null // null when not enough data
+  /** Taste Score (0–100): win rate regressed toward 50 until volume earns it. */
+  score: number
 }
 
 export const WIN_RATE_MINIMUM = 5
+
+/**
+ * Taste Score: Bayesian win rate with a 50% prior (2 phantom Ws, 2 phantom Ls).
+ * 5W/0L scores 78, not 100 — small samples don't prove much. 90W/10L scores 88
+ * and outranks it, because volume earned it. New voices start at 50; every real
+ * verdict pulls the score toward the truth. Always explainable: the raw W/L
+ * stays visible next to it.
+ */
+export function tasteScoreFor(wins: number, losses: number): number {
+  return Math.round((100 * (wins + 2)) / (wins + losses + 4))
+}
 
 export function winRateFor(verdicts: Verdict[]): WinRate {
   const wins = verdicts.filter((v) => v.verdict === 'W').length
   const losses = verdicts.filter((v) => v.verdict === 'L').length
   const total = wins + losses
-  return { wins, losses, total, rate: total >= WIN_RATE_MINIMUM ? wins / total : null }
+  return { wins, losses, total, rate: total >= WIN_RATE_MINIMUM ? wins / total : null, score: tasteScoreFor(wins, losses) }
 }
 
 export interface Badge {
@@ -112,6 +125,8 @@ export function firstDropCount(authorId: string, allDrops: Drop[]): number {
 export interface LeaderboardRow {
   profile: Profile
   winRate: number
+  /** Taste Score — the leaderboard sorts by this, not raw win rate. */
+  score: number
   wins: number
   losses: number
   verdicts: number
@@ -143,13 +158,14 @@ export function buildLeaderboard(
     rows.push({
       profile,
       winRate: total ? e.wins / total : 0,
+      score: tasteScoreFor(e.wins, e.losses),
       wins: e.wins,
       losses: e.losses,
       verdicts: total,
       charted: total >= LEADERBOARD_MINIMUM,
     })
   }
-  rows.sort((a, b) => b.winRate - a.winRate || b.verdicts - a.verdicts)
+  rows.sort((a, b) => b.score - a.score || b.verdicts - a.verdicts)
   return rows
 }
 

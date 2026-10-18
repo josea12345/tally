@@ -50,7 +50,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
       <div className="mb-1 text-sm font-black">This week's tastemakers</div>
       <p className="mb-3 text-xs text-mute">
-        {city} · win rate, last 7 days · {LEADERBOARD_MINIMUM}+ verdicts to chart
+        {city} · taste score, last 7 days · {LEADERBOARD_MINIMUM}+ verdicts to chart
       </p>
       {rows.length === 0 ? (
         <p className="text-xs text-mute">
@@ -66,7 +66,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">@{r.profile.username}</span>
                   <span className="block text-xs text-mute">
-                    {Math.round(r.winRate * 100)}% · {r.verdicts} verdicts
+                    <b className="text-lime">{r.score}</b> · {r.verdicts} verdicts
                   </span>
                 </span>
               </button>

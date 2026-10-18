@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import Reveal from '../components/Reveal'
 import TallyMarks from '../components/TallyMarks'
+import { tasteScoreFor } from '../lib/stats'
 
 const PHRASES = ['Hear me out', 'Let me put you on', 'Trust me on this one', "Don't sleep on this"]
 
@@ -108,7 +109,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
           {[
             ['📍', 'Drop it', 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.'],
             ['🔖', 'They try it', 'Friends tally your drop, go try it for real, and vote.'],
-            ['⚖️', 'You get the record', 'Every W and L feeds your public win rate. Missing verdicts never count as wins.'],
+            ['⚖️', 'You get the record', 'Every W and L feeds your public Taste Score. Missing verdicts never count as wins.'],
           ].map(([icon, title, body], i) => (
             <Reveal key={title} delay={i * 100}>
               <div className="h-full rounded-3xl border border-line bg-ink-2 p-6">
@@ -137,8 +138,8 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
           <Reveal delay={120}>
             <div className="mt-8 max-w-xl rounded-3xl border border-lime/40 bg-ink p-6">
               <div className="mb-3 flex items-baseline justify-between">
-                <span className="text-sm font-black uppercase tracking-widest text-mute">@you · win rate</span>
-                <span className="font-display text-4xl font-black text-lime">91%</span>
+                <span className="text-sm font-black uppercase tracking-widest text-mute">@you · taste score</span>
+                <span className="font-display text-4xl font-black text-lime">81</span>
               </div>
               <TallyMarks wins={11} losses={1} />
               <p className="mt-3 text-xs text-mute">11 W · 1 L across 12 verdicts — saves don't count as visits.</p>
@@ -220,7 +221,7 @@ function DemoCard() {
   }
 
   const total = wins + losses
-  const pct = Math.round((wins / total) * 100)
+  const score = tasteScoreFor(wins, losses)
 
   return (
     <div
@@ -253,7 +254,7 @@ function DemoCard() {
         <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-ink-3">
           <div
             className="h-full rounded-full bg-gradient-to-r from-lime to-lime-dim transition-all duration-500"
-            style={{ width: `${pct}%` }}
+            style={{ width: `${score}%` }}
           />
         </div>
         <div className="flex gap-3">
@@ -275,7 +276,7 @@ function DemoCard() {
           ))}
         </div>
         <p className="mt-3 text-center text-xs text-mute">
-          <b className="text-lime">{pct}%</b> called W · your vote is your verdict
+          <b className="text-lime">{score}</b> taste score · your vote moves it
         </p>
       </div>
     </div>

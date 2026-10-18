@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, DropStats, Profile, Verdict } from '../lib/types'
@@ -87,6 +87,8 @@ export default function Profile({ id }: { id?: string }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ display_name: '', bio: '', city: '', avatar_url: '' })
   const [saving, setSaving] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarFileRef = useRef<HTMLInputElement | null>(null)
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
   const [isFollowing, setIsFollowing] = useState(false)
 
@@ -204,8 +206,29 @@ export default function Profile({ id }: { id?: string }) {
     }
   }
 
-  const saveProfile = async () => {
-    if (!user || !isOwn) return
+  const onAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f || !user) return
+    setAvatarError(null)
+    setSaving(true)
+    try {
+      const path = `${user.id}/avatar.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(path, f, {
+        upsert: true,
+        contentType: f.type || 'image/jpeg',
+      })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      setForm((fr) => ({ ...fr, avatar_url: `${data.publicUrl}?t=${Date.now()}` }))
+    } catch {
+      setAvatarError("Couldn't upload — try again in a bit.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveProfile = async () => {    if (!user || !isOwn) return
     setSaving(true)
     try {
       await supabase
@@ -282,7 +305,32 @@ export default function Profile({ id }: { id?: string }) {
 
         {editing && isOwn && (
           <div className="rise-in mt-4 space-y-3 rounded-2xl border border-line bg-ink-2 p-4">
-            {(['display_name', 'city', 'avatar_url'] as const).map((k) => (
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                className="relative shrink-0"
+                aria-label="Upload profile photo"
+              >
+                <Avatar url={form.avatar_url || null} name={form.display_name || profile.username} size={64} />
+                <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-lime text-sm text-ink shadow">
+                  📷
+                </span>
+              </button>
+              <div className="min-w-0">
+                <div className="text-sm font-bold">Profile photo</div>
+                <div className="text-xs text-mute">Tap the photo to upload a new one.</div>
+                {avatarError && <div className="mt-1 text-xs font-bold text-miss">{avatarError}</div>}
+              </div>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onAvatarPick}
+              />
+            </div>
+            {(['display_name', 'city'] as const).map((k) => (
               <div key={k}>
                 <label className="mb-1 block text-xs font-bold capitalize text-mute">{k.replace('_', ' ')}</label>
                 <input
@@ -324,11 +372,11 @@ export default function Profile({ id }: { id?: string }) {
               <div className="text-[10px] font-bold uppercase tracking-widest text-mute">{label}</div>
             </div>
           ))}
-          <div className="rounded-2xl border border-lime/40 bg-lime/5 px-2 py-3">
+          <div className="rounded-2xl border border-lime/40 bg-lime/5 px-2 py-3" title="Win rate regressed toward 50 until volume earns it. Starts at 50 — real verdicts move it.">
             <div className="text-xl font-black tabular-nums text-lime">
-              {r && r.rate != null ? <CountUp value={Math.round(r.rate * 100)} suffix="%" /> : '—'}
+              {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Win rate</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Taste Score</div>
           </div>
         </div>
         {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
@@ -346,6 +394,8 @@ export default function Profile({ id }: { id?: string }) {
         {r && r.rate != null && (
           <p className="mt-2 text-center text-xs text-mute">
             {r.wins} W · {r.losses} L across {r.total} verdicts — saves don't count as visits.
+            <br />
+            Taste Score starts at 50 — real verdicts move it.
           </p>
         )}
 
