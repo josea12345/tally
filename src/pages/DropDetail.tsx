@@ -238,6 +238,42 @@ export default function DropDetail({ id }: { id: string }) {
             </div>
           </div>
         )}
+        {drop.category === 'recipes' && (drop.ingredients.length > 0 || drop.instructions.length > 0) && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-line">
+            {drop.ingredients.length > 0 && (
+              <div className="bg-ink-2 p-4">
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-lime">
+                  Ingredients · {drop.ingredients.length}
+                </div>
+                <ul className="space-y-1.5">
+                  {drop.ingredients.map((ing, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[15px]">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime" />
+                      <span>{ing}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {drop.instructions.length > 0 && (
+              <div className="border-t border-line bg-ink p-4">
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-lime">
+                  Steps · {drop.instructions.length}
+                </div>
+                <ol className="space-y-2.5">
+                  {drop.instructions.map((step, i) => (
+                    <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-black text-ink">
+                        {i + 1}
+                      </span>
+                      <span className="pt-0.5">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        )}
         {drop.tip && (
           <div className="mt-3 rounded-2xl border border-lime/40 bg-ink-2 p-4">
             <div className="mb-1 text-xs font-black uppercase tracking-widest text-lime">

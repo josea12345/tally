@@ -30,7 +30,14 @@ function autoLink(category: Category, title: string): { url: string; label: 'IMD
 const MEDIA_PLACEHOLDER: Record<string, string> = {
   movies_tv: 'Movie or show title…',
   music: 'Song, album, or artist…',
+  recipes: 'Dish name…',
 }
+
+const parseLines = (s: string): string[] =>
+  s
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 
 export default function Composer({ editId }: { editId?: string }) {
   const { user, profile } = useAuth()
@@ -45,6 +52,8 @@ export default function Composer({ editId }: { editId?: string }) {
   const [linkKind, setLinkKind] = useState<LinkKind>('auto')
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [mediaList, setMediaList] = useState<UploadedMedia[]>([])
+  const [ingredientsText, setIngredientsText] = useState('')
+  const [instructionsText, setInstructionsText] = useState('')
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
   const [score, setScore] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -115,6 +124,8 @@ export default function Composer({ editId }: { editId?: string }) {
           )
         }
         if (d.score != null) setScore(d.score)
+        if ((d.ingredients?.length ?? 0) > 0) setIngredientsText(d.ingredients.join('\n'))
+        if ((d.instructions?.length ?? 0) > 0) setInstructionsText(d.instructions.join('\n'))
         if (d.latitude != null && d.longitude != null) {
           setPinned({
             id: 'pinned',
@@ -194,6 +205,8 @@ export default function Composer({ editId }: { editId?: string }) {
         media_urls: mediaList.map((m) => m.url),
         media_types: mediaList.map((m) => m.type),
         media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
+        ingredients: category === 'recipes' ? parseLines(ingredientsText) : [],
+        instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,
         external_label: externalLabel,
         tip: tip.trim() || null,
@@ -271,6 +284,35 @@ export default function Composer({ editId }: { editId?: string }) {
           placeholder={MEDIA_PLACEHOLDER[category]}
           className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-lime"
         />
+      )}
+
+      {category === 'recipes' && (
+        <>
+          <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
+              Ingredients <span className="text-mute/60">— one per line</span>
+            </label>
+            <textarea
+              value={ingredientsText}
+              onChange={(e) => setIngredientsText(e.target.value)}
+              placeholder={'2 cups flour\n1 tsp salt\n3 eggs…'}
+              rows={4}
+              className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-mute/60"
+            />
+          </div>
+          <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
+              Steps <span className="text-mute/60">— one per line</span>
+            </label>
+            <textarea
+              value={instructionsText}
+              onChange={(e) => setInstructionsText(e.target.value)}
+              placeholder={'Mix the dry ingredients…\nFold in the eggs…'}
+              rows={4}
+              className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-mute/60"
+            />
+          </div>
+        </>
       )}
 
       <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">

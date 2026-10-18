@@ -93,6 +93,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               <span className="font-bold text-lime">Hear me out — </span>
               {drop.description}
             </p>
+            {drop.category === 'recipes' && (drop.ingredients.length > 0 || drop.instructions.length > 0) && (
+              <p className="mt-1 text-xs font-bold text-mute">
+                Recipe · {drop.ingredients.length} ingredients · {drop.instructions.length} steps
+              </p>
+            )}
           </div>
           {drop.score != null && (
             <div

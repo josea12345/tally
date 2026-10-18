@@ -4,10 +4,11 @@ export type Category =
   | 'places'
   | 'movies_tv'
   | 'music'
+  | 'recipes'
 
 export const PLACE_CATEGORIES: Category[] = ['food_drink', 'shops', 'places']
 export const MEDIA_CATEGORIES: Category[] = ['movies_tv', 'music']
-export const ALL_CATEGORIES: Category[] = [...PLACE_CATEGORIES, ...MEDIA_CATEGORIES]
+export const ALL_CATEGORIES: Category[] = [...PLACE_CATEGORIES, ...MEDIA_CATEGORIES, 'recipes']
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   food_drink: 'Food & Drink',
@@ -15,6 +16,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   places: 'Places',
   movies_tv: 'Movies & TV',
   music: 'Music',
+  recipes: 'Recipes',
 }
 
 export function isPlaceCategory(c: Category): boolean {
@@ -52,6 +54,9 @@ export interface Drop {
   media_urls: string[]
   media_types: ('photo' | 'video')[]
   media_poster_urls: (string | null)[]
+  /** Recipes: one ingredient per line, one step per line. */
+  ingredients: string[]
+  instructions: string[]
   external_url: string | null
   external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | null
   tip: string | null

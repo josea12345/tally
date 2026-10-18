@@ -8,6 +8,7 @@ import { notify, unnotifyVote } from '../lib/notify'
 const TRIED_COPY: Record<string, string> = {
   movies_tv: 'I watched it — mark as tried',
   music: 'I listened — mark as tried',
+  recipes: 'I cooked it — mark as tried',
 }
 
 function triedLabel(category: Category): string {
