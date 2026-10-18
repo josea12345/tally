@@ -16,6 +16,7 @@
 html {
   background: var(--color-ink);
   color: var(--color-fog);
+  overflow-x: clip;
 }
 
 body {
@@ -24,6 +25,7 @@ body {
   color: var(--color-fog);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  overflow-x: clip;
 }
 
 ::selection {
