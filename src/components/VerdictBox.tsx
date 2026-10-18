@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Verdict } from '../lib/types'
 import { navigate } from '../App'
-import { notify } from '../lib/notify'
+import { notify, unnotifyVote } from '../lib/notify'
 
 const TRIED_COPY: Record<string, string> = {
   movies_tv: 'I watched it — mark as tried',
@@ -58,14 +58,26 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
     if (!requireAuth() || !user) return
     setBusy(true)
     try {
-      // Tried-gate: must be tried before a verdict counts.
-      const { error } = await supabase.from('verdicts').upsert(
-        { user_id: user.id, drop_id: drop.id, tried: true, verdict },
-        { onConflict: 'user_id,drop_id' }
-      )
-      if (error) throw error
-      setJustVoted(verdict)
-      void notify(drop.author_id, user.id, verdict, drop.id)
+      if (myVerdict?.verdict === verdict) {
+        // Retract: tapping the active verdict again takes the call back.
+        const { error } = await supabase
+          .from('verdicts')
+          .update({ verdict: null })
+          .eq('user_id', user.id)
+          .eq('drop_id', drop.id)
+        if (error) throw error
+        setJustVoted(null)
+        void unnotifyVote(drop.author_id, user.id, drop.id)
+      } else {
+        // Tried-gate: must be tried before a verdict counts.
+        const { error } = await supabase.from('verdicts').upsert(
+          { user_id: user.id, drop_id: drop.id, tried: true, verdict },
+          { onConflict: 'user_id,drop_id' }
+        )
+        if (error) throw error
+        setJustVoted(verdict)
+        void notify(drop.author_id, user.id, verdict, drop.id)
+      }
       onChanged()
     } finally {
       setBusy(false)

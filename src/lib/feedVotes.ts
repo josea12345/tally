@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
-import { notify } from './notify'
+import { notify, unnotifyVote } from './notify'
 import type { DropStats } from './types'
 
 export type VoteValue = 'W' | 'L'
@@ -61,7 +61,29 @@ export function useFeedVotes() {
         return
       }
       const prev = myVotes.get(dropId) ?? null
-      if (prev === v) return
+      if (prev === v) {
+        // Retract: tapping your active vote again takes the call back (tried stays true).
+        setMyVotes((m) => {
+          const n = new Map(m)
+          n.delete(dropId)
+          return n
+        })
+        setStats((m) => shifted(m, dropId, prev, null))
+        try {
+          const { error } = await supabase
+            .from('verdicts')
+            .update({ verdict: null })
+            .eq('user_id', user.id)
+            .eq('drop_id', dropId)
+          if (error) throw error
+          if (authorId) void unnotifyVote(authorId, user.id, dropId)
+        } catch {
+          // revert the optimistic update
+          setMyVotes((m) => new Map(m).set(dropId, v))
+          setStats((m) => shifted(m, dropId, null, v))
+        }
+        return
+      }
       setMyVotes((m) => new Map(m).set(dropId, v))
       setStats((m) => shifted(m, dropId, prev, v))
       try {

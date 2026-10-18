@@ -54,3 +54,23 @@ export async function notify(
     // notifications are best-effort — never break the action that triggered them
   }
 }
+
+/** Remove a vote notification (e.g. the voter retracted their call). */
+export async function unnotifyVote(
+  recipientId: string,
+  actorId: string,
+  dropId: string,
+): Promise<void> {
+  if (!recipientId || recipientId === actorId) return
+  try {
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', recipientId)
+      .eq('actor_id', actorId)
+      .eq('drop_id', dropId)
+      .in('kind', ['W', 'L'])
+  } catch {
+    // best-effort
+  }
+}
