@@ -114,14 +114,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
             aria-label="Vote W"
           >
-            <span className={slam === 'W' ? 'verdict-slam inline-block' : 'inline-block'}>▲</span> {formatCount(stats.wins)}
+            <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span> {formatCount(stats.wins)}
           </button>
           <button
             onClick={(e) => castVote(e, 'L')}
             className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
             aria-label="Vote L"
           >
-            <span className={slam === 'L' ? 'verdict-slam inline-block' : 'inline-block'}>▼</span> {formatCount(stats.losses)}
+            <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span> {formatCount(stats.losses)}
           </button>
           <button
             onClick={(e) => {
