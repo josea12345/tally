@@ -8,6 +8,7 @@ import { useDeviceLocation } from '../hooks/useLocation'
 import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
+import { takePendingUpload } from '../lib/pendingMedia'
 import EmptyState from '../components/EmptyState'
 
 type LinkKind = 'auto' | 'paste' | 'none'
@@ -57,6 +58,13 @@ export default function Composer({ editId }: { editId?: string }) {
     if (!user) return
     setCity((c) => c || profile?.city || 'Miami')
   }, [user, profile])
+
+  // Camera flow: a filtered photo waiting from the filter screen.
+  useEffect(() => {
+    if (editId) return
+    const p = takePendingUpload()
+    if (p) setMedia({ url: p.url, type: p.type })
+  }, [editId])
 
   // Edit mode: load the drop.
   useEffect(() => {

@@ -5,14 +5,16 @@ import Onboarding from './pages/Onboarding'
 import Discover from './pages/Discover'
 import DropDetail from './pages/DropDetail'
 import Composer from './pages/Composer'
+import Filter from './pages/Filter'
 import Saved from './pages/Saved'
 import Profile from './pages/Profile'
 import People from './pages/People'
 import InstallBanner from './components/InstallBanner'
+import CameraButton from './components/CameraButton'
 import LeaderboardRail from './components/LeaderboardRail'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'saved' | 'profile' | 'people'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'saved' | 'profile' | 'people'
   param?: string
 }
 
@@ -26,6 +28,7 @@ export function parseHash(): Route {
   if (a === 'profile' && b) return { name: 'profile', param: decodeURIComponent(b) }
   if (a === 'profile') return { name: 'profile' }
   if (a === 'create') return { name: 'create' }
+  if (a === 'filter') return { name: 'filter' }
   if (a === 'saved') return { name: 'saved' }
   if (a === 'people') return { name: 'people' }
   if (a === 'onboarding') return { name: 'onboarding' }
@@ -50,43 +53,60 @@ function useRoute(): Route {
   return route
 }
 
-const NAV = [
-  { name: 'home' as const, label: 'Discover', icon: '⌂' },
-  { name: 'saved' as const, label: 'Saved', icon: '♡' },
-  { name: 'create' as const, label: 'Create', icon: '+' },
-  { name: 'profile' as const, label: 'Profile', icon: '◯' },
-]
-
 function MobileNav({ route }: { route: Route }) {
   const { profile } = useAuth()
   const active = (n: string) =>
     (route.name === 'home' && n === 'home') || route.name === (n as Route['name'])
+  const tab = (n: { name: 'home' | 'saved' | 'create' | 'profile'; label: string; icon: string }) => (
+    <button
+      key={n.name}
+      onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
+      className="flex flex-col items-center gap-0.5 py-2.5"
+      aria-label={n.label}
+    >
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-xl ${
+          active(n.name) ? 'bg-lime text-ink' : 'text-mute'
+        }`}
+      >
+        {n.name === 'profile' && profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+        ) : (
+          n.icon
+        )}
+      </span>
+      <span className={`text-[10px] font-semibold ${active(n.name) ? 'text-lime' : 'text-mute'}`}>
+        {n.label}
+      </span>
+    </button>
+  )
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
-      <div className="grid grid-cols-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {NAV.map((n) => (
-          <button
-            key={n.name}
-            onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
-            className="flex flex-col items-center gap-0.5 py-2.5"
-            aria-label={n.label}
-          >
-            <span
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-xl ${
-                active(n.name) ? 'bg-lime text-ink' : 'text-mute'
-              }`}
-            >
-              {n.name === 'profile' && profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-              ) : (
-                n.icon
-              )}
-            </span>
-            <span className={`text-[10px] font-semibold ${active(n.name) ? 'text-lime' : 'text-mute'}`}>
-              {n.label}
-            </span>
-          </button>
-        ))}
+      <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
+        {tab({ name: 'saved', label: 'Saved', icon: '♡' })}
+        <div className="flex items-start justify-center">
+          <CameraButton>
+            {(open) => (
+              <button
+                onClick={open}
+                aria-label="Take a photo"
+                className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-7 w-7">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
+                  />
+                  <circle cx="12" cy="13.5" r="3.4" />
+                </svg>
+              </button>
+            )}
+          </CameraButton>
+        </div>
+        {tab({ name: 'create', label: 'Create', icon: '+' })}
+        {tab({ name: 'profile', label: 'Profile', icon: '◯' })}
       </div>
     </nav>
   )
@@ -123,6 +143,24 @@ function DesktopRail() {
       >
         Put someone on
       </button>
+      <CameraButton>
+        {(open) => (
+          <button
+            onClick={open}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-lg font-bold text-fog transition hover:border-lime hover:text-lime"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
+              />
+              <circle cx="12" cy="13.5" r="3.4" />
+            </svg>
+            Camera
+          </button>
+        )}
+      </CameraButton>
       {profile && (
         <div className="mt-auto flex items-center gap-3">
           <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={40} />
@@ -198,6 +236,8 @@ export default function App() {
         return <DropDetail id={route.param!} />
       case 'create':
         return <Composer />
+      case 'filter':
+        return <Filter />
       case 'edit':
         return <Composer editId={route.param!} />
       case 'saved':
