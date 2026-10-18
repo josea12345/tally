@@ -86,69 +86,100 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               {drop.description}
             </p>
           </div>
-          <button
-            onClick={toggleSave}
-            className={`press mt-0.5 flex shrink-0 items-center gap-1 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            aria-label={saved ? 'Untally' : 'Tally'}
-          >
-            <span className={heartPop ? 'heart-pop inline-block' : 'inline-block'}>
-              <TallyIcon saved={saved} className="h-5 w-5" />
-            </span>
-            <span className="text-xs">{formatCount(stats.saves)}</span>
-          </button>
         </div>
 
-        {drop.media_url && (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-black" onClick={(e) => e.stopPropagation()}>
+        {drop.media_url ? (
+          <div className="relative mt-3 overflow-hidden rounded-2xl border border-line bg-black" onClick={(e) => e.stopPropagation()}>
             {drop.media_type === 'video' ? (
               <FeedVideo src={drop.media_url} poster={drop.media_poster_url} />
             ) : (
               <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[260px] w-full object-cover" />
             )}
+            {/* TikTok-style action rail, overlaid on the media */}
+            <div className="absolute bottom-2.5 right-2.5 flex flex-col items-center gap-4">
+              <button
+                onClick={toggleSave}
+                aria-label={saved ? 'Untally' : 'Tally'}
+                className="press flex flex-col items-center gap-1"
+              >
+                <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
+                  <TallyIcon saved={saved} className="h-7 w-7" />
+                </span>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
+              </button>
+              <button
+                onClick={(e) => castVote(e, 'W')}
+                aria-label="Vote W"
+                className="press flex flex-col items-center gap-1"
+              >
+                <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
+              </button>
+              <button
+                onClick={(e) => castVote(e, 'L')}
+                aria-label="Vote L"
+                className="press flex flex-col items-center gap-1"
+              >
+                <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/drop/${drop.id}`)
+                }}
+                aria-label="Comments"
+                className="press flex flex-col items-center gap-1"
+              >
+                <span className="text-[22px] leading-none drop-shadow-lg">💬</span>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.comments)}</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* text-only drop: compact action row below */
+          <div className="mt-3 flex items-center gap-5 text-sm">
+            <button
+              onClick={toggleSave}
+              aria-label={saved ? 'Untally' : 'Tally'}
+              className={`press flex items-center gap-1.5 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
+            >
+              <span className={heartPop ? 'heart-pop inline-block' : 'inline-block'}>
+                <TallyIcon saved={saved} className="h-4 w-4" />
+              </span>
+              {formatCount(stats.saves)}
+            </button>
+            <button
+              onClick={(e) => castVote(e, 'W')}
+              aria-label="Vote W"
+              className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
+            >
+              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span>
+              {formatCount(stats.wins)}
+            </button>
+            <button
+              onClick={(e) => castVote(e, 'L')}
+              aria-label="Vote L"
+              className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
+            >
+              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span>
+              {formatCount(stats.losses)}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/drop/${drop.id}`)
+              }}
+              aria-label="Comments"
+              className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
+            >
+              <span className="text-base">💬</span> {formatCount(stats.comments)}
+            </button>
           </div>
         )}
 
         <div className="pt-1">
           <LinkChips drop={drop} />
-        </div>
-
-        <div className="mt-3">
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => castVote(e, 'W')}
-              className={`press flex items-center gap-2 rounded-xl border-2 px-4 py-2 transition ${
-                myVote === 'W'
-                  ? 'border-lime bg-lime text-ink'
-                  : 'border-lime/50 bg-lime/10 text-lime'
-              }`}
-              aria-label="Vote W"
-            >
-              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-lg font-black`}>W</span>
-              <span className="text-sm font-black">{formatCount(stats.wins)}</span>
-            </button>
-            <button
-              onClick={(e) => castVote(e, 'L')}
-              className={`press flex items-center gap-2 rounded-xl border-2 px-4 py-2 transition ${
-                myVote === 'L'
-                  ? 'border-miss bg-miss text-white'
-                  : 'border-miss/50 bg-miss/10 text-miss'
-              }`}
-              aria-label="Vote L"
-            >
-              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-lg font-black`}>L</span>
-              <span className="text-sm font-black">{formatCount(stats.losses)}</span>
-            </button>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/drop/${drop.id}`)
-            }}
-            className="press mt-2.5 flex items-center gap-1.5 text-sm font-bold text-mute transition hover:text-lime"
-            aria-label="Comments"
-          >
-            <span className="text-base">💬</span> {formatCount(stats.comments)}
-          </button>
         </div>
       </article>
     </Reveal>

@@ -66,7 +66,7 @@ export default function FeedVideo({
         onClick={toggleSound}
         className="max-h-[220px] w-full bg-black object-cover"
       />
-      <div className="pointer-events-none absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-sm backdrop-blur-sm">
+      <div className="pointer-events-none absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-sm backdrop-blur-sm">
         {muted ? '🔇' : '🔊'}
       </div>
     </div>
