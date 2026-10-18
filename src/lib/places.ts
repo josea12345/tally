@@ -5,11 +5,20 @@
 import type { Category, PlaceSuggestion } from './types'
 import { bboxAround, haversineKm, mapsUrlFor, type LatLon } from './geo'
 
-/** OSM key:value tags that define each place category. Bakery counts as café. */
+/** OSM key:value tags that define each place category. Food & drink covers restaurants, cafés and bars. */
 const CATEGORY_TAGS: Record<string, string[]> = {
-  restaurants: ['amenity:restaurant', 'amenity:fast_food'],
-  cafes: ['amenity:cafe', 'shop:coffee', 'shop:tea', 'shop:bakery'],
-  bars: ['amenity:bar', 'amenity:pub', 'amenity:nightclub', 'amenity:biergarten'],
+  food_drink: [
+    'amenity:restaurant',
+    'amenity:fast_food',
+    'amenity:cafe',
+    'shop:coffee',
+    'shop:tea',
+    'shop:bakery',
+    'amenity:bar',
+    'amenity:pub',
+    'amenity:nightclub',
+    'amenity:biergarten',
+  ],
   shops: ['shop'],
   places: [],
 }
@@ -29,9 +38,11 @@ const TAG_LABELS: Record<string, string> = {
 }
 
 const ARCGIS_KEYWORDS: Record<string, string[]> = {
-  restaurants: ['restaurant', 'grill', 'pizzeria', 'sushi', 'taqueria', 'diner', 'eatery', 'bistro', 'cafe'],
-  cafes: ['coffee', 'café', 'cafe', 'bakery', 'tea', 'espresso'],
-  bars: ['bar', 'pub', 'nightclub', 'lounge', 'brewery', 'tavern'],
+  food_drink: [
+    'restaurant', 'grill', 'pizzeria', 'sushi', 'taqueria', 'diner', 'eatery', 'bistro',
+    'cafe', 'coffee', 'café', 'bakery', 'tea', 'espresso',
+    'bar', 'pub', 'nightclub', 'lounge', 'brewery', 'tavern',
+  ],
   shops: ['store', 'shop', 'market', 'boutique', 'mall'],
   places: [],
 }

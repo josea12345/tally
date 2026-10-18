@@ -202,7 +202,7 @@ export default function Discover() {
           ))}
         </div>
         <p className="mb-3 text-[11px] leading-snug text-mute">
-          Restaurants, cafés, bars and shops narrow to near you — movies, TV and music travel everywhere.
+          Food & drink and shops narrow to near you — movies, TV and music travel everywhere.
         </p>
         <div className="mb-3">
           <input

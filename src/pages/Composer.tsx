@@ -36,7 +36,7 @@ const MEDIA_PLACEHOLDER: Record<string, string> = {
 
 export default function Composer({ editId }: { editId?: string }) {
   const { user, profile } = useAuth()
-  const [category, setCategory] = useState<Category>('restaurants')
+  const [category, setCategory] = useState<Category>('food_drink')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tip, setTip] = useState('')
