@@ -50,7 +50,12 @@ export default function Camera() {
       setCamState('unavailable')
       return
     }
-    // Never hang on the spinner: bail to the native-camera fallback after 10s.
+    // Installed (standalone) web apps are where the camera hangs most — fail fast there.
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true
+    const timeoutMs = isStandalone ? 5000 : 10000
+    // Never hang on the spinner: bail to the native-camera fallback on timeout.
     const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
       Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
     const attempts: MediaStreamConstraints[] = [
@@ -59,7 +64,7 @@ export default function Camera() {
     ]
     for (const constraints of attempts) {
       try {
-        const stream = await withTimeout(md.getUserMedia(constraints), 10000)
+        const stream = await withTimeout(md.getUserMedia(constraints), timeoutMs)
         streamRef.current = stream
         if (videoRef.current) {
           videoRef.current.srcObject = stream
@@ -67,6 +72,20 @@ export default function Camera() {
           // unmuted preview would cause audio feedback
           videoRef.current.muted = true
           await videoRef.current.play().catch(() => {})
+          // a "live" stream with no frames is just a black screen — verify
+          const hasFrames = await new Promise<boolean>((resolve) => {
+            const v = videoRef.current
+            if (!v) return resolve(false)
+            if (v.videoWidth > 0 && v.readyState >= 2) return resolve(true)
+            const t0 = Date.now()
+            const check = () => {
+              if (v.videoWidth > 0 && v.readyState >= 2) return resolve(true)
+              if (Date.now() - t0 > 4000) return resolve(false)
+              setTimeout(check, 200)
+            }
+            check()
+          })
+          if (!hasFrames) throw new Error('no frames')
         }
         setCamState('live')
         return
