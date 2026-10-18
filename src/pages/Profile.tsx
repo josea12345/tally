@@ -8,6 +8,7 @@ import DropCard from '../components/DropCard'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import BadgeList from '../components/BadgeList'
+import { useFeedVotes } from '../lib/feedVotes'
 import TallyMarks from '../components/TallyMarks'
 import CountUp from '../components/CountUp'
 
@@ -20,6 +21,7 @@ interface ProfileStats {
 
 export default function Profile({ id }: { id?: string }) {
   const { user, refreshProfile } = useAuth()
+  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const profileId = id ?? user?.id
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<ProfileStats | null>(null)
@@ -89,6 +91,7 @@ export default function Profile({ id }: { id?: string }) {
       }
       if (!live) return
       setDropStats(m)
+      setVotesFromRows(verdictsReceived)
       setStats({
         drops: list.length,
         savedByOthers,
@@ -288,6 +291,8 @@ export default function Profile({ id }: { id?: string }) {
             stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
+            myVote={myVotes.get(d.id) ?? null}
+            onVote={(v) => vote(d.id, v, setDropStats)}
             revealDelay={(i % 6) * 70}
           />
         ))

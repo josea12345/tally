@@ -11,13 +11,16 @@ interface Props {
   stats: DropStats
   saved: boolean
   onToggleSave: () => void
+  myVote: 'W' | 'L' | null
+  onVote: (v: 'W' | 'L') => void
   revealDelay?: number
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay = 0 }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0 }: Props) {
   const author = drop.author
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
+  const [slam, setSlam] = useState<'W' | 'L' | null>(null)
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -26,6 +29,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
       requestAnimationFrame(() => setHeartPop(true))
     }
     onToggleSave()
+  }
+
+  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
+    e.stopPropagation()
+    setSlam(v)
+    setTimeout(() => setSlam((s) => (s === v ? null : s)), 380)
+    onVote(v)
   }
 
   return (
@@ -99,12 +109,20 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
             <span className={`text-lg ${heartPop && saved ? 'heart-pop' : ''}`}>{saved ? '♥' : '♡'}</span>
             <span>{formatCount(stats.saves)}</span>
           </button>
-          <span className="flex items-center gap-1.5 font-bold text-mute">
-            <span className="text-lime">▲</span> {formatCount(stats.wins)}
-          </span>
-          <span className="flex items-center gap-1.5 font-bold text-mute">
-            <span className="text-miss">▼</span> {formatCount(stats.losses)}
-          </span>
+          <button
+            onClick={(e) => castVote(e, 'W')}
+            className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
+            aria-label="Vote W"
+          >
+            <span className={slam === 'W' ? 'verdict-slam inline-block' : 'inline-block'}>▲</span> {formatCount(stats.wins)}
+          </button>
+          <button
+            onClick={(e) => castVote(e, 'L')}
+            className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
+            aria-label="Vote L"
+          >
+            <span className={slam === 'L' ? 'verdict-slam inline-block' : 'inline-block'}>▼</span> {formatCount(stats.losses)}
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation()
