@@ -10,6 +10,8 @@ import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
 import TitleSearch from '../components/TitleSearch'
 import type { TmdbTitle } from '../lib/tmdb'
+import { fetchImdbId } from '../lib/tmdb'
+import { fetchOmdbRating } from '../lib/omdb'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
 import EmptyState from '../components/EmptyState'
 
@@ -61,10 +63,13 @@ export default function Composer({ editId }: { editId?: string }) {
   const [score, setScore] = useState<number | null>(null)
   const [tmdbUrl, setTmdbUrl] = useState<string | null>(null)
   const [tmdbPoster, setTmdbPoster] = useState<string | null>(null)
+  const [imdbId, setImdbId] = useState<string | null>(null)
+  const [imdbRating, setImdbRating] = useState<number | null>(null)
+  const [imdbLoading, setImdbLoading] = useState(false)
   const [busy, setBusy] = useState(false)
 
   /** TMDB title pick: fill the title, attach the poster as cover, link the TMDB page. */
-  const pickTitle = (t: TmdbTitle) => {
+  const pickTitle = async (t: TmdbTitle) => {
     setTitle(t.year ? `${t.title} (${t.year})` : t.title)
     setTmdbUrl(t.tmdbUrl)
     setMediaList((prev) => {
@@ -73,6 +78,21 @@ export default function Composer({ editId }: { editId?: string }) {
       return [{ url: t.posterUrl, type: 'photo' as const }, ...withoutOld]
     })
     setTmdbPoster(t.posterUrl)
+    // Resolve the exact IMDb id + rating in the background.
+    setImdbId(null)
+    setImdbRating(null)
+    setImdbLoading(true)
+    try {
+      const kind = category === 'tv' ? 'tv' : 'movie'
+      const id = await fetchImdbId(t.id, kind)
+      if (id) {
+        setImdbId(id)
+        const rating = await fetchOmdbRating(id)
+        if (rating != null) setImdbRating(rating)
+      }
+    } finally {
+      setImdbLoading(false)
+    }
   }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -136,6 +156,8 @@ export default function Composer({ editId }: { editId?: string }) {
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
         if (d.external_label === 'TMDB') setTmdbUrl(d.external_url)
+        if (d.imdb_id) setImdbId(d.imdb_id)
+        if (d.imdb_rating != null) setImdbRating(Number(d.imdb_rating))
         if (d.media_url || (d.media_urls?.length ?? 0) > 0) {
           setMediaList(
             dropMedia(d).map((m) => ({ url: m.url, type: m.type, posterUrl: m.posterUrl ?? undefined })),
@@ -192,6 +214,9 @@ export default function Composer({ editId }: { editId?: string }) {
           externalUrl = siteUrl.trim()
           externalLabel = 'Official site'
         }
+      } else if (imdbId && (category === 'movies' || category === 'tv')) {
+        externalUrl = `https://www.imdb.com/title/${imdbId}/`
+        externalLabel = 'IMDb'
       } else if (tmdbUrl && (category === 'movies' || category === 'tv')) {
         externalUrl = tmdbUrl
         externalLabel = 'TMDB'
@@ -230,6 +255,8 @@ export default function Composer({ editId }: { editId?: string }) {
         instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,
         external_label: externalLabel,
+        imdb_id: imdbId,
+        imdb_rating: imdbRating,
         tip: tip.trim() || null,
         where_to: whereTo.trim() || null,
         score,
@@ -354,7 +381,15 @@ export default function Composer({ editId }: { editId?: string }) {
 
       <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
         <div className="mb-1 flex items-baseline justify-between">
-          <label className="text-xs font-black uppercase tracking-widest text-mute">Your call <span className="text-mute/60">(optional)</span></label>
+          <label className="text-xs font-black uppercase tracking-widest text-mute">
+            Your call <span className="text-mute/60">(optional)</span>
+            {(category === 'movies' || category === 'tv') && imdbLoading && (
+              <span className="ml-2 normal-case tracking-normal text-mute/60">fetching IMDb…</span>
+            )}
+            {(category === 'movies' || category === 'tv') && !imdbLoading && imdbRating != null && (
+              <span className="ml-2 normal-case tracking-normal text-mute">· IMDb {imdbRating}</span>
+            )}
+          </label>
           {score != null && (
             <button onClick={() => setScore(null)} className="text-[11px] font-bold text-mute hover:text-miss">
               Clear

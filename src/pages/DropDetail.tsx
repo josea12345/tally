@@ -220,10 +220,19 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight">{drop.title}</h1>
-        {drop.score != null && (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-lime/50 bg-lime/10 px-4 py-1.5">
-            <span className="text-xl font-black text-lime">{drop.score}</span>
-            <span className="text-xs font-bold text-mute">/10 — {author?.display_name ?? author?.username ?? 'author'}'s call</span>
+        {(drop.score != null || drop.imdb_rating != null) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {drop.score != null && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-lime/50 bg-lime/10 px-4 py-1.5">
+                <span className="text-xl font-black text-lime">{drop.score}</span>
+                <span className="text-xs font-bold text-mute">/10 — {author?.display_name ?? author?.username ?? 'author'}'s call</span>
+              </div>
+            )}
+            {drop.imdb_rating != null && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-4 py-1.5">
+                <span className="text-xl font-black">IMDb {drop.imdb_rating}</span>
+              </div>
+            )}
           </div>
         )}
         <p className="mt-2 text-[17px] leading-relaxed">

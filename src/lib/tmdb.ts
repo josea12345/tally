@@ -7,6 +7,19 @@ const KEY = import.meta.env.VITE_TMDB_API_KEY as string | undefined
 
 export const tmdbEnabled = !!KEY
 
+/** Exact IMDb id for a TMDB title — powers the IMDb deep link. */
+export async function fetchImdbId(tmdbId: number, kind: 'movie' | 'tv'): Promise<string | null> {
+  if (!KEY) return null
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/${kind}/${tmdbId}/external_ids?api_key=${KEY}`)
+    if (!res.ok) return null
+    const j = await res.json()
+    return typeof j.imdb_id === 'string' && /^tt\d+$/.test(j.imdb_id) ? j.imdb_id : null
+  } catch {
+    return null
+  }
+}
+
 export interface TmdbTitle {
   id: number
   title: string
@@ -16,8 +29,7 @@ export interface TmdbTitle {
   tmdbUrl: string
 }
 
-export async function searchTmdb(query: string, kind: 'movie' | 'tv'): Promise<TmdbTitle[]> {
-  const q = query.trim()
+export async function searchTmdb(query: string, kind: 'movie' | 'tv'): Promise<TmdbTitle[]> {  const q = query.trim()
   if (!KEY || !q) return []
   try {
     const res = await fetch(

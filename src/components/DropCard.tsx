@@ -99,15 +99,28 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               </p>
             )}
           </div>
-          {drop.score != null && (
+          {drop.score != null ? (
             <div
               className="flex shrink-0 flex-col items-center justify-center self-center rounded-2xl border border-lime/40 bg-lime/10 px-3.5 py-2"
               title="Author's call"
             >
               <span className="text-[26px] font-black leading-none text-lime">{drop.score}</span>
               <span className="mt-0.5 text-[10px] font-bold text-mute">/10</span>
+              {drop.imdb_rating != null && (
+                <span className="mt-1 border-t border-line pt-1 text-[10px] font-bold text-mute">
+                  IMDb {drop.imdb_rating}
+                </span>
+              )}
             </div>
-          )}
+          ) : drop.imdb_rating != null ? (
+            <div
+              className="flex shrink-0 flex-col items-center justify-center self-center rounded-2xl border border-line bg-ink-2 px-3.5 py-2"
+              title="IMDb rating"
+            >
+              <span className="text-[26px] font-black leading-none">{drop.imdb_rating}</span>
+              <span className="mt-0.5 text-[10px] font-bold text-mute">IMDb</span>
+            </div>
+          ) : null}
         </div>
 
         {items.length > 0 ? (
