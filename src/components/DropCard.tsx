@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { timeAgo, formatCount } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import LinkChips from './LinkChips'
+import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import TallyIcon from './TallyIcon'
@@ -22,6 +23,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
+  const [showComments, setShowComments] = useState(false)
+  const [commentCount, setCommentCount] = useState(stats.comments)
+  useEffect(() => {
+    setCommentCount(stats.comments)
+  }, [stats.comments])
+
+  const toggleComments = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowComments((s) => !s)
+  }
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -124,15 +135,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
               </button>
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/drop/${drop.id}`)
-                }}
+                onClick={toggleComments}
                 aria-label="Comments"
                 className="press flex flex-col items-center gap-1"
               >
                 <span className="text-[22px] leading-none drop-shadow-lg">💬</span>
-                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.comments)}</span>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
               </button>
             </div>
           </div>
@@ -166,14 +174,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               {formatCount(stats.losses)}
             </button>
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/drop/${drop.id}`)
-              }}
+              onClick={toggleComments}
               aria-label="Comments"
               className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
             >
-              <span className="text-base">💬</span> {formatCount(stats.comments)}
+              <span className="text-base">💬</span> {formatCount(commentCount)}
             </button>
           </div>
         )}
@@ -181,6 +186,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         <div className="pt-1">
           <LinkChips drop={drop} />
         </div>
+
+        {showComments && (
+          <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+            <Comments dropId={drop.id} onCountChange={setCommentCount} />
+          </div>
+        )}
       </article>
     </Reveal>
   )
