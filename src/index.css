@@ -149,16 +149,6 @@ body {
   animation: verdict-slam 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* nudge the tried checkmark when voting before confirming */
-@keyframes nudge {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
-}
-.nudge {
-  animation: nudge 0.32s ease;
-}
-
 /* lime glow for the winning poll bar */
 .glow-win {
   box-shadow: 0 0 14px rgba(200, 243, 29, 0.45), 0 0 3px rgba(200, 243, 29, 0.8);

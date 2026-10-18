@@ -10,7 +10,7 @@ import { useFeedVotes } from '../lib/feedVotes'
 
 export default function Saved() {
   const { user } = useAuth()
-  const { myVotes, triedIds, setVotesFromRows, vote, markTried } = useFeedVotes()
+  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [drops, setDrops] = useState<Drop[]>([])
   const [stats, setStats] = useState<Map<string, DropStats>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -29,15 +29,14 @@ export default function Saved() {
       const list = ((data ?? []) as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
       setDrops(list)
       const m = new Map<string, DropStats>()
-      const voteRows: Array<{ drop_id: string; verdict: string | null; user_id: string; tried: boolean }> = []
+      const voteRows: Array<{ drop_id: string; verdict: string | null; user_id: string }> = []
       for (const d of list) {
-        const [{ count: s }, { data: vts }, { count: c }, { data: mine }] = await Promise.all([
+        const [{ count: s }, { data: vts }, { count: c }] = await Promise.all([
           supabase.from('saves').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
-          supabase.from('verdicts').select('verdict').eq('drop_id', d.id).limit(5000),
+          supabase.from('verdicts').select('verdict,user_id').eq('drop_id', d.id).limit(5000),
           supabase.from('comments').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
-          supabase.from('verdicts').select('verdict,tried').eq('drop_id', d.id).eq('user_id', user.id).maybeSingle(),
         ])
-        const vs = (vts ?? []) as Array<{ verdict: string | null }>
+        const vs = (vts ?? []) as Array<{ verdict: string | null; user_id: string }>
         m.set(d.id, {
           saves: s ?? 0,
           wins: vs.filter((v) => v.verdict === 'W').length,
@@ -45,7 +44,7 @@ export default function Saved() {
           tried: 0,
           comments: c ?? 0,
         })
-        if (mine?.verdict || mine?.tried) voteRows.push({ drop_id: d.id, verdict: (mine.verdict ?? null) as string | null, user_id: user.id, tried: !!mine.tried })
+        for (const v of vs) voteRows.push({ drop_id: d.id, verdict: v.verdict, user_id: v.user_id })
       }
       if (live) {
         setStats(m)
@@ -100,8 +99,6 @@ export default function Saved() {
             onToggleSave={() => unsave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setStats)}
-            tried={triedIds.has(d.id)}
-            onMarkTried={() => markTried(d.id, myVotes.get(d.id) ?? null)}
             revealDelay={(i % 6) * 70}
           />
         ))

@@ -19,7 +19,7 @@ const NEAR_MILES = 25
 
 export default function Discover() {
   const { user, profile } = useAuth()
-  const { myVotes, triedIds, setVotesFromRows, vote, markTried } = useFeedVotes()
+  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
   const [category, setCategory] = useState<Category | 'all'>('all')
   const [query, setQuery] = useState('')
@@ -64,7 +64,7 @@ export default function Discover() {
         if (ids.length > 0) {
           const [{ data: saves }, { data: verdicts }, { data: cmts }] = await Promise.all([
             supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
-            supabase.from('verdicts').select('drop_id,verdict,user_id,tried').in('drop_id', ids).limit(5000),
+            supabase.from('verdicts').select('drop_id,verdict,user_id').in('drop_id', ids).limit(5000),
             supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
           ])
           if (!live) return
@@ -78,7 +78,7 @@ export default function Discover() {
           }
           for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
           setStats(m)
-          setVotesFromRows((verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string; tried: boolean }>)
+          setVotesFromRows((verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>)
         } else {
           setStats(new Map())
         }
@@ -305,8 +305,6 @@ export default function Discover() {
             onToggleSave={() => toggleSave(d.id)}
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setStats)}
-            tried={triedIds.has(d.id)}
-            onMarkTried={() => markTried(d.id, myVotes.get(d.id) ?? null)}
             revealDelay={(i % 6) * 70}
           />
         ))

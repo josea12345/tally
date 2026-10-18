@@ -14,18 +14,14 @@ interface Props {
   onToggleSave: () => void
   myVote: 'W' | 'L' | null
   onVote: (v: 'W' | 'L') => void
-  tried: boolean
-  onMarkTried: () => void
   revealDelay?: number
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, tried, onMarkTried, revealDelay = 0 }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0 }: Props) {
   const author = drop.author
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
-  const [nudge, setNudge] = useState(false)
-  const isTried = tried || myVote != null
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -36,24 +32,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onToggleSave()
   }
 
+  // One tap = "I've tried it, calling it." Voting implies tried.
   const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
     e.stopPropagation()
-    if (!isTried) {
-      // nudge the checkmark — confirm you've tried it before the verdict counts
-      setNudge(false)
-      requestAnimationFrame(() => setNudge(true))
-      setTimeout(() => setNudge(false), 400)
-      return
-    }
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 380)
     onVote(v)
-  }
-
-  const toggleTried = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isTried) return
-    onMarkTried()
   }
 
   return (
@@ -129,41 +113,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         </div>
 
         <div className="mt-3">
-          <div className="flex items-center justify-between">
-            <button onClick={toggleTried} className="press flex items-center gap-2" aria-label="Mark as tried">
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-md border-2 text-xs font-black transition ${
-                  isTried
-                    ? 'border-lime bg-lime text-ink'
-                    : nudge
-                      ? 'nudge border-miss text-transparent'
-                      : 'border-mute text-transparent'
-                }`}
-              >
-                ✓
-              </span>
-              <span className={`text-xs font-bold ${isTried ? 'text-fog' : 'text-mute'}`}>I've tried this</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/drop/${drop.id}`)
-              }}
-              className="press flex items-center gap-1.5 text-sm font-bold text-mute transition hover:text-lime"
-              aria-label="Comments"
-            >
-              <span className="text-base">💬</span> {formatCount(stats.comments)}
-            </button>
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={(e) => castVote(e, 'W')}
               className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
                 myVote === 'W'
                   ? 'border-lime bg-lime text-ink'
-                  : isTried
-                    ? 'border-lime/50 bg-lime/10 text-lime'
-                    : 'border-line bg-ink-2 text-mute opacity-50'
+                  : 'border-lime/50 bg-lime/10 text-lime'
               }`}
               aria-label="Vote W"
             >
@@ -175,9 +131,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
                 myVote === 'L'
                   ? 'border-miss bg-miss text-white'
-                  : isTried
-                    ? 'border-miss/50 bg-miss/10 text-miss'
-                    : 'border-line bg-ink-2 text-mute opacity-50'
+                  : 'border-miss/50 bg-miss/10 text-miss'
               }`}
               aria-label="Vote L"
             >
@@ -185,6 +139,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               <span className="text-lg font-black">{formatCount(stats.losses)}</span>
             </button>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/drop/${drop.id}`)
+            }}
+            className="press mt-2.5 flex items-center gap-1.5 text-sm font-bold text-mute transition hover:text-lime"
+            aria-label="Comments"
+          >
+            <span className="text-base">💬</span> {formatCount(stats.comments)}
+          </button>
         </div>
       </article>
     </Reveal>
