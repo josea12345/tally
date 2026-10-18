@@ -46,6 +46,7 @@ export default function Composer({ editId }: { editId?: string }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [media, setMedia] = useState<UploadedMedia | null>(null)
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
+  const [score, setScore] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -96,6 +97,7 @@ export default function Composer({ editId }: { editId?: string }) {
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
         if (d.media_url) setMedia({ url: d.media_url, type: d.media_type ?? 'photo' })
+        if (d.score != null) setScore(d.score)
         if (d.latitude != null && d.longitude != null) {
           setPinned({
             id: 'pinned',
@@ -178,6 +180,7 @@ export default function Composer({ editId }: { editId?: string }) {
         external_label: externalLabel,
         tip: tip.trim() || null,
         where_to: whereTo.trim() || null,
+        score,
       }
 
       if (editId) {
@@ -262,6 +265,31 @@ export default function Composer({ editId }: { editId?: string }) {
           className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-mute/60"
         />
         <div className="text-right text-[11px] text-mute">{description.length}/600</div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+        <div className="mb-1 flex items-baseline justify-between">
+          <label className="text-xs font-black uppercase tracking-widest text-mute">Your call <span className="text-mute/60">(optional)</span></label>
+          {score != null && (
+            <button onClick={() => setScore(null)} className="text-[11px] font-bold text-mute hover:text-miss">
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <button
+              key={n}
+              onClick={() => setScore(n)}
+              className={`h-10 w-10 shrink-0 rounded-full text-sm font-black transition ${
+                score === n ? 'bg-lime text-ink' : 'border border-line bg-ink-3 text-mute hover:text-fog'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] text-mute">Calling your shot: how hard are you putting people on?</p>
       </div>
 
       <div className="mt-3">

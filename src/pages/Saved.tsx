@@ -27,9 +27,10 @@ export default function Saved() {
       setDrops(list)
       const m = new Map<string, DropStats>()
       for (const d of list) {
-        const [{ count: s }, { data: vts }] = await Promise.all([
+        const [{ count: s }, { data: vts }, { count: c }] = await Promise.all([
           supabase.from('saves').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
           supabase.from('verdicts').select('verdict').eq('drop_id', d.id).limit(5000),
+          supabase.from('comments').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
         ])
         const vs = (vts ?? []) as Array<{ verdict: string | null }>
         m.set(d.id, {
@@ -37,6 +38,7 @@ export default function Saved() {
           wins: vs.filter((v) => v.verdict === 'W').length,
           losses: vs.filter((v) => v.verdict === 'L').length,
           tried: 0,
+          comments: c ?? 0,
         })
       }
       if (live) {
@@ -86,7 +88,7 @@ export default function Saved() {
           <DropCard
             key={d.id}
             drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
+            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved
             onToggleSave={() => unsave(d.id)}
           />

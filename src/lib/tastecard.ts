@@ -130,10 +130,11 @@ export async function renderTasteCard(
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
 
-  // win rate pill
+  // win rate pill (+ author's call when they scored it)
   const hr = winRateFor(verdicts)
   const pillText =
     hr.rate == null ? 'Record still building' : `${Math.round(hr.rate * 100)}% win rate · ${hr.total} verdicts`
+  const callText = drop.score != null ? `${authorName}'s call: ${drop.score}/10` : null
   ctx.font = '700 40px Inter, sans-serif'
   const tw = ctx.measureText(pillText).width
   const px = pad
@@ -145,6 +146,11 @@ export async function renderTasteCard(
   ctx.fill()
   ctx.fillStyle = '#0a0a0b'
   ctx.fillText(pillText, px + 40, py + 55)
+  if (callText) {
+    ctx.fillStyle = '#9a9aa0'
+    ctx.fillText(callText, px, py + ph + 58)
+    y += 60
+  }
 
   // footer
   ctx.fillStyle = '#9a9aa0'

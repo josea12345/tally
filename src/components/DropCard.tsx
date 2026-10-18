@@ -46,6 +46,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave }: Props) {
           </div>
 
           <h3 className="mt-1 text-lg font-black leading-snug">{drop.title}</h3>
+          {drop.score != null && (
+            <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-lime/50 bg-lime/10 px-3 py-0.5">
+              <span className="text-sm font-black text-lime">{drop.score}</span>
+              <span className="text-[10px] font-bold text-mute">/10 author's call</span>
+            </span>
+          )}
           <p className="mt-1 text-[15px] leading-relaxed text-fog/90">
             <span className="font-bold text-lime">Hear me out — </span>
             {drop.description}
@@ -86,6 +92,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave }: Props) {
             <span className="flex items-center gap-1.5 font-bold text-mute">
               <span className="text-miss">▼</span> {formatCount(stats.losses)}
             </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/drop/${drop.id}`)
+              }}
+              className="flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
+              aria-label="Comments"
+            >
+              <span className="text-base">💬</span> {formatCount(stats.comments)}
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation()

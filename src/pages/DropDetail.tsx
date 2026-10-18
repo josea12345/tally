@@ -6,6 +6,7 @@ import { timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import VerdictBox from '../components/VerdictBox'
 import PutOnChain from '../components/PutOnChain'
+import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
@@ -15,7 +16,7 @@ import { winRateFor } from '../lib/stats'
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile } = useAuth()
   const [drop, setDrop] = useState<Drop | null>(null)
-  const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0 })
+  const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
   const [myVerdict, setMyVerdict] = useState<Verdict | null>(null)
   const [saved, setSaved] = useState(false)
   const [verdicts, setVerdicts] = useState<Verdict[]>([])
@@ -43,9 +44,10 @@ export default function DropDetail({ id }: { id: string }) {
       const d = data as Drop
       setDrop(d)
 
-      const [{ data: saves }, { data: vts }] = await Promise.all([
+      const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
         supabase.from('saves').select('id').eq('drop_id', id).limit(5000),
         supabase.from('verdicts').select('*').eq('drop_id', id).limit(5000),
+        supabase.from('comments').select('id').eq('drop_id', id).limit(5000),
       ])
       const vlist = (vts ?? []) as Verdict[]
       setVerdicts(vlist)
@@ -54,6 +56,7 @@ export default function DropDetail({ id }: { id: string }) {
         wins: vlist.filter((v) => v.verdict === 'W').length,
         losses: vlist.filter((v) => v.verdict === 'L').length,
         tried: vlist.filter((v) => v.tried).length,
+        comments: (cmts ?? []).length,
       })
 
       if (user) {
@@ -209,6 +212,12 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight">{drop.title}</h1>
+        {drop.score != null && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-lime/50 bg-lime/10 px-4 py-1.5">
+            <span className="text-xl font-black text-lime">{drop.score}</span>
+            <span className="text-xs font-bold text-mute">/10 — {author?.display_name ?? author?.username ?? 'author'}'s call</span>
+          </div>
+        )}
         <p className="mt-2 text-[17px] leading-relaxed">
           <span className="font-bold text-lime">Hear me out — </span>
           {drop.description}
@@ -286,6 +295,13 @@ export default function DropDetail({ id }: { id: string }) {
               @{author?.username}'s record: <span className="font-bold text-lime">{authorRate}</span>
             </p>
           )}
+        </div>
+
+        <div className="mt-6">
+          <Comments
+            dropId={drop.id}
+            onCountChange={(n) => setStats((s) => ({ ...s, comments: n }))}
+          />
         </div>
 
         <div className="mt-8">

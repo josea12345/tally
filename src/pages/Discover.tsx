@@ -60,19 +60,21 @@ export default function Discover() {
 
         const ids = list.map((d) => d.id)
         if (ids.length > 0) {
-          const [{ data: saves }, { data: verdicts }] = await Promise.all([
+          const [{ data: saves }, { data: verdicts }, { data: cmts }] = await Promise.all([
             supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
             supabase.from('verdicts').select('drop_id,verdict').in('drop_id', ids).limit(5000),
+            supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
           ])
           if (!live) return
           const m = new Map<string, DropStats>()
-          for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0 })
+          for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
           for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
           for (const v of (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; tried?: boolean }>) {
             const e = m.get(v.drop_id)!
             if (v.verdict === 'W') e.wins++
             else if (v.verdict === 'L') e.losses++
           }
+          for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
           setStats(m)
         } else {
           setStats(new Map())
@@ -293,7 +295,7 @@ export default function Discover() {
           <DropCard
             key={d.id}
             drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
+            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
           />

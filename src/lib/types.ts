@@ -50,6 +50,7 @@ export interface Drop {
   external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | null
   tip: string | null
   where_to: string | null
+  score: number | null
   created_at: string
   updated_at: string
   // joined
@@ -74,6 +75,16 @@ export interface Verdict {
   user?: Profile
 }
 
+export interface Comment {
+  id: string
+  drop_id: string
+  user_id: string
+  body: string
+  created_at: string
+  updated_at: string
+  user?: Profile
+}
+
 export interface Follow {
   id: string
   follower_id: string
@@ -86,6 +97,7 @@ export interface DropStats {
   wins: number
   losses: number
   tried: number
+  comments: number
 }
 
 export interface PlaceSuggestion {

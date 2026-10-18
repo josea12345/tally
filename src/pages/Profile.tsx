@@ -69,19 +69,21 @@ export default function Profile({ id }: { id?: string }) {
       let verdictsReceived: Verdict[] = []
       const m = new Map<string, DropStats>()
       if (ids.length > 0) {
-        const [{ data: saves }, { data: vts }] = await Promise.all([
+        const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
           supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
           supabase.from('verdicts').select('*').in('drop_id', ids).limit(5000),
+          supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
         ])
         savedByOthers = (saves ?? []).length
         verdictsReceived = (vts ?? []) as Verdict[]
-        for (const did of ids) m.set(did, { saves: 0, wins: 0, losses: 0, tried: 0 })
+        for (const did of ids) m.set(did, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
         for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
         for (const v of verdictsReceived) {
           const e = m.get(v.drop_id)!
           if (v.verdict === 'W') e.wins++
           else if (v.verdict === 'L') e.losses++
         }
+        for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
       }
       if (!live) return
       setDropStats(m)
@@ -275,7 +277,7 @@ export default function Profile({ id }: { id?: string }) {
           <DropCard
             key={d.id}
             drop={{ ...d, author: profile }}
-            stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0 }}
+            stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
           />
