@@ -7,7 +7,8 @@ const SUB_LABELS: Record<Category, string> = {
   recipes: 'Recipes',
   places: 'Places',
   shops: 'Shops',
-  movies_tv: 'Movies & TV',
+  movies: 'Movies',
+  tv: 'TV Shows',
   music: 'Music',
 }
 

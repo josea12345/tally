@@ -2,19 +2,21 @@ export type Category =
   | 'food_drink'
   | 'shops'
   | 'places'
-  | 'movies_tv'
+  | 'movies'
+  | 'tv'
   | 'music'
   | 'recipes'
 
 export const PLACE_CATEGORIES: Category[] = ['food_drink', 'shops', 'places']
-export const MEDIA_CATEGORIES: Category[] = ['movies_tv', 'music']
+export const MEDIA_CATEGORIES: Category[] = ['movies', 'tv', 'music']
 export const ALL_CATEGORIES: Category[] = [...PLACE_CATEGORIES, ...MEDIA_CATEGORIES, 'recipes']
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   food_drink: 'Food & Drink',
   shops: 'Shops',
   places: 'Places',
-  movies_tv: 'Movies & TV',
+  movies: 'Movies',
+  tv: 'TV Shows',
   music: 'Music',
   recipes: 'Recipes',
 }
@@ -38,7 +40,7 @@ export interface CategoryGroup {
 export const CATEGORY_GROUPS: CategoryGroup[] = [
   { id: 'food', label: 'Food & Drink', categories: ['food_drink', 'recipes'] },
   { id: 'places', label: 'Places & Shops', categories: ['places', 'shops'] },
-  { id: 'entertainment', label: 'Entertainment', categories: ['movies_tv', 'music'] },
+  { id: 'entertainment', label: 'Entertainment', categories: ['movies', 'tv', 'music'] },
 ]
 
 export interface Profile {
