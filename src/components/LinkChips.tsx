@@ -1,4 +1,5 @@
 import type { Drop } from '../lib/types'
+import { isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
 
 /** Labeled external link chips: IMDb / Rotten Tomatoes / Spotify / Official site / View location. */
@@ -12,7 +13,8 @@ export default function LinkChips({ drop, compact = false }: { drop: Drop; compa
   }
   // Build the Maps link from the place name + address at render time so it
   // opens the PLACE listing — never a bare coordinate pin (and heals old drops).
-  if (drop.street_address || drop.city || drop.maps_url) {
+  // "View location" is only for real places — never for movies, TV, music, recipes.
+  if (isPlaceCategory(drop.category) && (drop.street_address || drop.city || drop.maps_url)) {
     const url =
       drop.street_address || drop.city
         ? mapsUrlForPlace(drop.title, drop.street_address, drop.city)
