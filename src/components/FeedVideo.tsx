@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * TikTok-style feed clip: autoplays muted when on screen, pauses off screen,
- * tap toggles sound. Respects the poster's cover frame.
+ * TikTok-style feed clip: autoplays muted when on screen, pauses off screen.
+ * Tap the video → fullscreen (native player, like X). Tap the badge → sound.
+ * Respects the poster's cover frame.
  */
 export default function FeedVideo({
   src,
@@ -15,6 +16,7 @@ export default function FeedVideo({
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const fsRef = useRef(false)
   const [muted, setMuted] = useState(true)
   const [failed, setFailed] = useState(false)
 
@@ -37,13 +39,52 @@ export default function FeedVideo({
     return () => io.disconnect()
   }, [src])
 
-  const toggleSound = () => {
+  // Re-mute when leaving fullscreen so the feed stays quiet.
+  useEffect(() => {
+    const vid = ref.current
+    if (!vid) return
+    const remute = () => {
+      fsRef.current = false
+      setMuted(true)
+      if (ref.current) ref.current.muted = true
+    }
+    const onFsChange = () => {
+      if (!document.fullscreenElement && fsRef.current) remute()
+    }
+    vid.addEventListener('webkitendfullscreen', remute)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => {
+      vid.removeEventListener('webkitendfullscreen', remute)
+      document.removeEventListener('fullscreenchange', onFsChange)
+    }
+  }, [src])
+
+  const toggleSound = (e: React.MouseEvent) => {
+    e.stopPropagation()
     const vid = ref.current
     if (!vid || failed) return
     const next = !muted
     setMuted(next)
     vid.muted = next
     if (!next) vid.play().catch(() => {})
+  }
+
+  /** Fullscreen like X: native player on iOS, Fullscreen API elsewhere. */
+  const expand = () => {
+    const vid = ref.current
+    if (!vid || failed) return
+    // Unmute for the fullscreen watch — this is a user gesture, so it's allowed.
+    setMuted(false)
+    vid.muted = false
+    const anyVid = vid as HTMLVideoElement & { webkitEnterFullscreen?: () => void }
+    if (vid.requestFullscreen) {
+      fsRef.current = true
+      vid.requestFullscreen().catch(() => {
+        fsRef.current = false
+      })
+    } else if (anyVid.webkitEnterFullscreen) {
+      anyVid.webkitEnterFullscreen()
+    }
   }
 
   if (failed) return null
@@ -63,12 +104,16 @@ export default function FeedVideo({
         autoPlay
         preload="metadata"
         onError={() => setFailed(true)}
-        onClick={toggleSound}
+        onClick={expand}
         className="max-h-[220px] w-full bg-black object-cover"
       />
-      <div className="pointer-events-none absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-[10px] backdrop-blur-sm">
+      <button
+        onClick={toggleSound}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-[10px] backdrop-blur-sm"
+      >
         {muted ? '🔇' : '🔊'}
-      </div>
+      </button>
     </div>
   )
 }
