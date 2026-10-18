@@ -5,6 +5,7 @@ import { Avatar, navigate } from '../App'
 import LinkChips from './LinkChips'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
+import TallyIcon from './TallyIcon'
 
 interface Props {
   drop: Drop
@@ -102,8 +103,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             className={`press mt-0.5 flex shrink-0 items-center gap-1 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
             aria-label={saved ? 'Unsave' : 'Save'}
           >
-            <span className={heartPop ? 'heart-pop inline-block text-lg' : 'inline-block text-lg'}>
-              {saved ? '♥' : '♡'}
+            <span className={heartPop ? 'heart-pop inline-block' : 'inline-block'}>
+              <TallyIcon saved={saved} className="h-5 w-5" />
             </span>
             <span className="text-xs">{formatCount(stats.saves)}</span>
           </button>

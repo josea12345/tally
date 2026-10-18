@@ -10,6 +10,7 @@ import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
+import TallyIcon from '../components/TallyIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
 import { winRateFor } from '../lib/stats'
 
@@ -250,11 +251,12 @@ export default function DropDetail({ id }: { id: string }) {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             onClick={toggleSave}
-            className={`rounded-full px-4 py-2 text-sm font-black transition ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition ${
               saved ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-fog hover:border-lime'
             }`}
           >
-            {saved ? '♥ Saved' : '♡ Save'} · {stats.saves}
+            <TallyIcon saved={saved} className="h-4 w-4" />
+            {saved ? 'Saved' : 'Save'} · {stats.saves}
           </button>
           <button
             onClick={copyLink}
