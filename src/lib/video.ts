@@ -1,6 +1,6 @@
 /** Video helpers: duration reads and client-side trimming to the 5s cap. */
 
-export const CLIP_MAX_SECONDS = 5
+export const CLIP_MAX_SECONDS = 60
 
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
@@ -92,7 +92,7 @@ export async function trimVideoFront(blob: Blob, seconds: number = CLIP_MAX_SECO
       ...dest.stream.getAudioTracks(),
     ])
     const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : undefined
-    const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 })
     const chunks: Blob[] = []
     rec.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunks.push(e.data)

@@ -130,7 +130,8 @@ export default function Camera() {
     if (!stream) return null
     try {
       const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : undefined
-      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      // Cap bitrate so a full-length clip stays upload-friendly (~19MB/min).
+      const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 })
       chunksRef.current = []
       discardRef.current = false
       rec.ondataavailable = (e) => {
