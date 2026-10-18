@@ -85,20 +85,21 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
               <h3 className="font-display text-[17px] font-bold leading-snug tracking-tight">{drop.title}</h3>
-              {drop.score != null && (
-                <span
-                  className="inline-flex items-center rounded-full bg-lime px-2.5 py-0.5"
-                  title="Author's call"
-                >
-                  <span className="text-xs font-black text-ink">{drop.score}/10</span>
-                </span>
-              )}
             </div>
             <p className="mt-0.5 text-[15px] leading-snug text-fog/90">
               <span className="font-bold text-lime">Hear me out — </span>
               {drop.description}
             </p>
           </div>
+          {drop.score != null && (
+            <div
+              className="flex shrink-0 flex-col items-center justify-center self-center rounded-2xl border border-lime/40 bg-lime/10 px-3.5 py-2"
+              title="Author's call"
+            >
+              <span className="text-[26px] font-black leading-none text-lime">{drop.score}</span>
+              <span className="mt-0.5 text-[10px] font-bold text-mute">/10</span>
+            </div>
+          )}
         </div>
 
         {drop.media_url ? (
