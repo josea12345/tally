@@ -8,6 +8,7 @@ import { winRateFor } from '../lib/stats'
 import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { Avatar, navigate } from '../App'
+import { useUnreadCount } from '../lib/useNotifications'
 import DropCard from '../components/DropCard'
 import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
@@ -16,6 +17,24 @@ import EmptyState from '../components/EmptyState'
 type Tab = 'putons' | 'following' | 'near'
 
 const NEAR_MILES = 25
+
+function AlertsBell() {
+  const unread = useUnreadCount()
+  return (
+    <button
+      onClick={() => navigate('/notifications')}
+      aria-label="Notifications"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line text-xl transition hover:border-lime"
+    >
+      🔔
+      {unread > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </button>
+  )
+}
 
 export default function Discover() {
   const { user, profile } = useAuth()
@@ -193,6 +212,12 @@ export default function Discover() {
   return (
     <div>
       <div className="sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-3 pt-4 backdrop-blur">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="font-display text-xl font-bold tracking-tight">
+            TALLY<span className="text-lime">.</span>
+          </div>
+          <AlertsBell />
+        </div>
         <div className="mb-3 flex gap-1 rounded-full bg-ink-3 p-1">
           {tabs.map((t) => (
             <button

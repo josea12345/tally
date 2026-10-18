@@ -13,7 +13,7 @@ import Search from './pages/Search'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import InstallBanner from './components/InstallBanner'
-import { useUnreadCount } from './lib/useNotifications'
+import TallyIcon from './components/TallyIcon'
 import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
@@ -63,10 +63,9 @@ function useRoute(): Route {
 
 function MobileNav({ route }: { route: Route }) {
   const { profile } = useAuth()
-  const unread = useUnreadCount()
   const active = (n: string) =>
     (route.name === 'home' && n === 'home') || route.name === (n as Route['name'])
-  const tab = (n: { name: 'home' | 'search' | 'notifications' | 'profile'; label: string; icon: string; badge?: number }) => (
+  const tab = (n: { name: 'home' | 'saved' | 'search' | 'profile'; label: string; icon: string }) => (
     <button
       key={n.name}
       onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
@@ -74,20 +73,17 @@ function MobileNav({ route }: { route: Route }) {
       aria-label={n.label}
     >
       <span
-        className={`relative flex h-8 w-8 items-center justify-center rounded-full text-xl ${
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-xl ${
           active(n.name) ? 'bg-lime text-ink' : 'text-mute'
         }`}
       >
-        {n.name === 'profile' && profile?.avatar_url ? (
+        {n.name === 'saved' ? (
+          <TallyIcon saved={active(n.name)} className="h-5 w-5" />
+        ) : n.name === 'profile' && profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
         ) : (
           n.icon
         )}
-        {n.badge ? (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
-            {n.badge > 9 ? '9+' : n.badge}
-          </span>
-        ) : null}
       </span>
       <span className={`text-[10px] font-semibold ${active(n.name) ? 'text-lime' : 'text-mute'}`}>
         {n.label}
@@ -98,7 +94,7 @@ function MobileNav({ route }: { route: Route }) {
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
-        {tab({ name: 'search', label: 'Search', icon: '⌕' })}
+        {tab({ name: 'saved', label: 'Tallies', icon: '♡' })}
         <div className="flex items-start justify-center">
           <button
             onClick={() => navigate('/camera')}
@@ -115,7 +111,7 @@ function MobileNav({ route }: { route: Route }) {
             </svg>
           </button>
         </div>
-        {tab({ name: 'notifications', label: 'Alerts', icon: '🔔', badge: unread })}
+        {tab({ name: 'search', label: 'Search', icon: '⌕' })}
         {tab({ name: 'profile', label: 'Profile', icon: '◯' })}
       </div>
     </nav>
@@ -128,6 +124,7 @@ function DesktopRail() {
   const items = [
     { label: 'Discover', path: '/', match: 'home' },
     { label: 'Search', path: '/search', match: 'search' },
+    { label: 'Tallies', path: '/saved', match: 'saved' },
     { label: 'Alerts', path: '/notifications', match: 'notifications' },
     { label: 'Profile', path: '/profile', match: 'profile' },
   ]
