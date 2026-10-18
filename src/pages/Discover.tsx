@@ -42,6 +42,11 @@ export default function Discover() {
   const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
   const [group, setGroup] = useState<string>('all')
+  const [sub, setSub] = useState<Category | 'all'>('all')
+  const pickGroup = (id: string) => {
+    setGroup(id)
+    setSub('all')
+  }
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [drops, setDrops] = useState<Drop[]>([])
@@ -69,7 +74,8 @@ export default function Discover() {
           .select('*, author:profiles(*)')
           .order('created_at', { ascending: false })
           .limit(150)
-        if (group !== 'all') {
+        if (sub !== 'all') q = q.eq('category', sub)
+        else if (group !== 'all') {
           const g = CATEGORY_GROUPS.find((x) => x.id === group)
           if (g) q = q.in('category', g.categories)
         }
@@ -154,7 +160,7 @@ export default function Discover() {
     return () => {
       live = false
     }
-  }, [group, debounced, user])
+  }, [group, sub, debounced, user])
 
   const visible = useMemo(() => {
     let list = drops
@@ -243,7 +249,7 @@ export default function Discover() {
             className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
-        <CategoryTabs value={group} onChange={setGroup} />
+        <CategoryTabs group={group} sub={sub} onGroup={pickGroup} onSub={setSub} />
         {locState.status !== 'on' && (
           <div className="mt-3">
             <LocationStrip

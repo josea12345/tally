@@ -1,19 +1,48 @@
+import type { Category } from '../lib/types'
 import { CATEGORY_GROUPS } from '../lib/types'
 
-/** Discover filter row: Everything + the three buckets. Four pills, no scroll maze. */
+/** Leaf labels inside the sub-row — "Spots" disambiguates from the group name. */
+const SUB_LABELS: Record<Category, string> = {
+  food_drink: 'Spots',
+  recipes: 'Recipes',
+  places: 'Places',
+  shops: 'Shops',
+  movies_tv: 'Movies & TV',
+  music: 'Music',
+}
+
+/**
+ * Two-row filter: groups on top, subcategories beneath the active group.
+ * Tapping a group resets the subcategory to All.
+ */
 export default function CategoryTabs({
-  value,
-  onChange,
+  group,
+  sub,
+  onGroup,
+  onSub,
 }: {
-  value: string
-  onChange: (id: string) => void
+  group: string
+  sub: Category | 'all'
+  onGroup: (id: string) => void
+  onSub: (c: Category | 'all') => void
 }) {
+  const active = CATEGORY_GROUPS.find((g) => g.id === group)
   return (
-    <div className="rail-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      <Tab active={value === 'all'} onClick={() => onChange('all')} label="Everything" />
-      {CATEGORY_GROUPS.map((g) => (
-        <Tab key={g.id} active={value === g.id} onClick={() => onChange(g.id)} label={g.label} />
-      ))}
+    <div>
+      <div className="rail-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <Tab active={group === 'all'} onClick={() => onGroup('all')} label="Everything" />
+        {CATEGORY_GROUPS.map((g) => (
+          <Tab key={g.id} active={group === g.id} onClick={() => onGroup(g.id)} label={g.label} />
+        ))}
+      </div>
+      {active && (
+        <div className="rail-scroll -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 pt-1.5">
+          <SubTab active={sub === 'all'} onClick={() => onSub('all')} label={`All ${active.label}`} />
+          {active.categories.map((c) => (
+            <SubTab key={c} active={sub === c} onClick={() => onSub(c)} label={SUB_LABELS[c]} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -23,6 +52,19 @@ function Tab({ active, onClick, label }: { active: boolean; onClick: () => void;
     <button
       onClick={onClick}
       className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
+        active ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function SubTab({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
         active ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
