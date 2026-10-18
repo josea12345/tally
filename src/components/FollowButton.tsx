@@ -6,6 +6,8 @@ import { notify } from '../lib/notify'
 export default function FollowButton({ followeeId, onChange }: { followeeId: string; onChange?: () => void }) {
   const { user } = useAuth()
   const [following, setFollowing] = useState<boolean | null>(null)
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [requested, setRequested] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -14,15 +16,17 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
       return
     }
     let live = true
-    supabase
-      .from('follows')
-      .select('id')
-      .eq('follower_id', user.id)
-      .eq('followee_id', followeeId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (live) setFollowing(!!data)
-      })
+    ;(async () => {
+      const [{ data: f }, { data: p }, { data: r }] = await Promise.all([
+        supabase.from('follows').select('id').eq('follower_id', user.id).eq('followee_id', followeeId).maybeSingle(),
+        supabase.from('profiles').select('is_private').eq('id', followeeId).maybeSingle(),
+        supabase.from('follow_requests').select('follower_id').eq('follower_id', user.id).eq('followee_id', followeeId).maybeSingle(),
+      ])
+      if (!live) return
+      setFollowing(!!f)
+      setIsPrivate(!!(p as { is_private?: boolean } | null)?.is_private)
+      setRequested(!!r)
+    })()
     return () => {
       live = false
     }
@@ -36,6 +40,19 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
       if (following) {
         await supabase.from('follows').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
         setFollowing(false)
+      } else if (isPrivate) {
+        if (requested) {
+          await supabase.from('follow_requests').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
+          setRequested(false)
+        } else {
+          const { error } = await supabase
+            .from('follow_requests')
+            .insert({ follower_id: user.id, followee_id: followeeId })
+          if (!error) {
+            setRequested(true)
+            void notify(followeeId, user.id, 'requested')
+          }
+        }
       } else {
         const { error } = await supabase.from('follows').insert({ follower_id: user.id, followee_id: followeeId })
         if (!error) {
@@ -49,6 +66,9 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
     }
   }
 
+  const label = following ? 'Following' : isPrivate ? (requested ? 'Requested' : 'Request') : 'Follow'
+  const active = following || requested
+
   return (
     <button
       onClick={(e) => {
@@ -57,10 +77,10 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
       }}
       disabled={busy}
       className={`rounded-full px-4 py-1.5 text-sm font-black transition disabled:opacity-50 ${
-        following ? 'border border-line bg-ink-3 text-fog' : 'bg-lime text-ink hover:bg-lime-dim'
+        active ? 'border border-line bg-ink-3 text-fog' : 'bg-lime text-ink hover:bg-lime-dim'
       }`}
     >
-      {following ? 'Following' : 'Follow'}
+      {label}
     </button>
   )
 }

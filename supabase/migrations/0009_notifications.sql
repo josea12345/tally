@@ -6,7 +6,7 @@ create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade, -- recipient
   actor_id uuid not null references public.profiles(id) on delete cascade,
-  kind text not null check (kind in ('W', 'L', 'follow', 'comment')),
+  kind text not null check (kind in ('W', 'L', 'follow', 'comment', 'approved', 'requested')),
   drop_id uuid references public.drops(id) on delete cascade,
   read_at timestamptz,
   created_at timestamptz not null default now()

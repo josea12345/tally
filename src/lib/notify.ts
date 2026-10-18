@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export type NotificationKind = 'W' | 'L' | 'follow' | 'comment'
+export type NotificationKind = 'W' | 'L' | 'follow' | 'comment' | 'approved' | 'requested'
 
 export interface Notification {
   id: string

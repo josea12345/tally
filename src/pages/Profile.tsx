@@ -20,6 +20,58 @@ interface ProfileStats {
   rate: ReturnType<typeof winRateFor>
 }
 
+function DropsList({
+  drops,
+  dropStats,
+  mySaves,
+  myVotes,
+  toggleSave,
+  vote,
+  setDropStats,
+  profile,
+  isOwn,
+}: {
+  drops: Drop[]
+  dropStats: Map<string, DropStats>
+  mySaves: Set<string>
+  myVotes: Map<string, 'W' | 'L'>
+  toggleSave: (id: string) => void
+  vote: (dropId: string, v: 'W' | 'L', setStats: React.Dispatch<React.SetStateAction<Map<string, DropStats>>>, authorId?: string) => void
+  setDropStats: React.Dispatch<React.SetStateAction<Map<string, DropStats>>>
+  profile: Profile
+  isOwn: boolean
+}) {
+  if (drops.length === 0) {
+    return (
+      <EmptyState
+        title="No drops yet"
+        body={isOwn ? 'Your first put-on is waiting. Drop something worth knowing.' : `Hear @${profile.username} out soon — nothing dropped yet.`}
+        action={isOwn ? (
+          <button onClick={() => navigate('/create')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+            Put someone on
+          </button>
+        ) : undefined}
+      />
+    )
+  }
+  return (
+    <>
+      {drops.map((d, i) => (
+        <DropCard
+          key={d.id}
+          drop={{ ...d, author: profile }}
+          stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
+          saved={mySaves.has(d.id)}
+          onToggleSave={() => toggleSave(d.id)}
+          myVote={myVotes.get(d.id) ?? null}
+          onVote={(v) => vote(d.id, v, setDropStats, d.author_id)}
+          revealDelay={(i % 6) * 70}
+        />
+      ))}
+    </>
+  )
+}
+
 export default function Profile({ id }: { id?: string }) {
   const { user, refreshProfile } = useAuth()
   const { myVotes, setVotesFromRows, vote } = useFeedVotes()
@@ -36,8 +88,20 @@ export default function Profile({ id }: { id?: string }) {
   const [form, setForm] = useState({ display_name: '', bio: '', city: '', avatar_url: '' })
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
+  const [isFollowing, setIsFollowing] = useState(false)
 
   const isOwn = user?.id === profileId
+
+  const refreshFollow = async () => {
+    if (!user || user.id === profileId) return
+    const { data: f } = await supabase
+      .from('follows')
+      .select('id')
+      .eq('follower_id', user.id)
+      .eq('followee_id', profileId)
+      .maybeSingle()
+    setIsFollowing(!!f)
+  }
 
   useEffect(() => {
     if (!profileId) return
@@ -69,6 +133,18 @@ export default function Profile({ id }: { id?: string }) {
       setDrops(list)
       setFollowers(f1 ?? 0)
       setFollowing(f2 ?? 0)
+
+      if (user && user.id !== profileId) {
+        const { data: f } = await supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('followee_id', profileId)
+          .maybeSingle()
+        if (live) setIsFollowing(!!f)
+      } else if (live) {
+        setIsFollowing(false)
+      }
 
       const ids = list.map((d) => d.id)
       let savedByOthers = 0
@@ -183,14 +259,23 @@ export default function Profile({ id }: { id?: string }) {
             </p>
           </div>
           {isOwn ? (
-            <button
-              onClick={() => setEditing((e) => !e)}
-              className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
-            >
-              {editing ? 'Cancel' : 'Edit'}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => navigate('/settings')}
+                aria-label="Settings"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-lg text-fog transition hover:border-lime hover:text-lime"
+              >
+                ⚙️
+              </button>
+              <button
+                onClick={() => setEditing((e) => !e)}
+                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+              >
+                {editing ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
           ) : (
-            <FollowButton followeeId={profile.id} />
+            <FollowButton followeeId={profile.id} onChange={refreshFollow} />
           )}
         </div>
         {profile.bio && !editing && <p className="mt-3 text-[15px] leading-relaxed">{profile.bio}</p>}
@@ -270,52 +355,53 @@ export default function Profile({ id }: { id?: string }) {
         </div>
       </div>
 
-      {isOwn ? (
-        <div className="flex gap-2 px-4 pt-4">
-          {(['drops', 'tallies'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`rounded-full px-5 py-1.5 text-sm font-black capitalize transition ${
-                tab === t ? 'bg-lime text-ink' : 'border border-line text-mute'
-              }`}
-            >
-              {t === 'drops' ? `Drops · ${drops.length}` : 'Tallies'}
-            </button>
-          ))}
+      {profile.is_private && !isOwn && !isFollowing ? (
+        <div className="px-4 py-14 text-center">
+          <div className="mb-3 text-5xl">🔒</div>
+          <h2 className="text-xl font-black">This account is private</h2>
+          <p className="mx-auto mt-1 max-w-xs text-sm text-mute">
+            Request to follow @{profile.username} to see their drops.
+          </p>
         </div>
       ) : (
-        <div className="px-4 pt-2">
-          <h2 className="py-3 text-lg font-black">
-            {`@${profile.username}'s drops`} · {drops.length}
-          </h2>
-        </div>
-      )}
-      {tab === 'tallies' && isOwn ? (
-        <Saved bare />
-      ) : drops.length === 0 ? (
-        <EmptyState
-          title={isOwn ? 'No drops yet' : 'No drops yet'}
-          body={isOwn ? 'Your first put-on is waiting. Drop something worth knowing.' : `Hear @${profile.username} out soon — nothing dropped yet.`}
-          action={isOwn ? (
-            <button onClick={() => navigate('/create')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
-              Put someone on
-            </button>
-          ) : undefined}
-        />
-      ) : (
-        drops.map((d, i) => (
-          <DropCard
-            key={d.id}
-            drop={{ ...d, author: profile }}
-            stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
-            saved={mySaves.has(d.id)}
-            onToggleSave={() => toggleSave(d.id)}
-            myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setDropStats, d.author_id)}
-            revealDelay={(i % 6) * 70}
-          />
-        ))
+        <>
+          {isOwn ? (
+            <div className="flex gap-2 px-4 pt-4">
+              {(['drops', 'tallies'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`rounded-full px-5 py-1.5 text-sm font-black capitalize transition ${
+                    tab === t ? 'bg-lime text-ink' : 'border border-line text-mute'
+                  }`}
+                >
+                  {t === 'drops' ? `Drops · ${drops.length}` : 'Tallies'}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 pt-2">
+              <h2 className="py-3 text-lg font-black">
+                {`@${profile.username}'s drops`} · {drops.length}
+              </h2>
+            </div>
+          )}
+          {tab === 'tallies' && isOwn ? (
+            <Saved bare />
+          ) : (
+            <DropsList
+              drops={drops}
+              dropStats={dropStats}
+              mySaves={mySaves}
+              myVotes={myVotes}
+              toggleSave={toggleSave}
+              vote={vote}
+              setDropStats={setDropStats}
+              profile={profile}
+              isOwn={isOwn}
+            />
+          )}
+        </>
       )}
     </div>
   )

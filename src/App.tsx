@@ -11,13 +11,14 @@ import Saved from './pages/Saved'
 import Profile from './pages/Profile'
 import Search from './pages/Search'
 import Notifications from './pages/Notifications'
+import Settings from './pages/Settings'
 import InstallBanner from './components/InstallBanner'
 import { useUnreadCount } from './lib/useNotifications'
 import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings'
   param?: string
 }
 
@@ -37,6 +38,7 @@ export function parseHash(): Route {
   if (a === 'saved') return { name: 'saved' }
   if (a === 'search') return { name: 'search' }
   if (a === 'notifications') return { name: 'notifications' }
+  if (a === 'settings') return { name: 'settings' }
   if (a === 'onboarding') return { name: 'onboarding' }
   if (a === 'auth') return { name: 'auth' }
   return { name: 'home' }
@@ -256,6 +258,8 @@ export default function App() {
         return <Search />
       case 'notifications':
         return <Notifications />
+      case 'settings':
+        return <Settings />
       case 'home':
       default:
         return user ? <Discover /> : <Landing mode="landing" />

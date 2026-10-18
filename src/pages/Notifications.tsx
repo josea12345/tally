@@ -17,6 +17,10 @@ function textFor(n: Notification): string {
       return `${name} followed you`
     case 'comment':
       return `${name} commented on your drop`
+    case 'approved':
+      return `${name} approved your follow request`
+    case 'requested':
+      return `${name} requested to follow you`
   }
 }
 
@@ -107,7 +111,7 @@ export default function Notifications() {
                 </span>
                 {!n.read_at && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-lime" />}
                 <span className="shrink-0 text-lg" aria-hidden>
-                  {n.kind === 'W' ? '✅' : n.kind === 'L' ? '❌' : n.kind === 'follow' ? '➕' : '💬'}
+                  {n.kind === 'W' ? '✅' : n.kind === 'L' ? '❌' : n.kind === 'follow' ? '➕' : n.kind === 'approved' ? '🤝' : n.kind === 'requested' ? '🙋' : '💬'}
                 </span>
               </button>
             </li>
