@@ -134,7 +134,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
         {[
           ['Drop', 'Put people onto places, movies, music you love'],
           ['Visit', 'Save drops, try them, call W or L'],
-          ['Prove it', 'Your hit rate is your reputation'],
+          ['Prove it', 'Your win rate is your reputation'],
         ].map(([t, b]) => (
           <div key={t} className="rounded-2xl border border-line bg-ink-2 p-4">
             <div className="mb-1 text-base font-black text-lime">{t}</div>

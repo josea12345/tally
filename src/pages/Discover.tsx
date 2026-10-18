@@ -88,7 +88,7 @@ export default function Discover() {
           setFollowing(new Set(((follows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id)))
         }
 
-        // Tastemaker rail: authors with a real hit rate, top 10.
+        // Tastemaker rail: authors with a real win rate, top 10.
         const { data: allVerdicts } = await supabase
           .from('verdicts')
           .select('verdict, drop:drops!inner(author_id)')

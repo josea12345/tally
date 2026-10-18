@@ -49,7 +49,7 @@ export default function People() {
     }
   }, [debounced, user])
 
-  // Who to follow: ranked by proven taste (hit rate, min 5 verdicts), excluding self + already followed.
+  // Who to follow: ranked by proven taste (win rate, min 5 verdicts), excluding self + already followed.
   useEffect(() => {
     let live = true
     const load = async () => {
@@ -114,7 +114,7 @@ export default function People() {
         <div className="space-y-6 px-4 pt-5">
           <section>
             <h2 className="mb-1 text-sm font-black uppercase tracking-widest text-mute">Who to follow</h2>
-            <p className="mb-3 text-xs text-mute">Ranked by proven taste — hit rate over 5+ verdicts.</p>
+            <p className="mb-3 text-xs text-mute">Ranked by proven taste — win rate over 5+ verdicts.</p>
             {loading ? (
               <p className="text-sm text-mute">Loading…</p>
             ) : whoToFollow.length === 0 ? (
@@ -161,7 +161,7 @@ function PersonRow({ profile: p, rate, total }: { profile: Profile; rate?: numbe
         {p.bio && <div className="truncate text-xs text-mute">{p.bio}</div>}
         {rate != null && (
           <div className="text-xs font-bold text-lime">
-            {Math.round(rate * 100)}% hit rate · {total} verdicts
+            {Math.round(rate * 100)}% win rate · {total} verdicts
           </div>
         )}
       </button>

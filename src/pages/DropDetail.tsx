@@ -65,7 +65,7 @@ export default function DropDetail({ id }: { id: string }) {
         setSaved(!!mySave)
       }
 
-      // author's live hit rate for the payoff banner
+      // author's live win rate for the payoff banner
       const { data: authorDrops } = await supabase.from('drops').select('id').eq('author_id', d.author_id).limit(2000)
       const aIds = ((authorDrops ?? []) as Array<{ id: string }>).map((x) => x.id)
       if (aIds.length > 0) {

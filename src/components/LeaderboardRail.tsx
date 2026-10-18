@@ -4,7 +4,7 @@ import type { Drop, Profile, Verdict } from '../lib/types'
 import { buildLeaderboard, LEADERBOARD_MINIMUM, type LeaderboardRow } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 
-/** Weekly city leaderboard: hit rate over the last 7 days, 3-verdict minimum to chart. */
+/** Weekly city leaderboard: win rate over the last 7 days, 3-verdict minimum to chart. */
 export default function LeaderboardRail({ city }: { city: string }) {
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null)
 
@@ -50,7 +50,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
       <div className="mb-1 text-sm font-black">This week's tastemakers</div>
       <p className="mb-3 text-xs text-mute">
-        {city} · hit rate, last 7 days · {LEADERBOARD_MINIMUM}+ verdicts to chart
+        {city} · win rate, last 7 days · {LEADERBOARD_MINIMUM}+ verdicts to chart
       </p>
       {rows.length === 0 ? (
         <p className="text-xs text-mute">
