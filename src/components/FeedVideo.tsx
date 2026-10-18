@@ -64,7 +64,7 @@ export default function FeedVideo({
         preload="metadata"
         onError={() => setFailed(true)}
         onClick={toggleSound}
-        className="max-h-96 w-full bg-black object-cover"
+        className="max-h-[300px] w-full bg-black object-cover"
       />
       <div className="pointer-events-none absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-sm backdrop-blur-sm">
         {muted ? '🔇' : '🔊'}

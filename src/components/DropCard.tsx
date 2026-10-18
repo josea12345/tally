@@ -84,7 +84,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
             {drop.media_type === 'video' ? (
               <FeedVideo src={drop.media_url} poster={drop.media_poster_url} />
             ) : (
-              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[480px] w-full object-cover" />
+              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[380px] w-full object-cover" />
             )}
           </div>
         )}
