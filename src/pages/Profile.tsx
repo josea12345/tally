@@ -8,6 +8,8 @@ import DropCard from '../components/DropCard'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import BadgeList from '../components/BadgeList'
+import TallyMarks from '../components/TallyMarks'
+import CountUp from '../components/CountUp'
 
 interface ProfileStats {
   drops: number
@@ -167,7 +169,7 @@ export default function Profile({ id }: { id?: string }) {
         <div className="flex items-start gap-4">
           <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={84} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-black tracking-tight">
+            <h1 className="truncate font-display text-3xl font-bold tracking-tight">
               {profile.display_name || `@${profile.username}`}
             </h1>
             <p className="text-sm text-mute">@{profile.username}{profile.city ? ` · ${profile.city}` : ''}</p>
@@ -226,19 +228,25 @@ export default function Profile({ id }: { id?: string }) {
             ['Drops', stats?.drops ?? 0],
             ['Saved', stats?.savedByOthers ?? 0],
             ['Verdicts', stats?.verdictsReceived ?? 0],
-            [
-              'Win rate',
-              r && r.rate != null ? `${Math.round(r.rate * 100)}%` : '—',
-            ],
           ].map(([label, val]) => (
             <div key={label as string} className="rounded-2xl border border-line bg-ink-2 px-2 py-3">
-              <div className={`text-xl font-black ${label === 'Win rate' && r?.rate != null ? 'text-lime' : ''}`}>
-                {val}
-              </div>
+              <div className="text-xl font-black tabular-nums">{val}</div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-mute">{label}</div>
             </div>
           ))}
+          <div className="rounded-2xl border border-lime/40 bg-lime/5 px-2 py-3">
+            <div className="text-xl font-black tabular-nums text-lime">
+              {r && r.rate != null ? <CountUp value={Math.round(r.rate * 100)} suffix="%" /> : '—'}
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Win rate</div>
+          </div>
         </div>
+        {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
+          <div className="mt-4 rounded-2xl border border-line bg-ink-2 p-4">
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-mute">The record</div>
+            <TallyMarks wins={r.wins} losses={r.losses} />
+          </div>
+        )}
         {r && r.rate == null && (
           <p className="mt-2 text-center text-xs text-mute">
             Not enough data yet — win rate appears after {WIN_RATE_MINIMUM} verdicts. Missing verdicts never count as
@@ -273,13 +281,14 @@ export default function Profile({ id }: { id?: string }) {
           ) : undefined}
         />
       ) : (
-        drops.map((d) => (
+        drops.map((d, i) => (
           <DropCard
             key={d.id}
             drop={{ ...d, author: profile }}
             stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
+            revealDelay={(i % 6) * 70}
           />
         ))
       )}

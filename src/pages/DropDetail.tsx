@@ -211,7 +211,7 @@ export default function DropDetail({ id }: { id: string }) {
           {author && !isOwner && <FollowButton followeeId={author.id} />}
         </div>
 
-        <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight">{drop.title}</h1>
+        <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight">{drop.title}</h1>
         {drop.score != null && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-lime/50 bg-lime/10 px-4 py-1.5">
             <span className="text-xl font-black text-lime">{drop.score}</span>

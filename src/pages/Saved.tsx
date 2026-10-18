@@ -84,13 +84,14 @@ export default function Saved() {
           }
         />
       ) : (
-        drops.map((d) => (
+        drops.map((d, i) => (
           <DropCard
             key={d.id}
             drop={d}
             stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved
             onToggleSave={() => unsave(d.id)}
+            revealDelay={(i % 6) * 70}
           />
         ))
       )}

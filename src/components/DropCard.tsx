@@ -1,121 +1,136 @@
+import { useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { timeAgo, formatCount } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import LinkChips from './LinkChips'
+import Reveal from './Reveal'
+import FeedVideo from './FeedVideo'
 
 interface Props {
   drop: Drop
   stats: DropStats
   saved: boolean
   onToggleSave: () => void
+  revealDelay?: number
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay = 0 }: Props) {
   const author = drop.author
   const open = () => navigate(`/drop/${drop.id}`)
+  const [heartPop, setHeartPop] = useState(false)
+
+  const toggleSave = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!saved) {
+      setHeartPop(false)
+      requestAnimationFrame(() => setHeartPop(true))
+    }
+    onToggleSave()
+  }
 
   return (
-    <article
-      onClick={open}
-      className="rise-in cursor-pointer border-b border-line px-4 py-4 transition hover:bg-ink-2/60"
-    >
-      <div className="flex gap-3">
-        <div onClick={(e) => e.stopPropagation()}>
+    <Reveal delay={revealDelay}>
+      <article
+        onClick={open}
+        className="cursor-pointer border-b border-line px-4 pb-3 pt-4 transition hover:bg-ink-2/60"
+      >
+        <div className="flex gap-3">
+          <div onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => author && navigate(`/profile/${author.id}`)}
+              aria-label={author ? `Open @${author.username}` : 'profile'}
+            >
+              <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={44} />
+            </button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className="truncate font-bold">{author?.display_name || author?.username || 'Someone'}</span>
+              {author && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/profile/${author.id}`)
+                  }}
+                  className="truncate text-mute hover:text-lime"
+                >
+                  @{author.username}
+                </button>
+              )}
+              <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
+            </div>
+
+            <h3 className="mt-1 font-display text-xl font-bold leading-snug tracking-tight">{drop.title}</h3>
+            {drop.score != null && (
+              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-lime/50 bg-lime/10 px-3 py-0.5">
+                <span className="text-sm font-black text-lime">{drop.score}</span>
+                <span className="text-[10px] font-bold text-mute">/10 author's call</span>
+              </span>
+            )}
+            <p className="mt-1 text-[15px] leading-relaxed text-fog/90">
+              <span className="font-bold text-lime">Hear me out — </span>
+              {drop.description}
+            </p>
+            {(drop.street_address || drop.neighborhood || drop.city) && (
+              <p className="mt-1 text-xs text-mute">
+                {[drop.street_address, drop.neighborhood, drop.city].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {drop.media_url && (
+          <div className="-mx-4 mt-3 overflow-hidden border-y border-line bg-black" onClick={(e) => e.stopPropagation()}>
+            {drop.media_type === 'video' ? (
+              <FeedVideo src={drop.media_url} poster={drop.media_poster_url} />
+            ) : (
+              <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-[480px] w-full object-cover" />
+            )}
+          </div>
+        )}
+
+        <div className="pt-1">
+          <LinkChips drop={drop} />
+        </div>
+
+        <div className="mt-2.5 flex items-center gap-5 text-sm">
           <button
-            onClick={() => author && navigate(`/profile/${author.id}`)}
-            aria-label={author ? `Open @${author.username}` : 'profile'}
+            onClick={toggleSave}
+            className={`press flex items-center gap-1.5 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
+            aria-label={saved ? 'Unsave' : 'Save'}
           >
-            <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={44} />
+            <span className={`text-lg ${heartPop && saved ? 'heart-pop' : ''}`}>{saved ? '♥' : '♡'}</span>
+            <span>{formatCount(stats.saves)}</span>
+          </button>
+          <span className="flex items-center gap-1.5 font-bold text-mute">
+            <span className="text-lime">▲</span> {formatCount(stats.wins)}
+          </span>
+          <span className="flex items-center gap-1.5 font-bold text-mute">
+            <span className="text-miss">▼</span> {formatCount(stats.losses)}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/drop/${drop.id}`)
+            }}
+            className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
+            aria-label="Comments"
+          >
+            <span className="text-base">💬</span> {formatCount(stats.comments)}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              const url = `${window.location.origin}${window.location.pathname}#/drop/${drop.id}`
+              navigator.clipboard?.writeText(url).catch(() => {})
+            }}
+            className="press ml-auto text-mute transition hover:text-lime"
+            aria-label="Copy link"
+          >
+            ⤴
           </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className="truncate font-bold">{author?.display_name || author?.username || 'Someone'}</span>
-            {author && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/profile/${author.id}`)
-                }}
-                className="truncate text-mute hover:text-lime"
-              >
-                @{author.username}
-              </button>
-            )}
-            <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
-          </div>
-
-          <h3 className="mt-1 text-lg font-black leading-snug">{drop.title}</h3>
-          {drop.score != null && (
-            <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-lime/50 bg-lime/10 px-3 py-0.5">
-              <span className="text-sm font-black text-lime">{drop.score}</span>
-              <span className="text-[10px] font-bold text-mute">/10 author's call</span>
-            </span>
-          )}
-          <p className="mt-1 text-[15px] leading-relaxed text-fog/90">
-            <span className="font-bold text-lime">Hear me out — </span>
-            {drop.description}
-          </p>
-          {(drop.street_address || drop.neighborhood || drop.city) && (
-            <p className="mt-1 text-xs text-mute">
-              {[drop.street_address, drop.neighborhood, drop.city].filter(Boolean).join(' · ')}
-            </p>
-          )}
-
-          {drop.media_url && (
-            <div className="mt-3 overflow-hidden rounded-2xl border border-line">
-              {drop.media_type === 'video' ? (
-                <video src={drop.media_url} poster={drop.media_poster_url ?? undefined} controls playsInline preload="metadata" className="max-h-96 w-full bg-black" />
-              ) : (
-                <img src={drop.media_url} alt={drop.title} loading="lazy" className="max-h-96 w-full object-cover" />
-              )}
-            </div>
-          )}
-
-          <LinkChips drop={drop} />
-
-          <div className="mt-3 flex items-center gap-5 text-sm">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggleSave()
-              }}
-              className={`flex items-center gap-1.5 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
-              aria-label={saved ? 'Unsave' : 'Save'}
-            >
-              <span className="text-lg">{saved ? '♥' : '♡'}</span>
-              <span>{formatCount(stats.saves)}</span>
-            </button>
-            <span className="flex items-center gap-1.5 font-bold text-mute">
-              <span className="text-lime">▲</span> {formatCount(stats.wins)}
-            </span>
-            <span className="flex items-center gap-1.5 font-bold text-mute">
-              <span className="text-miss">▼</span> {formatCount(stats.losses)}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/drop/${drop.id}`)
-              }}
-              className="flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
-              aria-label="Comments"
-            >
-              <span className="text-base">💬</span> {formatCount(stats.comments)}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                const url = `${window.location.origin}${window.location.pathname}#/drop/${drop.id}`
-                navigator.clipboard?.writeText(url).catch(() => {})
-              }}
-              className="ml-auto text-mute transition hover:text-lime"
-              aria-label="Copy link"
-            >
-              ⤴
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
+      </article>
+    </Reveal>
   )
 }

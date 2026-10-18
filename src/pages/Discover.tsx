@@ -291,13 +291,14 @@ export default function Discover() {
           }
         />
       ) : (
-        visible.map((d) => (
+        visible.map((d, i) => (
           <DropCard
             key={d.id}
             drop={d}
             stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
+            revealDelay={(i % 6) * 70}
           />
         ))
       )}

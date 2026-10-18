@@ -82,9 +82,15 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       </p>
 
       {/* poll-style split bar */}
-      <div className="mb-4 flex h-3 overflow-hidden rounded-full bg-ink-3">
-        <div className="poll-fill bg-lime" style={{ width: `${winPct}%` }} />
-        <div className="poll-fill bg-miss" style={{ width: `${100 - winPct}%` }} />
+      <div className="mb-4 flex h-3.5 overflow-hidden rounded-full bg-ink-3">
+        <div
+          className={`poll-fill ${winPct >= 50 ? 'glow-win' : ''} bg-lime`}
+          style={{ width: `${winPct}%`, transition: 'width 0.7s cubic-bezier(0.22,1,0.36,1)' }}
+        />
+        <div
+          className={`poll-fill ${winPct < 50 ? 'glow-loss' : ''} bg-miss`}
+          style={{ width: `${100 - winPct}%`, transition: 'width 0.7s cubic-bezier(0.22,1,0.36,1)' }}
+        />
       </div>
       <div className="mb-4 flex justify-between text-xs font-bold">
         <span className="text-lime">W · {stats.wins}</span>
@@ -101,7 +107,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
         <button
           onClick={markTried}
           disabled={busy}
-          className="w-full rounded-full border border-lime px-4 py-3 text-sm font-black text-lime transition hover:bg-lime hover:text-ink disabled:opacity-50"
+          className="press w-full rounded-full border border-lime px-4 py-3 text-sm font-black text-lime transition hover:bg-lime hover:text-ink disabled:opacity-50"
         >
           {triedLabel(drop.category)}
         </button>
@@ -110,8 +116,8 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
           <button
             onClick={() => vote('W')}
             disabled={busy}
-            className={`rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'W' ? 'bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
+            className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
+              myVerdict?.verdict === 'W' ? 'verdict-slam bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
             }`}
           >
             W{myVerdict?.verdict === 'W' ? ' ✓' : ''}
@@ -119,8 +125,8 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
           <button
             onClick={() => vote('L')}
             disabled={busy}
-            className={`rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'L' ? 'bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
+            className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
+              myVerdict?.verdict === 'L' ? 'verdict-slam bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
             }`}
           >
             L{myVerdict?.verdict === 'L' ? ' ✓' : ''}

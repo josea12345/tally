@@ -36,11 +36,11 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
 
   return (
     <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
-      <div className="mb-8 text-4xl font-black tracking-tight">
+      <div className="mb-8 font-display text-4xl font-bold tracking-tight">
         TALLY<span className="text-lime">.</span>
       </div>
 
-      <h1 className="mb-4 text-4xl font-black leading-[1.05] tracking-tight">
+      <h1 className="mb-4 font-display text-5xl font-bold leading-[1.02] tracking-tight">
         Good taste deserves a <span className="text-lime">track record.</span>
       </h1>
       <p className="mb-6 text-lg leading-relaxed text-mute">
