@@ -160,54 +160,6 @@ export function Avatar({ url, name, size = 40 }: { url: string | null; name: str
   )
 }
 
-function DebugOverlay() {
-  const [info, setInfo] = useState('measuring…')
-  useEffect(() => {
-    const run = () => {
-      const iw = window.innerWidth
-      const sw = document.documentElement.scrollWidth
-      const seen = new Set<string>()
-      const offenders: Array<{ w: number; s: string }> = []
-      document.querySelectorAll('*').forEach((el) => {
-        const r = (el as HTMLElement).getBoundingClientRect()
-        if (r.right > iw + 2 && r.width > 0 && r.width < 10000) {
-          const cls =
-            typeof (el as HTMLElement).className === 'string'
-              ? (el as HTMLElement).className
-              : ''
-          const txt = (el.textContent || '').trim().slice(0, 42).replace(/\s+/g, ' ')
-          const key = el.tagName + cls.slice(0, 40)
-          if (seen.has(key)) return
-          seen.add(key)
-          offenders.push({
-            w: r.width,
-            s: `${el.tagName} w=${Math.round(r.width)} x=${Math.round(r.x)} cls="${cls.slice(0, 70)}" txt="${txt}"`,
-          })
-        }
-      })
-      offenders.sort((a, b) => b.w - a.w)
-      setInfo(
-        `innerWidth=${iw} docScrollWidth=${sw} bodyScrollWidth=${document.body.scrollWidth}\n` +
-          offenders.slice(0, 14).map((o) => o.s).join('\n')
-      )
-    }
-    const t = setTimeout(run, 1800)
-    return () => clearTimeout(t)
-  }, [])
-  return (
-    <div
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.94)', color: '#c8f31d', fontSize: 11,
-        padding: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-        maxHeight: '75vh', overflow: 'auto', fontFamily: 'monospace',
-      }}
-    >
-      {info}
-    </div>
-  )
-}
-
 export default function App() {
   const route = useRoute()
   const { user, loading, needsOnboarding } = useAuth()
@@ -264,8 +216,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-ink text-fog">
-      {typeof window !== 'undefined' &&
-        new URLSearchParams(window.location.search).get('dbg') === '1' && <DebugOverlay />}
       <InstallBanner />
       <div className="mx-auto flex max-w-6xl">
         {showChrome && <DesktopRail />}
