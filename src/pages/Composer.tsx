@@ -8,6 +8,8 @@ import { useDeviceLocation } from '../hooks/useLocation'
 import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
+import TitleSearch from '../components/TitleSearch'
+import type { TmdbTitle } from '../lib/tmdb'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
 import EmptyState from '../components/EmptyState'
 
@@ -57,7 +59,21 @@ export default function Composer({ editId }: { editId?: string }) {
   const [instructionsText, setInstructionsText] = useState('')
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
   const [score, setScore] = useState<number | null>(null)
+  const [tmdbUrl, setTmdbUrl] = useState<string | null>(null)
+  const [tmdbPoster, setTmdbPoster] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  /** TMDB title pick: fill the title, attach the poster as cover, link the TMDB page. */
+  const pickTitle = (t: TmdbTitle) => {
+    setTitle(t.year ? `${t.title} (${t.year})` : t.title)
+    setTmdbUrl(t.tmdbUrl)
+    setMediaList((prev) => {
+      const withoutOld = tmdbPoster ? prev.filter((m) => m.url !== tmdbPoster) : prev
+      if (!t.posterUrl || withoutOld.some((m) => m.url === t.posterUrl)) return withoutOld
+      return [{ url: t.posterUrl, type: 'photo' as const }, ...withoutOld]
+    })
+    setTmdbPoster(t.posterUrl)
+  }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const { state: locState, effective, locate } = useDeviceLocation(profile?.city)
@@ -119,6 +135,7 @@ export default function Composer({ editId }: { editId?: string }) {
         setSiteUrl(d.external_label === 'Official site' ? (d.external_url ?? '') : '')
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
+        if (d.external_label === 'TMDB') setTmdbUrl(d.external_url)
         if (d.media_url || (d.media_urls?.length ?? 0) > 0) {
           setMediaList(
             dropMedia(d).map((m) => ({ url: m.url, type: m.type, posterUrl: m.posterUrl ?? undefined })),
@@ -175,6 +192,9 @@ export default function Composer({ editId }: { editId?: string }) {
           externalUrl = siteUrl.trim()
           externalLabel = 'Official site'
         }
+      } else if (tmdbUrl && (category === 'movies' || category === 'tv')) {
+        externalUrl = tmdbUrl
+        externalLabel = 'TMDB'
       } else if (linkKind === 'paste' && pasteUrl.trim()) {
         externalUrl = pasteUrl.trim()
         externalLabel = AUTO_LABEL[category] ?? null
@@ -267,6 +287,9 @@ export default function Composer({ editId }: { editId?: string }) {
         ))}
       </div>
 
+      {(category === 'movies' || category === 'tv') && (
+        <TitleSearch category={category} onPick={pickTitle} />
+      )}
       {isPlace ? (
         <PlaceAutocomplete
           category={category}

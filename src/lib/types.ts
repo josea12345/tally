@@ -79,7 +79,7 @@ export interface Drop {
   ingredients: string[]
   instructions: string[]
   external_url: string | null
-  external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | null
+  external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | 'TMDB' | null
   tip: string | null
   where_to: string | null
   score: number | null
