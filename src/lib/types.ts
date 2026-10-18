@@ -51,6 +51,7 @@ export interface Profile {
   city: string | null
   avatar_url: string | null
   is_private: boolean
+  dismissed_badges: string[]
   created_at: string
   updated_at: string
 }

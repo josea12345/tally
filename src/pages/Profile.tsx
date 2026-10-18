@@ -91,8 +91,21 @@ export default function Profile({ id }: { id?: string }) {
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
   const [isFollowing, setIsFollowing] = useState(false)
+  const [dismissed, setDismissed] = useState<string[]>([])
 
   const isOwn = user?.id === profileId
+
+  // Keep the dismissed-badge list in sync with the loaded profile.
+  useEffect(() => {
+    setDismissed(profile?.dismissed_badges ?? [])
+  }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dismissBadge = async (id: string) => {
+    if (!profile || dismissed.includes(id)) return
+    const next = [...dismissed, id]
+    setDismissed(next)
+    await supabase.from('profiles').update({ dismissed_badges: next }).eq('id', profile.id)
+  }
 
   const refreshFollow = async () => {
     if (!user || user.id === profileId) return
@@ -400,8 +413,7 @@ export default function Profile({ id }: { id?: string }) {
         )}
 
         <div className="mt-5">
-          <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-mute">Earned on the record</h2>
-          <BadgeList profileId={profile.id} />
+          <BadgeList profileId={profile.id} isOwn={isOwn} dismissed={dismissed} onDismiss={dismissBadge} />
         </div>
       </div>
 
