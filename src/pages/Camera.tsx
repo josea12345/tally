@@ -214,16 +214,16 @@ export default function Camera() {
 
   return (
     <div className="fixed inset-0 z-50 select-none bg-black touch-none" onContextMenu={(e) => e.preventDefault()}>
-      {camState === 'live' && (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 h-full w-full object-cover"
-          style={facing === 'user' ? { transform: 'scaleX(-1)' } : undefined}
-        />
-      )}
+      {/* always rendered so the ref exists before the stream arrives —
+          attaching srcObject to a not-yet-rendered element was a black screen */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={`absolute inset-0 h-full w-full object-cover ${camState === 'live' ? '' : 'invisible'}`}
+        style={facing === 'user' ? { transform: 'scaleX(-1)' } : undefined}
+      />
 
       {/* top bar */}
       <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-4">
