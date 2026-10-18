@@ -8,6 +8,7 @@ import Composer from './pages/Composer'
 import Filter from './pages/Filter'
 import VideoReview from './pages/VideoReview'
 import Saved from './pages/Saved'
+import TallyIcon from './components/TallyIcon'
 import Profile from './pages/Profile'
 import People from './pages/People'
 import InstallBanner from './components/InstallBanner'
@@ -72,7 +73,9 @@ function MobileNav({ route }: { route: Route }) {
           active(n.name) ? 'bg-lime text-ink' : 'text-mute'
         }`}
       >
-        {n.name === 'profile' && profile?.avatar_url ? (
+        {n.name === 'saved' ? (
+          <TallyIcon saved={active(n.name)} className="h-5 w-5" />
+        ) : n.name === 'profile' && profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
         ) : (
           n.icon
