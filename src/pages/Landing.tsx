@@ -3,6 +3,9 @@ import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import Reveal from '../components/Reveal'
 import TallyMarks from '../components/TallyMarks'
+import AlertIcon from '../components/AlertIcon'
+import TallyIcon from '../components/TallyIcon'
+import { PinIcon, ChartIcon, VideoIcon, CardsIcon, ChainIcon, SearchIcon, ScoreIcon } from '../components/icons'
 import { tasteScoreFor } from '../lib/stats'
 
 const PHRASES = ['Hear me out', 'Let me put you on', 'Trust me on this one', "Don't sleep on this"]
@@ -107,13 +110,27 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
         </Reveal>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {[
-            ['📍', 'Drop it', 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.'],
-            ['🔖', 'They try it', 'Friends tally your drop, go try it for real, and vote.'],
-            ['⚖️', 'You get the record', 'Every W and L feeds your public Taste Score. Missing verdicts never count as wins.'],
-          ].map(([icon, title, body], i) => (
+            {
+              Icon: PinIcon,
+              title: 'Drop it',
+              body: 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.',
+            },
+            {
+              Icon: ({ className }: { className?: string }) => <TallyIcon saved className={className} />,
+              title: 'They try it',
+              body: 'Friends tally your drop, go try it for real, and vote.',
+            },
+            {
+              Icon: ChartIcon,
+              title: 'You get the record',
+              body: 'Every W and L feeds your public Taste Score. Missing verdicts never count as wins.',
+            },
+          ].map(({ Icon, title, body }, i) => (
             <Reveal key={title} delay={i * 100}>
               <div className="h-full rounded-3xl border border-line bg-ink-2 p-6">
-                <div className="mb-4 text-4xl">{icon}</div>
+                <div className="mb-4 text-lime">
+                  <Icon className="h-10 w-10" />
+                </div>
                 <h3 className="mb-2 font-display text-2xl font-bold">{title}</h3>
                 <p className="leading-relaxed text-mute">{body}</p>
               </div>
@@ -157,16 +174,42 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
         </Reveal>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            ['🎥', '60-second reviews', 'Real reviews need more than a clip. Shoot up to a minute, right in the app.'],
-            ['🃏', 'Taste cards', 'Turn any drop into a story-sized card and put your whole following on.'],
-            ['🔗', 'Put-on chains', 'See who tallied what from whom. Taste travels — now you can watch it.'],
-            ['🔔', 'Alerts', 'Know the second someone calls W on your drop.'],
-            ['⌕', 'Search', 'Find people with proven taste and drops worth trying.'],
-            ['📊', 'Your call, 1–10', 'Score every drop. The crowd decides W or L.'],
-          ].map(([icon, title, body], i) => (
+            {
+              Icon: VideoIcon,
+              title: '60-second reviews',
+              body: 'Real reviews need more than a clip. Shoot up to a minute, right in the app.',
+            },
+            {
+              Icon: CardsIcon,
+              title: 'Taste cards',
+              body: 'Turn any drop into a story-sized card and put your whole following on.',
+            },
+            {
+              Icon: ChainIcon,
+              title: 'Put-on chains',
+              body: 'See who tallied what from whom. Taste travels — now you can watch it.',
+            },
+            {
+              Icon: AlertIcon,
+              title: 'Alerts',
+              body: 'Know the second someone calls W on your drop.',
+            },
+            {
+              Icon: SearchIcon,
+              title: 'Search',
+              body: 'Find people with proven taste and drops worth trying.',
+            },
+            {
+              Icon: ScoreIcon,
+              title: 'Your call, 1–10',
+              body: 'Score every drop. The crowd decides W or L.',
+            },
+          ].map(({ Icon, title, body }, i) => (
             <Reveal key={title} delay={(i % 3) * 100}>
               <div className="h-full rounded-3xl border border-line bg-ink-2 p-6 transition hover:border-lime/50">
-                <div className="mb-3 text-3xl">{icon}</div>
+                <div className="mb-3 text-lime">
+                  <Icon className="h-9 w-9" />
+                </div>
                 <h3 className="mb-1.5 text-lg font-black">{title}</h3>
                 <p className="text-sm leading-relaxed text-mute">{body}</p>
               </div>
@@ -247,8 +290,11 @@ function DemoCard() {
           the frita cubana is the best burger in Miami. Fight me.
         </p>
       </div>
-      <div className="flex h-36 items-center justify-center bg-gradient-to-br from-ink-3 via-ink-2 to-ink-3">
-        <span className="text-6xl">🍔</span>
+      <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-lime/25 via-ink-2 to-ink-3">
+        <TallyIcon saved className="h-24 w-24 text-lime/25" />
+        <span className="absolute bottom-2 right-3 text-[10px] font-black uppercase tracking-[0.3em] text-lime/60">
+          Miami · Food & Drink
+        </span>
       </div>
       <div className="px-4 py-4">
         <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-ink-3">
