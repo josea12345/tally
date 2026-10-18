@@ -9,6 +9,7 @@ import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { Avatar, navigate } from '../App'
 import { useUnreadCount } from '../lib/useNotifications'
+import AlertIcon from '../components/AlertIcon'
 import DropCard from '../components/DropCard'
 import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
@@ -24,9 +25,9 @@ function AlertsBell() {
     <button
       onClick={() => navigate('/notifications')}
       aria-label="Notifications"
-      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line text-xl transition hover:border-lime"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line text-fog transition hover:border-lime hover:text-lime"
     >
-      🔔
+      <AlertIcon className="h-5 w-5" />
       {unread > 0 && (
         <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
           {unread > 9 ? '9+' : unread}
