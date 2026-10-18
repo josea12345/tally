@@ -86,9 +86,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
               <h3 className="font-display text-[17px] font-bold leading-snug tracking-tight">{drop.title}</h3>
               {drop.score != null && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-lime/50 bg-lime/10 px-2 py-px">
-                  <span className="text-xs font-black text-lime">{drop.score}</span>
-                  <span className="text-[9px] font-bold text-mute">/10 author's call</span>
+                <span
+                  className="inline-flex items-center rounded-full bg-lime px-2.5 py-0.5"
+                  title="Author's call"
+                >
+                  <span className="text-xs font-black text-ink">{drop.score}/10</span>
                 </span>
               )}
             </div>
