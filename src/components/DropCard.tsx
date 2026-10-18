@@ -40,7 +40,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
               onClick={() => author && navigate(`/profile/${author.id}`)}
               aria-label={author ? `Open @${author.username}` : 'profile'}
             >
-              <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={44} />
+              <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
             </button>
           </div>
           <div className="min-w-0 flex-1">
@@ -61,7 +61,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
             </div>
 
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h3 className="font-display text-lg font-bold leading-snug tracking-tight">{drop.title}</h3>
+              <h3 className="font-display text-[17px] font-bold leading-snug tracking-tight">{drop.title}</h3>
               {drop.score != null && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-lime/50 bg-lime/10 px-2 py-px">
                   <span className="text-xs font-black text-lime">{drop.score}</span>
@@ -69,15 +69,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, revealDelay
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-[15px] leading-relaxed text-fog/90">
+            <p className="mt-0.5 text-[15px] leading-snug text-fog/90">
               <span className="font-bold text-lime">Hear me out — </span>
               {drop.description}
             </p>
-            {(drop.street_address || drop.neighborhood || drop.city) && (
-              <p className="mt-1 text-xs text-mute">
-                {[drop.street_address, drop.neighborhood, drop.city].filter(Boolean).join(' · ')}
-              </p>
-            )}
           </div>
         </div>
 
