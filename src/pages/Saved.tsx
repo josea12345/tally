@@ -10,7 +10,7 @@ import { useFeedVotes } from '../lib/feedVotes'
 
 export default function Saved() {
   const { user } = useAuth()
-  const { myVotes, triedIds, setVotesFromRows, vote } = useFeedVotes()
+  const { myVotes, triedIds, setVotesFromRows, vote, markTried } = useFeedVotes()
   const [drops, setDrops] = useState<Drop[]>([])
   const [stats, setStats] = useState<Map<string, DropStats>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -101,6 +101,7 @@ export default function Saved() {
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setStats)}
             tried={triedIds.has(d.id)}
+            onMarkTried={() => markTried(d.id, myVotes.get(d.id) ?? null)}
             revealDelay={(i % 6) * 70}
           />
         ))

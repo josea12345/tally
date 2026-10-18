@@ -15,15 +15,17 @@ interface Props {
   myVote: 'W' | 'L' | null
   onVote: (v: 'W' | 'L') => void
   tried: boolean
+  onMarkTried: () => void
   revealDelay?: number
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, tried, revealDelay = 0 }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, tried, onMarkTried, revealDelay = 0 }: Props) {
   const author = drop.author
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
-  const [confirming, setConfirming] = useState<'W' | 'L' | null>(null)
+  const [nudge, setNudge] = useState(false)
+  const isTried = tried || myVote != null
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -34,22 +36,24 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onToggleSave()
   }
 
-  const doVote = (v: 'W' | 'L') => {
+  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
+    e.stopPropagation()
+    if (!isTried) {
+      // nudge the checkmark — confirm you've tried it before the verdict counts
+      setNudge(false)
+      requestAnimationFrame(() => setNudge(true))
+      setTimeout(() => setNudge(false), 400)
+      return
+    }
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 380)
     onVote(v)
   }
 
-  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
+  const toggleTried = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (tried || myVote) {
-      // already tried (or already voted) — vote lands immediately
-      setConfirming(null)
-      doVote(v)
-    } else {
-      // quick check: confirm you've tried it before the verdict counts
-      setConfirming((c) => (c === v ? null : v))
-    }
+    if (isTried) return
+    onMarkTried()
   }
 
   return (
@@ -124,62 +128,63 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           <LinkChips drop={drop} />
         </div>
 
-        <div className="mt-2.5 flex items-center gap-5 text-sm">
-          {confirming ? (
-            <>
-              <span className="text-xs font-bold text-fog">Tried it?</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setConfirming(null)
-                  doVote(confirming)
-                }}
-                className={`press rounded-full px-3 py-1 text-sm font-black ${
-                  confirming === 'W' ? 'bg-lime text-graphite' : 'bg-miss text-white'
+        <div className="mt-3">
+          <div className="flex items-center justify-between">
+            <button onClick={toggleTried} className="press flex items-center gap-2" aria-label="Mark as tried">
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-md border-2 text-xs font-black transition ${
+                  isTried
+                    ? 'border-lime bg-lime text-ink'
+                    : nudge
+                      ? 'nudge border-miss text-transparent'
+                      : 'border-mute text-transparent'
                 }`}
-                aria-label={`Confirm ${confirming} vote`}
               >
-                ✓ {confirming}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setConfirming(null)
-                }}
-                className="press font-bold text-mute transition hover:text-fog"
-                aria-label="Cancel vote"
-              >
-                ✕
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={(e) => castVote(e, 'W')}
-                className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
-                aria-label="Vote W"
-              >
-                <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span> {formatCount(stats.wins)}
-              </button>
-              <button
-                onClick={(e) => castVote(e, 'L')}
-                className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
-                aria-label="Vote L"
-              >
-                <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span> {formatCount(stats.losses)}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/drop/${drop.id}`)
-                }}
-                className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
-                aria-label="Comments"
-              >
-                <span className="text-base">💬</span> {formatCount(stats.comments)}
-              </button>
-            </>
-          )}
+                ✓
+              </span>
+              <span className={`text-xs font-bold ${isTried ? 'text-fog' : 'text-mute'}`}>I've tried this</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/drop/${drop.id}`)
+              }}
+              className="press flex items-center gap-1.5 text-sm font-bold text-mute transition hover:text-lime"
+              aria-label="Comments"
+            >
+              <span className="text-base">💬</span> {formatCount(stats.comments)}
+            </button>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              onClick={(e) => castVote(e, 'W')}
+              className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
+                myVote === 'W'
+                  ? 'border-lime bg-lime text-ink'
+                  : isTried
+                    ? 'border-lime/50 bg-lime/10 text-lime'
+                    : 'border-line bg-ink-2 text-mute opacity-50'
+              }`}
+              aria-label="Vote W"
+            >
+              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-2xl font-black`}>W</span>
+              <span className="text-lg font-black">{formatCount(stats.wins)}</span>
+            </button>
+            <button
+              onClick={(e) => castVote(e, 'L')}
+              className={`press flex items-center justify-center gap-2 rounded-2xl border-2 py-3 transition ${
+                myVote === 'L'
+                  ? 'border-miss bg-miss text-white'
+                  : isTried
+                    ? 'border-miss/50 bg-miss/10 text-miss'
+                    : 'border-line bg-ink-2 text-mute opacity-50'
+              }`}
+              aria-label="Vote L"
+            >
+              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-2xl font-black`}>L</span>
+              <span className="text-lg font-black">{formatCount(stats.losses)}</span>
+            </button>
+          </div>
         </div>
       </article>
     </Reveal>

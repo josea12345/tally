@@ -19,7 +19,7 @@ const NEAR_MILES = 25
 
 export default function Discover() {
   const { user, profile } = useAuth()
-  const { myVotes, triedIds, setVotesFromRows, vote } = useFeedVotes()
+  const { myVotes, triedIds, setVotesFromRows, vote, markTried } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
   const [category, setCategory] = useState<Category | 'all'>('all')
   const [query, setQuery] = useState('')
@@ -304,6 +304,7 @@ export default function Discover() {
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setStats)}
             tried={triedIds.has(d.id)}
+            onMarkTried={() => markTried(d.id, myVotes.get(d.id) ?? null)}
             revealDelay={(i % 6) * 70}
           />
         ))

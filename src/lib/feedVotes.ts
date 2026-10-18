@@ -96,5 +96,31 @@ export function useFeedVotes() {
     [user, myVotes, triedIds],
   )
 
-  return { myVotes, triedIds, setVotesFromRows, vote }
+  /** Mark a drop tried without voting (the checkmark). Voting also implies tried. */
+  const markTried = useCallback(
+    async (dropId: string, verdict: VoteValue | null) => {
+      if (!user) {
+        navigate('/auth')
+        return
+      }
+      if (triedIds.has(dropId)) return
+      setTriedIds((s) => new Set(s).add(dropId))
+      try {
+        const { error } = await supabase.from('verdicts').upsert(
+          { user_id: user.id, drop_id: dropId, tried: true, verdict },
+          { onConflict: 'user_id,drop_id' },
+        )
+        if (error) throw error
+      } catch {
+        setTriedIds((s) => {
+          const n = new Set(s)
+          n.delete(dropId)
+          return n
+        })
+      }
+    },
+    [user, triedIds],
+  )
+
+  return { myVotes, triedIds, setVotesFromRows, vote, markTried }
 }
