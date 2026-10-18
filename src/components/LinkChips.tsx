@@ -1,4 +1,5 @@
 import type { Drop } from '../lib/types'
+import { mapsUrlForPlace } from '../lib/geo'
 
 /** Labeled external link chips: IMDb / Rotten Tomatoes / Spotify / Official site / View location. */
 export default function LinkChips({ drop, compact = false }: { drop: Drop; compact?: boolean }) {
@@ -9,8 +10,14 @@ export default function LinkChips({ drop, compact = false }: { drop: Drop; compa
       url: drop.external_url,
     })
   }
-  if (drop.maps_url) {
-    chips.push({ label: 'View location', url: drop.maps_url })
+  // Build the Maps link from the place name + address at render time so it
+  // opens the PLACE listing — never a bare coordinate pin (and heals old drops).
+  if (drop.street_address || drop.city || drop.maps_url) {
+    const url =
+      drop.street_address || drop.city
+        ? mapsUrlForPlace(drop.title, drop.street_address, drop.city)
+        : (drop.maps_url as string)
+    chips.push({ label: 'View location', url })
   }
   if (chips.length === 0) return null
   return (

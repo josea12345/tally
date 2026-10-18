@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, PlaceSuggestion } from '../lib/types'
 import { ALL_CATEGORIES, CATEGORY_LABELS, isPlaceCategory } from '../lib/types'
-import { mapsUrlFor, mapsUrlForQuery } from '../lib/geo'
+import { mapsUrlForPlace, mapsUrlForQuery } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
@@ -110,7 +110,7 @@ export default function Composer({ editId }: { editId?: string }) {
             latitude: d.latitude,
             longitude: d.longitude,
             distanceKm: null,
-            mapsUrl: d.maps_url ?? mapsUrlFor(d.latitude, d.longitude),
+            mapsUrl: mapsUrlForPlace(d.title, d.street_address, d.city),
             source: 'photon',
           })
         }

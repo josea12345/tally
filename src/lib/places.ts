@@ -3,7 +3,7 @@
  * Free and keyless. Category-filtered, GPS-biased, local-first.
  */
 import type { Category, PlaceSuggestion } from './types'
-import { bboxAround, haversineKm, mapsUrlFor, type LatLon } from './geo'
+import { bboxAround, haversineKm, mapsUrlForPlace, type LatLon } from './geo'
 
 /** OSM key:value tags that define each place category. Food & drink covers restaurants, cafés and bars. */
 const CATEGORY_TAGS: Record<string, string[]> = {
@@ -99,7 +99,7 @@ function photonToSuggestion(f: PhotonFeature, origin: LatLon): PlaceSuggestion |
     latitude: lat,
     longitude: lon,
     distanceKm: haversineKm(origin, { lat, lon }),
-    mapsUrl: mapsUrlFor(lat, lon),
+    mapsUrl: mapsUrlForPlace(p.name, street, p.city),
     source: 'photon',
   }
 }
@@ -167,18 +167,20 @@ async function arcgisDetails(s: ArcGISSuggestion): Promise<PlaceSuggestion | nul
     const lat = c.location.y
     const lon = c.location.x
     const name = c.attributes?.PlaceName || s.text.split(',')[0]!.trim()
+    const streetAddress = c.attributes?.Place_addr || c.address?.split(',')[0]?.trim() || null
+    const city = c.attributes?.City ?? null
     return {
       id: `arcgis-${s.magicKey}`,
       name,
       type: c.attributes?.Type ?? 'Place',
-      streetAddress: c.attributes?.Place_addr || c.address?.split(',')[0]?.trim() || null,
+      streetAddress,
       neighborhood: null,
-      city: c.attributes?.City ?? null,
+      city,
       state: c.attributes?.Region ?? null,
       latitude: lat,
       longitude: lon,
       distanceKm: null, // filled by caller
-      mapsUrl: mapsUrlFor(lat, lon),
+      mapsUrl: mapsUrlForPlace(name, streetAddress, city),
       source: 'arcgis',
     }
   } catch {

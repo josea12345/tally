@@ -53,8 +53,10 @@ export function haversineKm(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(aa))
 }
 
-export function mapsUrlFor(lat: number, lon: number): string {
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+/** Google Maps URL that opens the PLACE listing — not a bare coordinate pin. */
+export function mapsUrlForPlace(name: string, street?: string | null, city?: string | null): string {
+  const q = [name, street, city].filter(Boolean).join(', ')
+  return mapsUrlForQuery(q)
 }
 
 export function mapsUrlForQuery(q: string): string {
