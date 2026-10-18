@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
@@ -10,7 +10,7 @@ import {
   trimVideoFront,
   canTrimVideo,
 } from '../lib/video'
-import { extractFrames, capturePoster, type VideoFrame } from '../lib/poster'
+import { captureFrameFromElement } from '../lib/poster'
 
 /** After video capture: preview, enforce the 5s cap (trim or retake), then composer. */
 export default function VideoReview() {
@@ -22,8 +22,8 @@ export default function VideoReview() {
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('Next')
   const [error, setError] = useState<string | null>(null)
-  const [frames, setFrames] = useState<VideoFrame[]>([])
-  const [coverIdx, setCoverIdx] = useState(0)
+  const [scrub, setScrub] = useState(0)
+  const previewRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -42,32 +42,47 @@ export default function VideoReview() {
     getVideoDuration(pending.blob)
       .then(setDuration)
       .catch(() => setDuration(null))
-    // cover-frame thumbnails: nice to have, never block the flow
-    extractFrames(pending.blob, 9)
-      .then(setFrames)
-      .catch(() => setFrames([]))
     return () => URL.revokeObjectURL(url)
   }, [user])
 
   const tooLong = duration != null && duration > CLIP_MAX_SECONDS + 0.5
+  // trimming keeps the first CLIP_MAX_SECONDS, so the picker is capped there too
+  const scrubMax = duration != null ? (tooLong ? Math.min(duration, CLIP_MAX_SECONDS) : duration) : 0
 
-  const uploadBlob = async (b: Blob, fileName: string, coverTime: number | null) => {
-    if (!user) return
-    // cover poster (optional — the clip still posts without one)
-    let posterUrl: string | undefined
-    if (coverTime != null) {
+  const onScrub = (v: number) => {
+    const vid = previewRef.current
+    const t = Math.min(Math.max(v, 0), scrubMax)
+    setScrub(t)
+    if (vid) {
+      vid.pause()
       try {
-        const poster = await capturePoster(b, coverTime)
-        const ppath = `${user.id}/${crypto.randomUUID()}.jpg`
-        const { error: pErr } = await supabase.storage
-          .from('drop-media')
-          .upload(ppath, poster, { contentType: 'image/jpeg', upsert: false })
-        if (pErr) throw pErr
-        posterUrl = supabase.storage.from('drop-media').getPublicUrl(ppath).data.publicUrl
+        vid.currentTime = t
       } catch {
-        posterUrl = undefined
+        /* seek errors leave the current frame in place */
       }
     }
+  }
+
+  /** JPEG of the frame the preview is showing; undefined when uncapturable (clip still posts). */
+  const captureCover = async (): Promise<string | undefined> => {
+    const vid = previewRef.current
+    if (!vid || !user) return undefined
+    try {
+      const poster = await captureFrameFromElement(vid)
+      const ppath = `${user.id}/${crypto.randomUUID()}.jpg`
+      const { error: pErr } = await supabase.storage
+        .from('drop-media')
+        .upload(ppath, poster, { contentType: 'image/jpeg', upsert: false })
+      if (pErr) throw pErr
+      return supabase.storage.from('drop-media').getPublicUrl(ppath).data.publicUrl
+    } catch {
+      return undefined
+    }
+  }
+
+  const uploadBlob = async (b: Blob, fileName: string) => {
+    if (!user) return
+    const posterUrl = await captureCover()
     const ext = (fileName.split('.').pop() || 'mp4').toLowerCase().slice(0, 5)
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`
     const { error: upErr } = await supabase.storage
@@ -79,15 +94,13 @@ export default function VideoReview() {
     navigate('/create')
   }
 
-  const coverTime = frames.length > 0 ? frames[Math.min(coverIdx, frames.length - 1)].time : null
-
   const next = async () => {
     if (!blob || !user || tooLong) return
     setBusy(true)
     setBusyLabel('Uploading…')
     setError(null)
     try {
-      await uploadBlob(blob, name, coverTime)
+      await uploadBlob(blob, name)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
     } finally {
@@ -104,7 +117,7 @@ export default function VideoReview() {
     try {
       const trimmed = await trimVideoFront(blob, CLIP_MAX_SECONDS)
       setBusyLabel('Uploading…')
-      await uploadBlob(trimmed, 'clip.mp4', coverTime)
+      await uploadBlob(trimmed, 'clip.mp4')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Trim failed — please retake a shorter clip.')
     } finally {
@@ -133,9 +146,14 @@ export default function VideoReview() {
 
       <div className="flex flex-1 items-center justify-center bg-black px-4 py-4">
         <video
+          ref={(el) => {
+            previewRef.current = el
+            if (el) el.muted = true
+          }}
           src={objectUrl}
           controls
           playsInline
+          autoPlay
           className="max-h-[52vh] w-auto rounded-xl"
         />
       </div>
@@ -150,25 +168,26 @@ export default function VideoReview() {
         </span>
       </div>
 
-      {frames.length > 0 && (
+      {duration != null && duration > 0 && (
         <div className="px-4 pt-3">
           <div className="mb-1.5 text-center text-[11px] font-black uppercase tracking-widest text-mute">
-            Cover frame
+            Cover frame — drag to pick
           </div>
-          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
-            {frames.map((f, i) => (
-              <button
-                key={i}
-                onClick={() => setCoverIdx(i)}
-                disabled={busy}
-                className={`h-16 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition ${
-                  i === coverIdx ? 'border-lime' : 'border-transparent opacity-60'
-                }`}
-                aria-label={`Use frame ${i + 1} as cover`}
-              >
-                <img src={f.url} alt="" className="h-full w-full object-cover" draggable={false} />
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={scrubMax}
+              step={0.1}
+              value={Math.min(scrub, scrubMax)}
+              onChange={(e) => onScrub(parseFloat(e.target.value))}
+              disabled={busy}
+              className="w-full accent-lime"
+              aria-label="Pick the cover frame"
+            />
+            <span className="shrink-0 text-xs font-bold tabular-nums text-mute">
+              {formatDuration(Math.min(scrub, scrubMax))}
+            </span>
           </div>
         </div>
       )}
