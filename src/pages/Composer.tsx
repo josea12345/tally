@@ -13,6 +13,7 @@ import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
+import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
 import EmptyState from '../components/EmptyState'
 
 type LinkKind = 'auto' | 'paste' | 'none'
@@ -211,18 +212,22 @@ export default function Composer({ editId }: { editId?: string }) {
       let externalLabel: Drop['external_label'] = null
       if (isPlace) {
         if (siteUrl.trim()) {
-          externalUrl = siteUrl.trim()
-          externalLabel = 'Official site'
+          // Validate the scheme before storing: javascript:/data:/etc are
+          // dropped entirely rather than saved as clickable traps.
+          externalUrl = safeExternalUrl(normalizePastedUrl(siteUrl))
+          externalLabel = externalUrl ? 'Official site' : null
         }
       } else if (imdbId && (category === 'movies' || category === 'tv')) {
         externalUrl = `https://www.imdb.com/title/${imdbId}/`
         externalLabel = 'IMDb'
       } else if (tmdbUrl && (category === 'movies' || category === 'tv')) {
-        externalUrl = tmdbUrl
-        externalLabel = 'TMDB'
+        externalUrl = safeExternalUrl(tmdbUrl)
+        externalLabel = externalUrl ? 'TMDB' : null
       } else if (linkKind === 'paste' && pasteUrl.trim()) {
-        externalUrl = pasteUrl.trim()
-        externalLabel = AUTO_LABEL[category] ?? null
+        externalUrl = safeExternalUrl(normalizePastedUrl(pasteUrl))
+        // Pasted URLs get the honest generic label — never the service
+        // labels reserved for verified service links.
+        externalLabel = externalUrl ? 'Link' : null
       } else if (linkKind === 'auto') {
         const a = autoLink(category, title)
         if (a) {

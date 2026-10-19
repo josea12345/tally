@@ -8,6 +8,7 @@ import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
 import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
+import { safeExternalUrl } from '../lib/urls'
 import TallyIcon from './TallyIcon'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
@@ -142,7 +143,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         : (drop.maps_url as string)
     }
     if (drop.imdb_id) return `https://www.imdb.com/title/${drop.imdb_id}/`
-    if (drop.external_url) return drop.external_url
+    if (drop.external_url) return safeExternalUrl(drop.external_url)
     return null
   })()
 
