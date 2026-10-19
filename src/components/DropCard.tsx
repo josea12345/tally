@@ -31,6 +31,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const author = drop.author
   const items = dropMedia(drop)
   const isAuthor = !!user && user.id === drop.author_id
+  const [selfNote, setSelfNote] = useState(false)
+  const selfNoteTimer = useRef<number | null>(null)
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
@@ -61,9 +63,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   }
 
   // One tap = "I've tried it, calling it." Voting implies tried.
-  // Authors can't vote on their own drops (DB rejects it) — no-op instead of a flash-then-revert.
+  // Authors can't vote on their own drops — flash why instead of silently doing nothing.
   const doVote = (v: 'W' | 'L') => {
-    if (isAuthor) return
+    if (isAuthor) {
+      setSelfNote(true)
+      if (selfNoteTimer.current) clearTimeout(selfNoteTimer.current)
+      selfNoteTimer.current = window.setTimeout(() => setSelfNote(false), 1600)
+      return
+    }
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
     if (myVote !== v) setBurst({ v, id: ++fxId.current })
@@ -236,7 +243,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   return (
     <Reveal delay={revealDelay}>
-      <article onClick={open} className="cursor-pointer pb-8">
+      <article onClick={open} className="relative cursor-pointer pb-8">
+        {selfNote && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
+            <span className="rounded-full bg-ink-3/95 px-4 py-2 text-xs font-bold text-fog shadow-lg">
+              You can't call W/L on your own drop
+            </span>
+          </div>
+        )}
         {/* header: who, when, their call, menu */}
         <div className="flex items-center gap-3 px-4">
           <div onClick={(e) => e.stopPropagation()}>
