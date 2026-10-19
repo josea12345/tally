@@ -371,16 +371,19 @@ export default function Profile({ id }: { id?: string }) {
       ) : (
         <>
           {isOwn ? (
-            <div className="flex gap-2 px-4 pt-4">
+            <div className="flex items-center justify-center gap-6 px-4 pb-1 pt-3">
               {(['drops', 'tallies'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`rounded-full px-5 py-1.5 text-sm font-black capitalize transition ${
-                    tab === t ? 'bg-lime text-ink' : 'border border-line text-mute'
+                  className={`relative px-1 py-1 text-[16px] capitalize transition ${
+                    tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                   }`}
                 >
                   {t === 'drops' ? `Drops · ${drops.length}` : 'Tallies'}
+                  {tab === t && (
+                    <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-lime" />
+                  )}
                 </button>
               ))}
             </div>
