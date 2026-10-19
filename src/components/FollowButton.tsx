@@ -80,7 +80,7 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
       }}
       disabled={busy}
       className={`rounded-full px-4 py-1.5 text-sm font-black transition disabled:opacity-50 ${
-        active ? 'border border-line bg-ink-3 text-fog' : 'bg-lime text-ink hover:bg-lime-dim'
+        active ? 'border border-line bg-ink-3 text-fog' : 'bg-sig text-ink hover:bg-sig-dim'
       }`}
     >
       {label}

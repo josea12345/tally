@@ -329,7 +329,7 @@ export default function Camera() {
         <div className="absolute left-0 right-0 top-16 px-5">
           <div className="flex h-1 gap-1">
             {segments.map((d, i) => (
-              <div key={i} className="rounded-full bg-lime" style={{ flexGrow: Math.max(d, 0.05) }} />
+              <div key={i} className="rounded-full bg-sig" style={{ flexGrow: Math.max(d, 0.05) }} />
             ))}
             {recording && (
               <div className="animate-pulse rounded-full bg-red-500" style={{ flexGrow: Math.max(elapsed - totalBanked, 0.05) }} />
@@ -369,7 +369,7 @@ export default function Camera() {
                     cy="48"
                     r={RING_R}
                     fill="none"
-                    stroke={recording ? '#ff5d6e' : '#ff3fa4'}
+                    stroke={recording ? '#ff5d6e' : '#45c8ff'}
                     strokeWidth="5"
                     strokeDasharray={RING_CIRC}
                     strokeDashoffset={RING_CIRC * (1 - progress)}
@@ -398,7 +398,7 @@ export default function Camera() {
                 <button
                   onClick={finishVideo}
                   aria-label="Done recording"
-                  className="flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(255,63,164,0.4)]"
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-sig text-ink shadow-[0_4px_20px_rgba(69,200,255,0.4)]"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-7 w-7">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -436,7 +436,7 @@ function CameraFallback() {
       </p>
       <button
         onClick={() => openNative('photo')}
-        className="w-full rounded-full bg-lime py-3.5 text-base font-black text-ink"
+        className="w-full rounded-full bg-sig py-3.5 text-base font-black text-ink"
       >
         Open camera
       </button>

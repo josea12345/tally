@@ -171,9 +171,9 @@ export default function MediaUpload({
             onContextMenu={(e) => e.preventDefault()}
             className={`relative h-24 w-24 shrink-0 select-none overflow-hidden rounded-xl border bg-black transition-shadow ${
               dragIndex === i
-                ? 'z-10 scale-105 border-lime opacity-70 shadow-2xl'
+                ? 'z-10 scale-105 border-sig opacity-70 shadow-2xl'
                 : dropIndex === i && dragIndex !== null
-                  ? 'border-lime ring-2 ring-lime'
+                  ? 'border-sig ring-2 ring-sig'
                   : 'border-line'
             }`}
           >
@@ -183,7 +183,7 @@ export default function MediaUpload({
               <img src={m.url} alt={`Attached ${i + 1}`} draggable={false} className="pointer-events-none h-full w-full object-cover" />
             )}
             {i === 0 && (
-              <span className="absolute left-1 top-1 rounded-full bg-lime px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-ink">
+              <span className="absolute left-1 top-1 rounded-full bg-sig px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-ink">
                 Cover
               </span>
             )}
@@ -199,7 +199,7 @@ export default function MediaUpload({
         ))}
         {items.length < MAX_CAROUSEL_ITEMS && (
           <label
-            className={`flex h-24 w-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-ink-2 text-mute transition hover:border-lime hover:text-lime ${
+            className={`flex h-24 w-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-ink-2 text-mute transition hover:border-sig hover:text-sig ${
               busy ? 'opacity-60' : ''
             }`}
           >

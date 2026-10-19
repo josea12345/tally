@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useAuth } from './context/AuthContext'
 import { applyTheme, getChoice, initTheme, systemTheme } from './lib/theme'
 import Landing from './pages/Landing'
@@ -16,6 +17,7 @@ import Settings from './pages/Settings'
 import FollowList from './pages/FollowList'
 import InstallBanner from './components/InstallBanner'
 import TallyIcon from './components/TallyIcon'
+import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
@@ -69,17 +71,17 @@ function MobileNav({ route }: { route: Route }) {
   const { profile } = useAuth()
   const active = (n: string) =>
     (route.name === 'home' && n === 'home') || route.name === (n as Route['name'])
-  const tab = (n: { name: 'home' | 'saved' | 'search' | 'profile'; label: string; icon: string }) => (
+  const tab = (n: { name: 'home' | 'saved' | 'search' | 'profile'; label: string; icon: ReactNode }) => (
     <button
       key={n.name}
       data-nav-tab={n.name}
       onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
-      className="flex items-center justify-center py-2"
+      className="press flex items-center justify-center py-2"
       aria-label={n.label}
     >
       <span
-        className={`flex h-9 w-9 items-center justify-center rounded-full text-xl transition ${
-          active(n.name) ? 'bg-lime text-ink' : 'text-mute'
+        className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
+          active(n.name) ? 'bg-sig text-ink tab-glow' : 'text-mute hover:text-fog'
         }`}
       >
         {n.name === 'saved' ? (
@@ -95,13 +97,13 @@ function MobileNav({ route }: { route: Route }) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {tab({ name: 'home', label: 'Discover', icon: '⌂' })}
-        {tab({ name: 'saved', label: 'Tallies', icon: '♡' })}
+        {tab({ name: 'home', label: 'Discover', icon: <HomeIcon className="h-6 w-6" /> })}
+        {tab({ name: 'saved', label: 'Tallies', icon: <TallyIcon saved={false} className="h-5 w-5" /> })}
         <div className="flex items-start justify-center">
           <button
             onClick={() => navigate('/camera')}
             aria-label="Open camera"
-            className="-mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(255,63,164,0.4)] transition active:scale-95"
+            className="press -mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-sig text-ink shadow-[0_4px_20px_rgba(69,200,255,0.4)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
               <path
@@ -113,8 +115,8 @@ function MobileNav({ route }: { route: Route }) {
             </svg>
           </button>
         </div>
-        {tab({ name: 'search', label: 'Search', icon: '⌕' })}
-        {tab({ name: 'profile', label: 'Profile', icon: '◯' })}
+        {tab({ name: 'search', label: 'Search', icon: <SearchIcon className="h-6 w-6" /> })}
+        {tab({ name: 'profile', label: 'Profile', icon: <ProfileIcon className="h-6 w-6" /> })}
       </div>
     </nav>
   )
@@ -133,7 +135,7 @@ function DesktopRail() {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-line p-6 md:flex">
       <button onClick={() => navigate('/')} className="wordmark mb-8 text-left text-4xl">
-        TALLY<span className="text-lime">.</span>
+        TALLY<span className="text-sig">.</span>
       </button>
       {items.map((i) => (
         <button
@@ -141,7 +143,7 @@ function DesktopRail() {
           data-nav-tab={i.match}
           onClick={() => navigate(i.path)}
           className={`rounded-full px-5 py-3 text-left text-lg font-bold transition ${
-            route.name === i.match ? 'bg-ink-3 text-lime' : 'text-fog hover:bg-ink-2'
+            route.name === i.match ? 'bg-ink-3 text-sig' : 'text-fog hover:bg-ink-2'
           }`}
         >
           {i.label}
@@ -155,7 +157,7 @@ function DesktopRail() {
       </button>
       <button
         onClick={() => navigate('/camera')}
-        className="mt-2 flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-lg font-bold text-fog transition hover:border-lime hover:text-lime"
+        className="mt-2 flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-lg font-bold text-fog transition hover:border-sig hover:text-sig"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
           <path
@@ -195,7 +197,7 @@ export function Avatar({ url, name, size = 40 }: { url: string | null; name: str
   const initial = (name || '?').trim().charAt(0).toUpperCase()
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-ink-3 font-black text-lime"
+      className="flex items-center justify-center rounded-full bg-ink-3 font-black text-sig"
       style={{ width: size, height: size, fontSize: size * 0.45 }}
       aria-label={name}
     >
@@ -235,7 +237,7 @@ export default function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink">
         <div className="wordmark text-5xl">
-          TALLY<span className="text-lime">.</span>
+          TALLY<span className="text-sig">.</span>
         </div>
       </div>
     )

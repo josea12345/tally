@@ -47,14 +47,14 @@ export default function PlaceAutocomplete({ category, origin, originLabel, value
 
   if (pinned) {
     return (
-      <div className="rounded-2xl border border-lime/60 bg-ink-2 p-4">
-        <div className="mb-1 text-xs font-black uppercase tracking-widest text-lime">Location pinned</div>
+      <div className="rounded-2xl border border-sig/60 bg-ink-2 p-4">
+        <div className="mb-1 text-xs font-black uppercase tracking-widest text-sig">Location pinned</div>
         <div className="font-black">{pinned.name}</div>
         <div className="text-sm text-fog/90">
           {[pinned.streetAddress, pinned.neighborhood, pinned.city, pinned.state].filter(Boolean).join(' · ')}
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <a href={pinned.mapsUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-lime">
+          <a href={pinned.mapsUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-sig">
             Preview on Maps ↗
           </a>
           <button onClick={onUnpin} className="text-xs font-bold text-mute hover:text-miss">
@@ -72,12 +72,12 @@ export default function PlaceAutocomplete({ category, origin, originLabel, value
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => sugs.length > 0 && setOpen(true)}
         placeholder="Name the spot…"
-        className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-lime"
+        className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-sig"
         autoComplete="off"
       />
       {origin && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-mute">
-          <span className="text-lime">◉</span> Suggestions come from around <b className="text-fog">{originLabel}</b> —
+          <span className="text-sig">◉</span> Suggestions come from around <b className="text-fog">{originLabel}</b> —
           your location, not just your profile city.
         </p>
       )}
@@ -94,12 +94,12 @@ export default function PlaceAutocomplete({ category, origin, originLabel, value
                 }}
                 className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-ink-3"
               >
-                <span className="mt-0.5 text-lime">◉</span>
+                <span className="mt-0.5 text-sig">◉</span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
                     <span className="truncate font-bold">{s.name}</span>
                     {formatMiles(s.distanceKm) && (
-                      <span className="shrink-0 rounded-full bg-lime/15 px-2 py-0.5 text-[11px] font-black text-lime">
+                      <span className="shrink-0 rounded-full bg-sig/15 px-2 py-0.5 text-[11px] font-black text-sig">
                         {formatMiles(s.distanceKm)}
                       </span>
                     )}

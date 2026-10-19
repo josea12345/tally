@@ -72,12 +72,12 @@ export default function LeaderboardRail({ city }: { city: string }) {
           {charted.map((r, i) => (
             <li key={r.profile.id}>
               <button onClick={() => navigate(`/profile/${r.profile.id}`)} className="flex w-full items-center gap-3 text-left">
-                <span className={`w-5 text-sm font-black ${i === 0 ? 'text-lime' : 'text-mute'}`}>{i + 1}</span>
+                <span className={`w-5 text-sm font-black ${i === 0 ? 'text-sig' : 'text-mute'}`}>{i + 1}</span>
                 <Avatar url={r.profile.avatar_url} name={r.profile.display_name ?? r.profile.username} size={32} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">@{r.profile.username}</span>
                   <span className="block text-xs text-mute">
-                    <b className="text-lime">{r.score}</b> · {r.verdicts} verdicts
+                    <b className="text-sig">{r.score}</b> · {r.verdicts} verdicts
                   </span>
                 </span>
               </button>

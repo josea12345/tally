@@ -73,7 +73,7 @@ export default function MediaCarousel({
               onClick={() => go(i)}
               aria-label={`Go to photo ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
-                i === index ? 'w-5 bg-lime' : 'w-1.5 bg-mute/50 hover:bg-mute'
+                i === index ? 'w-5 bg-sig' : 'w-1.5 bg-mute/50 hover:bg-mute'
               }`}
             />
           ))}

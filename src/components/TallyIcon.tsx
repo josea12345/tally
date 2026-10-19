@@ -1,7 +1,7 @@
 /**
  * TALLY's signature save icon. Unsaved = four strokes waiting; saved = the
  * diagonal slash completes the five. Uses currentColor so it adapts to
- * whatever context it's in (lime when saved on cards, ink on the nav pill).
+ * whatever context it's in (sig when saved on cards, ink on the nav pill).
  */
 export default function TallyIcon({ saved, className = '' }: { saved: boolean; className?: string }) {
   return (

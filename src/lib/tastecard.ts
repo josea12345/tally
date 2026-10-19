@@ -64,10 +64,10 @@ export async function renderTasteCard(
     }
   }
   if (!drewPhoto) {
-    // typographic cover: giant lime tally marks
+    // typographic cover: giant sig tally marks
     ctx.fillStyle = '#191725'
     ctx.fillRect(0, 0, W, coverH)
-    ctx.strokeStyle = '#ff3fa4'
+    ctx.strokeStyle = '#45c8ff'
     ctx.lineWidth = 26
     ctx.lineCap = 'round'
     const cx = W / 2
@@ -98,7 +98,7 @@ export async function renderTasteCard(
   ctx.font = '900 64px Inter, sans-serif'
   ctx.fillText('TALLY.', pad, y)
   const wm = ctx.measureText('TALLY.').width
-  ctx.fillStyle = '#ff3fa4'
+  ctx.fillStyle = '#45c8ff'
   ctx.beginPath()
   ctx.arc(pad + wm + 24, y - 14, 12, 0, Math.PI * 2)
   ctx.fill()
@@ -114,7 +114,7 @@ export async function renderTasteCard(
   y += 10
 
   // HEAR ME OUT line
-  ctx.fillStyle = '#ff3fa4'
+  ctx.fillStyle = '#45c8ff'
   ctx.font = '700 34px Inter, sans-serif'
   ctx.fillText('HEAR ME OUT', pad, y)
   y += 56
@@ -142,7 +142,7 @@ export async function renderTasteCard(
   const px = pad
   const py = y
   const ph = 84
-  ctx.fillStyle = '#ff3fa4'
+  ctx.fillStyle = '#45c8ff'
   ctx.beginPath()
   ctx.roundRect(px, py, tw + 80, ph, 42)
   ctx.fill()

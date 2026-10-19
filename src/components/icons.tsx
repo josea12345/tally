@@ -117,3 +117,22 @@ export function CameraIcon({ className = '' }: { className?: string }) {
     </svg>
   )
 }
+
+export function HomeIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg {...base(className)}>
+      <path d="M4.5 11.5L12 4l7.5 7.5" />
+      <path d="M6.5 10.2V20h11v-9.8" />
+      <path d="M12 15.5v4.5" />
+    </svg>
+  )
+}
+
+export function ProfileIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg {...base(className)}>
+      <circle cx="12" cy="8.5" r="3.6" />
+      <path d="M5 20c1.6-3.4 4-5 7-5s5.4 1.6 7 5" />
+    </svg>
+  )
+}

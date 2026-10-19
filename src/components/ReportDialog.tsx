@@ -55,7 +55,7 @@ export default function ReportDialog({ drop, onClose }: { drop: Drop; onClose: (
                   onClick={() => setReason(r)}
                   className={`w-full rounded-xl border px-4 py-2.5 text-left text-sm font-bold transition ${
                     reason === r
-                      ? 'border-lime bg-lime/10 text-lime'
+                      ? 'border-sig bg-sig/10 text-sig'
                       : 'border-line bg-ink-3 text-fog hover:border-mute'
                   }`}
                 >
@@ -69,7 +69,7 @@ export default function ReportDialog({ drop, onClose }: { drop: Drop; onClose: (
               placeholder="Anything we should know? (optional)"
               rows={2}
               maxLength={500}
-              className="mt-3 w-full resize-none rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+              className="mt-3 w-full resize-none rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
             />
             <div className="mt-4 flex gap-2">
               <button
@@ -81,7 +81,7 @@ export default function ReportDialog({ drop, onClose }: { drop: Drop; onClose: (
               <button
                 onClick={submit}
                 disabled={!reason || busy}
-                className="flex-1 rounded-full bg-lime py-2.5 text-sm font-black text-ink disabled:opacity-40"
+                className="flex-1 rounded-full bg-sig py-2.5 text-sm font-black text-ink disabled:opacity-40"
               >
                 {busy ? 'Sending…' : 'Send report'}
               </button>
@@ -93,7 +93,7 @@ export default function ReportDialog({ drop, onClose }: { drop: Drop; onClose: (
             <p className="mt-1 text-sm text-mute">Reports are reviewed against the community rules.</p>
             <button
               onClick={onClose}
-              className="mt-4 w-full rounded-full bg-lime py-2.5 text-sm font-black text-ink"
+              className="mt-4 w-full rounded-full bg-sig py-2.5 text-sm font-black text-ink"
             >
               Done
             </button>

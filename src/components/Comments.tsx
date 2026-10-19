@@ -144,12 +144,12 @@ export default function Comments({
             placeholder="Add a comment…"
             maxLength={500}
             disabled={busy}
-            className="min-w-0 flex-1 rounded-full border border-line bg-ink-3 px-4 py-2.5 text-sm outline-none placeholder:text-mute focus:border-lime"
+            className="min-w-0 flex-1 rounded-full border border-line bg-ink-3 px-4 py-2.5 text-sm outline-none placeholder:text-mute focus:border-sig"
           />
           <button
             onClick={post}
             disabled={busy || body.trim().length === 0}
-            className="shrink-0 rounded-full bg-lime px-5 py-2.5 text-sm font-black text-ink disabled:opacity-40"
+            className="shrink-0 rounded-full bg-sig px-5 py-2.5 text-sm font-black text-ink disabled:opacity-40"
           >
             Post
           </button>

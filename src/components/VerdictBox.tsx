@@ -115,7 +115,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       </div>
 
       {justVoted && (
-        <div className="pop-in sticker-sm mb-4 rounded-2xl bg-lime px-4 py-3 text-sm font-black text-[#191725]">
+        <div className="pop-in sticker-sm mb-4 rounded-2xl bg-sig px-4 py-3 text-sm font-black text-[var(--color-sig-ink)]">
           {justVoted === 'W' ? 'Called it: W. They put you on.' : 'Called it: L. Honest — that’s the game.'}
         </div>
       )}
@@ -130,7 +130,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
             <button
               onClick={markTried}
               disabled={busy}
-              className="press w-full rounded-full border border-lime px-4 py-3 text-sm font-black text-lime transition hover:bg-lime hover:text-ink disabled:opacity-50"
+              className="press w-full rounded-full border border-sig px-4 py-3 text-sm font-black text-sig transition hover:bg-sig hover:text-ink disabled:opacity-50"
             >
               {triedLabel(drop.category)}
             </button>

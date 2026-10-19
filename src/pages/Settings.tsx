@@ -233,7 +233,7 @@ export default function Settings() {
               disabled={busy}
               role="switch"
               aria-checked={isPrivate}
-              className={`relative h-8 w-14 shrink-0 rounded-full transition ${isPrivate ? 'bg-lime' : 'bg-ink-3'}`}
+              className={`relative h-8 w-14 shrink-0 rounded-full transition ${isPrivate ? 'bg-sig' : 'bg-ink-3'}`}
             >
               <span
                 className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${isPrivate ? 'left-7' : 'left-1'}`}
@@ -245,7 +245,7 @@ export default function Settings() {
         {isPrivate && (
           <div className="mt-4">
             <h3 className="mb-2 text-sm font-black">
-              Follow requests {requests.length > 0 && <span className="text-lime">· {requests.length}</span>}
+              Follow requests {requests.length > 0 && <span className="text-sig">· {requests.length}</span>}
             </h3>
             {requests.length === 0 ? (
               <p className="rounded-2xl border border-line bg-ink-2 p-4 text-sm text-mute">No pending requests.</p>
@@ -262,7 +262,7 @@ export default function Settings() {
                     </button>
                     <button
                       onClick={() => approve(r)}
-                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-black text-ink"
+                      className="rounded-full bg-sig px-4 py-1.5 text-xs font-black text-ink"
                     >
                       Approve
                     </button>
@@ -283,7 +283,7 @@ export default function Settings() {
       {/* invite */}
       <section className="px-4 pt-8">
         <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Invite friends</h2>
-        <div className="rounded-2xl border border-lime/40 bg-lime/5 p-4">
+        <div className="rounded-2xl border border-sig/40 bg-sig/5 p-4">
           <p className="text-sm font-bold">Taste is better with your people.</p>
           <p className="mt-1 text-xs leading-relaxed text-mute">
             Put your friends on — the more of your circle that's here, the faster the W/L verdicts roll in.
@@ -291,13 +291,13 @@ export default function Settings() {
           <div className="mt-3 flex gap-2">
             <button
               onClick={shareInvite}
-              className="press flex-1 rounded-full bg-lime py-2.5 text-sm font-black text-ink"
+              className="press flex-1 rounded-full bg-sig py-2.5 text-sm font-black text-ink"
             >
               Share invite
             </button>
             <button
               onClick={copyInvite}
-              className="press flex-1 rounded-full border border-line py-2.5 text-sm font-black text-fog transition hover:border-lime hover:text-lime"
+              className="press flex-1 rounded-full border border-line py-2.5 text-sm font-black text-fog transition hover:border-sig hover:text-sig"
             >
               {copied ? 'Copied!' : 'Copy link'}
             </button>
@@ -319,7 +319,7 @@ export default function Settings() {
                 }}
                 className={`rounded-xl border py-2.5 text-sm font-black capitalize transition ${
                   themeChoice === t
-                    ? 'border-lime bg-lime/10 text-lime'
+                    ? 'border-sig bg-sig/10 text-sig'
                     : 'border-line text-mute hover:text-fog'
                 }`}
               >
@@ -347,7 +347,7 @@ export default function Settings() {
               disabled={pushState === 'busy' || pushState === 'denied' || pushState === 'unsupported' || pushState === 'unconfigured'}
               aria-label="Toggle push notifications"
               className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-40 ${
-                pushState === 'on' ? 'bg-lime' : 'bg-ink-3'
+                pushState === 'on' ? 'bg-sig' : 'bg-ink-3'
               }`}
             >
               <span
@@ -393,7 +393,7 @@ export default function Settings() {
                 onClick={() => togglePref(row.key)}
                 aria-label={`Toggle ${row.title} notifications`}
                 className={`relative h-8 w-14 shrink-0 rounded-full transition ${
-                  prefs[row.key] ? 'bg-lime' : 'bg-ink-3'
+                  prefs[row.key] ? 'bg-sig' : 'bg-ink-3'
                 }`}
               >
                 <span
@@ -429,7 +429,7 @@ export default function Settings() {
                   </div>
                   <button
                     onClick={() => restoreBadge(id)}
-                    className="press shrink-0 rounded-full border border-lime px-4 py-1.5 text-xs font-black text-lime transition hover:bg-lime hover:text-ink"
+                    className="press shrink-0 rounded-full border border-sig px-4 py-1.5 text-xs font-black text-sig transition hover:bg-sig hover:text-ink"
                   >
                     Restore
                   </button>
@@ -458,7 +458,7 @@ export default function Settings() {
                 </div>
                 <button
                   onClick={() => unblock(b.blocked_id)}
-                  className="press shrink-0 rounded-full border border-line px-4 py-1.5 text-xs font-black text-fog transition hover:border-lime hover:text-lime"
+                  className="press shrink-0 rounded-full border border-line px-4 py-1.5 text-xs font-black text-fog transition hover:border-sig hover:text-sig"
                 >
                   Unblock
                 </button>

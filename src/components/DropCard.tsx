@@ -104,7 +104,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         className="sticker-flat flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
         title="Author's call"
       >
-        <span className="text-lg font-black leading-none text-lime">{drop.score}</span>
+        <span className="text-lg font-black leading-none text-sig">{drop.score}</span>
         <span className="text-[10px] font-bold text-white/80">/10</span>
         {drop.imdb_rating != null && (
           <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
@@ -126,10 +126,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const headerScore =
     drop.score != null ? (
       <div
-        className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-lime/50 bg-lime/10 px-3 py-1.5"
+        className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
         title="Author's call"
       >
-        <span className="text-xl font-black leading-none text-lime">{drop.score}</span>
+        <span className="text-xl font-black leading-none text-sig">{drop.score}</span>
         <span className="text-[11px] font-bold text-mute">/10</span>
         {drop.imdb_rating != null && (
           <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
@@ -166,9 +166,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="block truncate text-[15px] font-bold tracking-tight text-fog transition hover:text-lime"
+      className="block truncate text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
     >
-      {drop.title} <span className="text-xs text-lime" aria-hidden>↗</span>
+      {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
     </a>
   ) : (
     <div className="truncate text-[15px] font-bold tracking-tight">{drop.title}</div>
@@ -181,7 +181,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       onClick={(e) => e.stopPropagation()}
     >
       <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex items-center gap-1.5">
-        <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
+        <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-sig' : 'text-white'}`}>
           <TallyIcon saved={saved} className="h-6 w-6" />
         </span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
@@ -233,7 +233,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         aria-label={saved ? 'Untally' : 'Tally'}
         className="press ml-auto flex items-center gap-1.5"
       >
-        <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-lime' : 'text-fog'}`}>
+        <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-sig' : 'text-fog'}`}>
           <TallyIcon saved={saved} className="h-6 w-6" />
         </span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
@@ -270,7 +270,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                     e.stopPropagation()
                     navigate(`/profile/${author.id}`)
                   }}
-                  className="truncate text-mute hover:text-lime"
+                  className="truncate text-mute hover:text-sig"
                 >
                   @{author.username}
                 </button>
@@ -320,7 +320,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         <div className="px-4 pt-3">
           {drop.description ? (
             <p className="text-[15px] leading-snug">
-              <span className="font-bold text-lime">Hear me out — </span>
+              <span className="font-bold text-sig">Hear me out — </span>
               <span className="text-fog/90">{drop.description}</span>
             </p>
           ) : null}

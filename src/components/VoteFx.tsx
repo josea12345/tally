@@ -74,7 +74,7 @@ export function FlyToTally({ from, onDone }: { from: DOMRect; onDone: () => void
   }, [])
   return createPortal(
     <div ref={ref} className="pointer-events-none fixed left-0 top-0 z-[200]">
-      <TallyIcon saved className="h-7 w-7 text-lime drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]" />
+      <TallyIcon saved className="h-7 w-7 text-sig drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]" />
     </div>,
     document.body
   )

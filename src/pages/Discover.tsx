@@ -25,7 +25,7 @@ function AlertsBell() {
     <button
       onClick={() => navigate('/notifications')}
       aria-label="Notifications"
-      className="relative flex h-9 w-9 items-center justify-center text-fog transition hover:text-lime"
+      className="relative flex h-9 w-9 items-center justify-center text-fog transition hover:text-sig"
     >
       <AlertIcon className="h-6 w-6" />
       {unread > 0 && (
@@ -258,7 +258,7 @@ export default function Discover() {
               >
                 {t.label}
                 {tab === t.id && (
-                  <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-lime" />
+                  <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
                 )}
               </button>
             ))}
@@ -267,7 +267,7 @@ export default function Discover() {
             onClick={() => setSearchOpen((o) => !o)}
             aria-label="Search put-ons"
             className={`flex h-9 w-9 items-center justify-center transition ${
-              searchOpen || query ? 'text-lime' : 'text-fog hover:text-lime'
+              searchOpen || query ? 'text-sig' : 'text-fog hover:text-sig'
             }`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-6 w-6">
@@ -283,7 +283,7 @@ export default function Discover() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search a put-on…"
-              className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+              className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
             />
           </div>
         )}
@@ -311,7 +311,7 @@ export default function Discover() {
           <div className="rail-scroll flex gap-4 overflow-x-auto pb-1">
             {tastemakers.map((p) => (
               <button key={p.id} onClick={() => navigate(`/profile/${p.id}`)} className="flex w-16 shrink-0 flex-col items-center gap-1">
-                <span className="rounded-full p-[2px]" style={{ boxShadow: '0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-lime)' }}>
+                <span className="rounded-full p-[2px]" style={{ boxShadow: '0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-sig)' }}>
                   <Avatar url={p.avatar_url} name={p.display_name ?? p.username} size={52} />
                 </span>
                 <span className="w-full truncate text-center text-[10px] font-bold">@{p.username}</span>

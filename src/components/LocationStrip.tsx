@@ -17,7 +17,7 @@ export default function LocationStrip({ state, effectiveLabel, fromGps, profileC
     return (
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ink-2 px-4 py-3">
         <p className="flex items-center gap-2 text-sm">
-          <span className="text-lime">◉</span>
+          <span className="text-sig">◉</span>
           <span>
             You're near <b>{effectiveLabel}</b>
           </span>
@@ -47,12 +47,12 @@ export default function LocationStrip({ state, effectiveLabel, fromGps, profileC
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ink-2 px-4 py-3">
       <p className="flex items-start gap-2 text-xs leading-relaxed text-mute">
-        <span className="mt-0.5 shrink-0 text-lime">◉</span>
+        <span className="mt-0.5 shrink-0 text-sig">◉</span>
         <span>{explainer[status] ?? explainer.off}</span>
       </p>
       <button
         onClick={onLocate}
-        className="shrink-0 rounded-full bg-lime px-4 py-2 text-xs font-black text-ink"
+        className="shrink-0 rounded-full bg-sig px-4 py-2 text-xs font-black text-ink"
       >
         Locate me
       </button>

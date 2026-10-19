@@ -43,7 +43,7 @@ export default function TitleSearch({
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
         placeholder={category === 'movies' ? 'Search movies…' : 'Search TV shows…'}
-        className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3.5 text-base font-bold outline-none placeholder:text-mute/60 focus:border-lime"
+        className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3.5 text-base font-bold outline-none placeholder:text-mute/60 focus:border-sig"
       />
       {open && (
         <div className="absolute z-40 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-line bg-ink-3 shadow-2xl">

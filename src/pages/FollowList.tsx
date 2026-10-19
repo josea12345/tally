@@ -92,7 +92,7 @@ export default function FollowList({ profileId, kind }: { profileId: string; kin
               key={k}
               onClick={() => setTab(k)}
               className={`flex-1 rounded-full py-1.5 text-sm font-black capitalize transition ${
-                tab === k ? 'bg-lime text-ink' : 'text-mute hover:text-fog'
+                tab === k ? 'bg-sig text-ink' : 'text-mute hover:text-fog'
               }`}
             >
               {k}

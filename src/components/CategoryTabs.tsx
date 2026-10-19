@@ -51,9 +51,12 @@ export default function CategoryTabs({
 function Tab({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
+      key={active ? 'on' : 'off'}
       onClick={onClick}
       className={`press min-w-0 truncate rounded-full px-2 py-1.5 text-[11px] font-bold tracking-tight transition ${
-        active ? 'bg-lime text-[#191725]' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+        active
+          ? 'tab-flash tab-glow bg-sig text-[var(--color-sig-ink)]'
+          : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
       {label}
@@ -64,9 +67,12 @@ function Tab({ active, onClick, label }: { active: boolean; onClick: () => void;
 function SubTab({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
+      key={active ? 'on' : 'off'}
       onClick={onClick}
       className={`press shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
-        active ? 'bg-lime text-[#191725]' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+        active
+          ? 'tab-flash tab-glow bg-sig text-[var(--color-sig-ink)]'
+          : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
       {label}

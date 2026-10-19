@@ -294,7 +294,7 @@ export default function Composer({ editId }: { editId?: string }) {
 
   if (editId && notFound) {
     return <EmptyState title="Drop not found" body="You can only edit your own drops." action={
-      <button onClick={() => navigate('/')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+      <button onClick={() => navigate('/')} className="rounded-full bg-sig px-6 py-2.5 text-sm font-black text-ink">
         Back to Discover
       </button>
     } />
@@ -303,7 +303,7 @@ export default function Composer({ editId }: { editId?: string }) {
   return (
     <div className="mx-auto max-w-xl px-4 pb-10 pt-5">
       <h1 className="wordmark mb-1 text-4xl">Drop a put-on</h1>
-      <p className="mb-5 text-sm text-mute">Something worth knowing. Keep it real — <span className="doodle text-xl text-lime">your record's on the line</span></p>
+      <p className="mb-5 text-sm text-mute">Something worth knowing. Keep it real — <span className="doodle text-xl text-sig">your record's on the line</span></p>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {ALL_CATEGORIES.map((c) => (
@@ -311,7 +311,7 @@ export default function Composer({ editId }: { editId?: string }) {
             key={c}
             onClick={() => setCategory(c)}
             className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-              category === c ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+              category === c ? 'bg-sig text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
             }`}
           >
             {CATEGORY_LABELS[c]}
@@ -338,14 +338,14 @@ export default function Composer({ editId }: { editId?: string }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={MEDIA_PLACEHOLDER[category]}
-          className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-sig"
         />
       )}
 
       {category === 'recipes' && (
         <>
           <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
-            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
+            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-sig">
               Ingredients <span className="text-mute/60">— one per line</span>
             </label>
             <textarea
@@ -357,7 +357,7 @@ export default function Composer({ editId }: { editId?: string }) {
             />
           </div>
           <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
-            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
+            <label className="mb-1 block text-xs font-black uppercase tracking-widest text-sig">
               Steps <span className="text-mute/60">— one per line</span>
             </label>
             <textarea
@@ -372,7 +372,7 @@ export default function Composer({ editId }: { editId?: string }) {
       )}
 
       <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
-        <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">Hear me out —</label>
+        <label className="mb-1 block text-xs font-black uppercase tracking-widest text-sig">Hear me out —</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -407,7 +407,7 @@ export default function Composer({ editId }: { editId?: string }) {
               key={n}
               onClick={() => setScore(n)}
               className={`h-10 w-10 shrink-0 rounded-full text-sm font-black transition ${
-                score === n ? 'bg-lime text-ink' : 'border border-line bg-ink-3 text-mute hover:text-fog'
+                score === n ? 'bg-sig text-ink' : 'border border-line bg-ink-3 text-mute hover:text-fog'
               }`}
             >
               {n}
@@ -436,7 +436,7 @@ export default function Composer({ editId }: { editId?: string }) {
 
       <button
         onClick={() => setDetailsOpen((o) => !o)}
-        className="mt-4 flex w-full items-center justify-between py-2 text-sm font-black text-lime"
+        className="mt-4 flex w-full items-center justify-between py-2 text-sm font-black text-sig"
       >
         Add details <span>{detailsOpen ? '▴' : '▾'}</span>
       </button>
@@ -450,7 +450,7 @@ export default function Composer({ editId }: { editId?: string }) {
               onChange={(e) => setTip(e.target.value)}
               placeholder="Get the… / go at…"
               maxLength={200}
-              className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+              className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
             />
           </div>
           {!isPlace && (
@@ -463,7 +463,7 @@ export default function Composer({ editId }: { editId?: string }) {
                 onChange={(e) => setWhereTo(e.target.value)}
                 placeholder={category === 'music' ? 'Spotify, vinyl…' : 'Netflix, theaters…'}
                 maxLength={120}
-                className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+                className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
               />
             </div>
           )}
@@ -475,7 +475,7 @@ export default function Composer({ editId }: { editId?: string }) {
                 onChange={(e) => setSiteUrl(e.target.value)}
                 placeholder="https://…"
                 inputMode="url"
-                className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+                className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
               />
             </div>
           ) : (
@@ -489,7 +489,7 @@ export default function Composer({ editId }: { editId?: string }) {
                     key={k}
                     onClick={() => setLinkKind(k)}
                     className={`flex-1 rounded-full py-2 text-xs font-black transition ${
-                      linkKind === k ? 'bg-lime text-ink' : 'border border-line text-mute'
+                      linkKind === k ? 'bg-sig text-ink' : 'border border-line text-mute'
                     }`}
                   >
                     {k === 'auto' ? `${AUTO_LABEL[category]} (automatic)` : 'Paste a link'}
@@ -502,7 +502,7 @@ export default function Composer({ editId }: { editId?: string }) {
                   onChange={(e) => setPasteUrl(e.target.value)}
                   placeholder="https://…"
                   inputMode="url"
-                  className="mt-2 w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+                  className="mt-2 w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
                 />
               ) : (
                 <p className="mt-2 text-xs text-mute">
@@ -518,14 +518,14 @@ export default function Composer({ editId }: { editId?: string }) {
               onChange={(e) => setCity(e.target.value)}
               placeholder="Miami"
               maxLength={60}
-              className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+              className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
             />
           </div>
         </div>
       )}
 
       {locState.status === 'off' && (
-        <button onClick={locate} className="mt-3 text-xs font-bold text-lime hover:underline">
+        <button onClick={locate} className="mt-3 text-xs font-bold text-sig hover:underline">
           ◉ Use my precise location for suggestions
         </button>
       )}

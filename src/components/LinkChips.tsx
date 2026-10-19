@@ -34,7 +34,7 @@ export default function LinkChips({ drop, compact = false }: { drop: Drop; compa
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-ink-3 px-3 py-1.5 text-xs font-bold text-lime transition hover:border-lime"
+          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-ink-3 px-3 py-1.5 text-xs font-bold text-sig transition hover:border-sig"
         >
           <span aria-hidden>↗</span>
           {c.label}

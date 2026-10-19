@@ -110,7 +110,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
       <div className="wordmark mb-6 text-4xl">
-        TALLY<span className="text-lime">.</span>
+        TALLY<span className="text-sig">.</span>
       </div>
       <div className="mb-6 flex items-center gap-4">
         <Mascot mood="happy" className="pop-in h-20 w-20 shrink-0 -rotate-6" />
@@ -128,7 +128,7 @@ export default function Onboarding() {
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}
             placeholder="https://…"
-            className="w-full rounded-xl border-2 border-line bg-ink-2 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-xl border-2 border-line bg-ink-2 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
           />
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function Onboarding() {
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-xs font-bold text-mute">Username *</label>
-          <div className="flex items-center rounded-2xl border-2 border-line bg-ink-2 px-4 focus-within:border-lime">
+          <div className="flex items-center rounded-2xl border-2 border-line bg-ink-2 px-4 focus-within:border-sig">
             <span className="text-mute">@</span>
             <input
               value={username}
@@ -147,7 +147,7 @@ export default function Onboarding() {
             />
           </div>
           {availMsg && (
-            <p className={`mt-1 text-xs font-bold ${avail === 'ok' ? 'text-lime' : avail === 'taken' || avail === 'invalid' ? 'text-miss' : 'text-mute'}`}>
+            <p className={`mt-1 text-xs font-bold ${avail === 'ok' ? 'text-sig' : avail === 'taken' || avail === 'invalid' ? 'text-miss' : 'text-mute'}`}>
               {availMsg}
             </p>
           )}
@@ -159,7 +159,7 @@ export default function Onboarding() {
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Your Name"
             maxLength={60}
-            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-sig"
           />
         </div>
         <div>
@@ -170,7 +170,7 @@ export default function Onboarding() {
             placeholder="What are you the plug for?"
             rows={2}
             maxLength={160}
-            className="w-full resize-none rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full resize-none rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-sig"
           />
         </div>
         <div>
@@ -180,7 +180,7 @@ export default function Onboarding() {
             onChange={(e) => setCity(e.target.value)}
             placeholder="Miami"
             maxLength={60}
-            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-sig"
           />
         </div>
         {error && <p className="text-sm font-bold text-miss">{error}</p>}

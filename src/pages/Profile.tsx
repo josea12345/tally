@@ -36,7 +36,7 @@ function DropsList({
         title="No drops yet"
         body={isOwn ? 'Your first put-on is waiting. Drop something worth knowing.' : `Hear @${profile.username} out soon — nothing dropped yet.`}
         action={isOwn ? (
-          <button onClick={() => navigate('/create')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+          <button onClick={() => navigate('/create')} className="rounded-full bg-sig px-6 py-2.5 text-sm font-black text-ink">
             Put someone on
           </button>
         ) : undefined}
@@ -221,7 +221,7 @@ export default function Profile({ id }: { id?: string }) {
 
   if (!profile) {
     return <EmptyState title="Profile not found" body="This user doesn't exist." action={
-      <button onClick={() => navigate('/')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+      <button onClick={() => navigate('/')} className="rounded-full bg-sig px-6 py-2.5 text-sm font-black text-ink">
         Back to Discover
       </button>
     } />
@@ -245,7 +245,7 @@ export default function Profile({ id }: { id?: string }) {
               <button
                 onClick={() => navigate('/settings')}
                 aria-label="Settings"
-                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-line text-fog transition hover:border-lime hover:text-lime"
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-line text-fog transition hover:border-sig hover:text-sig"
               >
                 <GearIcon className="h-5 w-5" />
               </button>
@@ -272,7 +272,7 @@ export default function Profile({ id }: { id?: string }) {
                 aria-label="Upload profile photo"
               >
                 <Avatar url={form.avatar_url || null} name={form.display_name || profile.username} size={64} />
-                <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#191725] bg-lime text-[#191725] shadow">
+                <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#191725] bg-sig text-[var(--color-sig-ink)] shadow">
                   <CameraIcon className="h-4 w-4" />
                 </span>
               </button>
@@ -295,7 +295,7 @@ export default function Profile({ id }: { id?: string }) {
                 <input
                   value={form[k]}
                   onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                  className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none focus:border-lime"
+                  className="w-full rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none focus:border-sig"
                 />
               </div>
             ))}
@@ -306,13 +306,13 @@ export default function Profile({ id }: { id?: string }) {
                 onChange={(e) => setForm({ ...form, bio: e.target.value })}
                 rows={2}
                 maxLength={160}
-                className="w-full resize-none rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none focus:border-lime"
+                className="w-full resize-none rounded-xl border border-line bg-ink-3 px-3 py-2 text-sm outline-none focus:border-sig"
               />
             </div>
             <button
               onClick={saveProfile}
               disabled={saving}
-              className="w-full rounded-full bg-lime py-2.5 text-sm font-black text-ink disabled:opacity-50"
+              className="w-full rounded-full bg-sig py-2.5 text-sm font-black text-ink disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save profile'}
             </button>
@@ -334,12 +334,12 @@ export default function Profile({ id }: { id?: string }) {
                   strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 44}
                   strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
-                  style={{ stroke: 'var(--color-lime)', filter: 'drop-shadow(0 0 8px rgba(255,63,164,0.55))' }}
+                  style={{ stroke: 'var(--color-sig)', filter: 'drop-shadow(0 0 8px rgba(69, 200, 255, 0.55))' }}
                 />
               )}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-6xl font-black tabular-nums text-lime">
+              <span className="text-6xl font-black tabular-nums text-sig">
                 {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
               </span>
             </div>
@@ -368,7 +368,7 @@ export default function Profile({ id }: { id?: string }) {
           )}
           <button
             onClick={() => setShowFormula((s) => !s)}
-            className="mt-2 text-xs font-bold text-mute transition hover:text-lime"
+            className="mt-2 text-xs font-bold text-mute transition hover:text-sig"
           >
             How it's calculated {showFormula ? '▴' : '▾'}
           </button>
@@ -393,11 +393,11 @@ export default function Profile({ id }: { id?: string }) {
             <span className="font-bold text-fog">{stats?.drops ?? 0}</span> drops
           </span>
           <span className="text-mute/50">·</span>
-          <button onClick={() => navigate(`/followers/${profile.id}`)} className="transition hover:text-lime">
+          <button onClick={() => navigate(`/followers/${profile.id}`)} className="transition hover:text-sig">
             <span className="font-bold text-fog">{followers}</span> followers
           </button>
           <span className="text-mute/50">·</span>
-          <button onClick={() => navigate(`/following/${profile.id}`)} className="transition hover:text-lime">
+          <button onClick={() => navigate(`/following/${profile.id}`)} className="transition hover:text-sig">
             <span className="font-bold text-fog">{following}</span> following
           </button>
         </div>
@@ -429,7 +429,7 @@ export default function Profile({ id }: { id?: string }) {
                 >
                   {t === 'drops' ? 'Drops' : 'Tallies'}
                   {tab === t && (
-                    <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-lime" />
+                    <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
                   )}
                 </button>
               ))}

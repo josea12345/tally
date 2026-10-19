@@ -90,7 +90,7 @@ export default function Search() {
           placeholder="People, places, drops…"
           autoCapitalize="off"
           autoCorrect="off"
-          className="w-full rounded-full border border-line bg-ink-2 px-4 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-full border border-line bg-ink-2 px-4 py-2.5 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
         />
         {debounced && (
           <div className="mt-3 flex gap-2">
@@ -99,7 +99,7 @@ export default function Search() {
                 key={t}
                 onClick={() => setTab(t)}
                 className={`rounded-full px-4 py-1.5 text-sm font-black capitalize transition ${
-                  tab === t ? 'bg-lime text-ink' : 'border border-line text-mute'
+                  tab === t ? 'bg-sig text-ink' : 'border border-line text-mute'
                 }`}
               >
                 {t}
@@ -182,7 +182,7 @@ function DropRow({ drop: d }: { drop: DropHit }) {
     <li>
       <button
         onClick={() => navigate(`/drop/${d.id}`)}
-        className="flex w-full items-center gap-3 rounded-2xl border border-line bg-ink-2 p-2.5 text-left transition hover:border-lime/50"
+        className="flex w-full items-center gap-3 rounded-2xl border border-line bg-ink-2 p-2.5 text-left transition hover:border-sig/50"
       >
         {thumb ? (
           <img src={thumb} alt="" className="h-12 w-12 shrink-0 rounded-xl bg-black object-cover" />
@@ -193,7 +193,7 @@ function DropRow({ drop: d }: { drop: DropHit }) {
           <span className="block truncate text-sm font-bold">{d.title}</span>
           <span className="block truncate text-xs text-mute">
             @{d.author?.username ?? '?'} · {timeAgo(d.created_at)}
-            {d.score != null && <span className="font-bold text-lime"> · {d.score}/10</span>}
+            {d.score != null && <span className="font-bold text-sig"> · {d.score}/10</span>}
           </span>
         </span>
       </button>

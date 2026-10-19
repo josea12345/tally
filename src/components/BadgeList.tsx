@@ -7,7 +7,9 @@ import { SparkIcon } from './icons'
  * The profile owner can dismiss a badge (×); dismissal is stored on the
  * profile so it stays gone (restorable in Settings).
  */
-const STICKER_FILLS = ['bg-lime', 'bg-lilac', 'bg-butter', 'bg-sky', 'bg-win']
+// bg-sig deliberately absent: with fixed ink glyphs the tile set must stay
+// ≥4.5:1 in both themes, and only the accent fills qualify with ink text.
+const STICKER_FILLS = ['bg-sky', 'bg-lilac', 'bg-butter', 'bg-win']
 
 export default function BadgeList({
   profileId,

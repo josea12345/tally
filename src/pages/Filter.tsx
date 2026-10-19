@@ -72,7 +72,7 @@ export default function Filter() {
         <button
           onClick={next}
           disabled={busy}
-          className="rounded-full bg-lime px-5 py-2 text-sm font-black text-ink disabled:opacity-50"
+          className="rounded-full bg-sig px-5 py-2 text-sm font-black text-ink disabled:opacity-50"
         >
           {busy ? '…' : 'Next'}
         </button>
@@ -100,7 +100,7 @@ export default function Filter() {
             >
               <span
                 className={`h-16 w-16 overflow-hidden rounded-xl border-2 ${
-                  f.id === filterId ? 'border-lime' : 'border-transparent'
+                  f.id === filterId ? 'border-sig' : 'border-transparent'
                 }`}
               >
                 <img
@@ -111,7 +111,7 @@ export default function Filter() {
                 />
               </span>
               <span
-                className={`text-[10px] font-bold ${f.id === filterId ? 'text-lime' : 'text-mute'}`}
+                className={`text-[10px] font-bold ${f.id === filterId ? 'text-sig' : 'text-mute'}`}
               >
                 {f.name}
               </span>

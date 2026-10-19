@@ -17,7 +17,7 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
     case 'L':
       return <span className={`${base} bg-miss text-white`} aria-hidden>L</span>
     case 'follow':
-      return <span className={`${base} bg-lime text-[#191725]`} aria-hidden>+</span>
+      return <span className={`${base} bg-sig text-[var(--color-sig-ink)]`} aria-hidden>+</span>
     case 'approved':
       return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>✓</span>
     case 'requested':
@@ -135,7 +135,7 @@ export default function Notifications() {
                   </span>
                   <span className="mt-0.5 block text-xs text-mute">{timeAgo(n.created_at)}</span>
                 </span>
-                {!n.read_at && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-lime" aria-label="Unread" />}
+                {!n.read_at && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sig" aria-label="Unread" />}
                 <KindChip kind={n.kind} />
               </button>
             </li>

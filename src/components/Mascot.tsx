@@ -1,5 +1,5 @@
 /**
- * Blip — TALLY's weird-cute mascot. A small original SVG: a bubblegum-pink
+ * Blip — TALLY's weird-cute mascot. A small original SVG: a hot-light-blue
  * blob with oversized eyes and tiny butter-yellow sneakers. Lightweight
  * (single inline SVG, no assets), used only for onboarding, empty states,
  * and celebration moments — never obstructing content.
@@ -23,13 +23,13 @@ export default function Mascot({
       {/* body */}
       <path
         d="M60 12 C 88 12, 102 38, 100 66 C 98 90, 80 100, 60 100 C 40 100, 22 90, 20 66 C 18 38, 32 12, 60 12 Z"
-        fill="#ff3fa4"
+        fill="#45c8ff"
         stroke="#191725"
         strokeWidth="4"
       />
       {/* blush */}
-      <ellipse cx="38" cy="66" rx="7" ry="4.5" fill="#d6336c" opacity="0.55" />
-      <ellipse cx="82" cy="66" rx="7" ry="4.5" fill="#d6336c" opacity="0.55" />
+      <ellipse cx="38" cy="66" rx="7" ry="4.5" fill="#1a7fd4" opacity="0.55" />
+      <ellipse cx="82" cy="66" rx="7" ry="4.5" fill="#1a7fd4" opacity="0.55" />
       {/* eyes */}
       {mood === 'sleepy' ? (
         <g stroke="#191725" strokeWidth="4" strokeLinecap="round" fill="none">

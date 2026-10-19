@@ -93,11 +93,11 @@ export default function PutOnChain({ drop }: Props) {
 
   const dot = (kind: ChainEvent['kind']) =>
     kind === 'verdict'
-      ? 'bg-lime'
+      ? 'bg-sig'
       : kind === 'redrop'
         ? 'bg-fog'
         : kind === 'tried'
-          ? 'bg-lime/60'
+          ? 'bg-sig/60'
           : 'bg-line'
 
   return (
@@ -113,7 +113,7 @@ export default function PutOnChain({ drop }: Props) {
             )}
             <p className="text-sm">
               {e.actor ? (
-                <button onClick={() => navigate(`/profile/${e.actor!.id}`)} className="font-bold hover:text-lime">
+                <button onClick={() => navigate(`/profile/${e.actor!.id}`)} className="font-bold hover:text-sig">
                   @{e.actor.username}
                 </button>
               ) : (
@@ -122,7 +122,7 @@ export default function PutOnChain({ drop }: Props) {
               <span className="text-mute">{e.label}</span>{' '}
               <span className="text-xs text-mute">· {timeAgo(e.at)}</span>
               {e.link && (
-                <button onClick={() => navigate(e.link!)} className="ml-1 text-xs font-bold text-lime">
+                <button onClick={() => navigate(e.link!)} className="ml-1 text-xs font-bold text-sig">
                   view drop →
                 </button>
               )}

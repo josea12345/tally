@@ -198,7 +198,7 @@ export default function VideoReview() {
         <button
           onClick={next}
           disabled={busy || tooLong}
-          className="rounded-full bg-lime px-5 py-2 text-sm font-black text-ink disabled:opacity-50"
+          className="rounded-full bg-sig px-5 py-2 text-sm font-black text-ink disabled:opacity-50"
         >
           {busy ? busyLabel : 'Next'}
         </button>
@@ -242,7 +242,7 @@ export default function VideoReview() {
       <div className="flex items-center justify-center gap-2 px-4 pt-3">
         <span
           className={`rounded-full px-3 py-1 text-xs font-black ${
-            tooLong ? 'bg-miss/15 text-miss' : 'bg-lime/15 text-lime'
+            tooLong ? 'bg-miss/15 text-miss' : 'bg-sig/15 text-sig'
           }`}
         >
           {duration != null ? formatDuration(duration) : '…'} / 0:{String(CLIP_MAX_SECONDS).padStart(2, '0')}
@@ -267,7 +267,7 @@ export default function VideoReview() {
               onTouchEnd={onScrubEnd}
               onChange={(e) => onScrub(parseFloat(e.target.value))}
               disabled={busy}
-              className="w-full accent-lime"
+              className="w-full accent-sig"
               aria-label="Pick the cover frame"
             />
             <span className="shrink-0 text-xs font-bold tabular-nums text-mute">
@@ -290,7 +290,7 @@ export default function VideoReview() {
                 <button
                   onClick={keepFirst5}
                   disabled={busy}
-                  className="flex-1 rounded-full bg-lime py-2.5 text-sm font-black text-ink disabled:opacity-50"
+                  className="flex-1 rounded-full bg-sig py-2.5 text-sm font-black text-ink disabled:opacity-50"
                 >
                   {busy ? busyLabel : `Keep first ${CLIP_MAX_SECONDS}s`}
                 </button>

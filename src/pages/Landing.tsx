@@ -10,14 +10,14 @@ import { PinIcon, ChartIcon, VideoIcon, CardsIcon, ChainIcon, SearchIcon, ScoreI
 import { tasteScoreFor } from '../lib/stats'
 
 const PHRASES = ['Hear me out', 'Let me put you on', 'Trust me on this one', "Don't sleep on this"]
-const SEPARATOR_COLORS = ['text-lime', 'text-lilac', 'text-butter', 'text-sky']
+const SEPARATOR_COLORS = ['text-sig', 'text-lilac', 'text-butter', 'text-sky']
 
 export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
   if (mode === 'auth') {
     return (
       <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
         <button onClick={() => navigate('/')} className="wordmark mb-8 text-4xl">
-          TALLY<span className="text-lime">.</span>
+          TALLY<span className="text-sig">.</span>
         </button>
         <AuthForm />
         <button onClick={() => navigate('/')} className="mt-8 w-full text-center text-xs text-mute hover:text-fog">
@@ -32,11 +32,11 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       {/* top bar */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <div className="wordmark text-3xl">
-          TALLY<span className="text-lime">.</span>
+          TALLY<span className="text-sig">.</span>
         </div>
         <button
           onClick={() => navigate('/auth')}
-          className="press rounded-full border-2 border-line px-5 py-2 text-sm font-black text-fog transition hover:border-lime hover:text-lime"
+          className="press rounded-full border-2 border-line px-5 py-2 text-sm font-black text-fog transition hover:border-sig hover:text-sig"
         >
           Log in
         </button>
@@ -48,7 +48,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              'radial-gradient(600px 300px at 20% 10%, rgba(255,63,164,0.10), transparent 60%), radial-gradient(500px 260px at 85% 30%, rgba(185,163,255,0.08), transparent 60%)',
+              'radial-gradient(600px 300px at 20% 10%, rgba(69, 200, 255, 0.10), transparent 60%), radial-gradient(500px 260px at 85% 30%, rgba(185,163,255,0.08), transparent 60%)',
           }}
         />
         {/* sticker decorations */}
@@ -58,11 +58,11 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
           100% real humans ↓
         </span>
         <Reveal>
-          <p className="mb-4 inline-block -rotate-2 rounded-full bg-lime px-4 py-1 text-xs font-black uppercase tracking-[0.25em] text-[#191725]">
+          <p className="mb-4 inline-block -rotate-2 rounded-full bg-sig px-4 py-1 text-xs font-black uppercase tracking-[0.25em] text-[var(--color-sig-ink)]">
             The taste network
           </p>
           <h1 className="wordmark max-w-3xl text-6xl leading-[0.95] md:text-8xl">
-            Good taste deserves a <span className="text-lime">track&nbsp;record.</span>
+            Good taste deserves a <span className="text-sig">track&nbsp;record.</span>
           </h1>
         </Reveal>
         <Reveal delay={120}>
@@ -79,7 +79,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             </a>
             <a
               href="#how"
-              className="press rounded-full border-2 border-line px-8 py-3.5 text-base font-black text-fog transition hover:border-lime hover:text-lime"
+              className="press rounded-full border-2 border-line px-8 py-3.5 text-base font-black text-fog transition hover:border-sig hover:text-sig"
             >
               See how it works
             </a>
@@ -113,7 +113,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-20">
         <Reveal>
           <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Put-ons, <span className="text-lime">on the record.</span>
+            Put-ons, <span className="text-sig">on the record.</span>
           </h2>
         </Reveal>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -122,7 +122,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               Icon: PinIcon,
               title: 'Drop it',
               body: 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.',
-              accent: 'bg-lime',
+              accent: 'bg-sig',
             },
             {
               Icon: ({ className }: { className?: string }) => <TallyIcon saved className={className} />,
@@ -154,9 +154,9 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       <section className="border-y border-line bg-ink-2">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <Reveal>
-            <p className="mb-4 text-xs font-black uppercase tracking-[0.3em] text-lime">The record</p>
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.3em] text-sig">The record</p>
             <h2 className="max-w-2xl font-display text-4xl font-bold tracking-tight md:text-5xl">
-              Your taste, <span className="text-lime">quantified.</span>
+              Your taste, <span className="text-sig">quantified.</span>
             </h2>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-mute">
               No star inflation. No fake reviews. Just every put-on you ever made, judged by the people who actually
@@ -167,7 +167,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             <div className="sticker mt-8 max-w-xl rounded-3xl bg-ink p-6">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-sm font-black uppercase tracking-widest text-mute">@you · taste score</span>
-                <span className="wordmark text-5xl text-lime">81</span>
+                <span className="wordmark text-5xl text-sig">81</span>
               </div>
               <TallyMarks wins={11} losses={1} />
               <p className="mt-3 text-xs text-mute">11 W · 1 L across 12 verdicts — saves don't count as visits.</p>
@@ -180,7 +180,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       <section className="mx-auto max-w-6xl px-5 py-20">
         <Reveal>
           <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
-            Built for <span className="text-lime">putting on.</span>
+            Built for <span className="text-sig">putting on.</span>
           </h2>
         </Reveal>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -189,7 +189,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               Icon: VideoIcon,
               title: '60-second reviews',
               body: 'Real reviews need more than a clip. Shoot up to a minute, right in the app.',
-              accent: 'text-lime',
+              accent: 'text-sig',
             },
             {
               Icon: CardsIcon,
@@ -223,7 +223,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             },
           ].map(({ Icon, title, body, accent }, i) => (
             <Reveal key={title} delay={(i % 3) * 100}>
-              <div className="h-full rounded-3xl border-2 border-line bg-ink-2 p-6 transition hover:-translate-y-1 hover:border-lime/60">
+              <div className="h-full rounded-3xl border-2 border-line bg-ink-2 p-6 transition hover:-translate-y-1 hover:border-sig/60">
                 <div className={`mb-3 ${accent}`}>
                   <Icon className="h-9 w-9" />
                 </div>
@@ -245,7 +245,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               <Mascot mood="star" className="pop-in h-20 w-20" />
             </div>
             <h2 className="wordmark text-center text-4xl md:text-5xl">
-              Put someone <span className="text-lime">on.</span>
+              Put someone <span className="text-sig">on.</span>
             </h2>
             <p className="mb-8 mt-3 text-center text-mute">
               Free forever. No fake activity — the club starts with real people, starting with you.
@@ -259,7 +259,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
 
       <footer className="border-t border-line px-5 py-8 text-center text-xs text-mute">
         <div className="wordmark mb-2 text-xl text-fog">
-          TALLY<span className="text-lime">.</span>
+          TALLY<span className="text-sig">.</span>
         </div>
         Good taste deserves a track record. © 2026
       </footer>
@@ -294,34 +294,34 @@ function DemoCard() {
       style={{ '--float-rot': '-1.5deg' } as React.CSSProperties}
     >
       <div className="flex items-center gap-3 px-4 pt-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lime font-black text-ink">J</span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sig font-black text-ink">J</span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             JAG <span className="font-normal text-mute">@jag · 2h</span>
           </div>
         </div>
-        <span className="flex flex-col items-center rounded-xl border border-lime/40 bg-lime/10 px-2.5 py-1">
-          <span className="text-lg font-black leading-none text-lime">9</span>
+        <span className="flex flex-col items-center rounded-xl border border-sig/40 bg-sig/10 px-2.5 py-1">
+          <span className="text-lg font-black leading-none text-sig">9</span>
           <span className="text-[9px] font-bold text-mute">/10</span>
         </span>
       </div>
       <div className="px-4 pb-1 pt-2">
         <h3 className="font-display text-lg font-bold">Kush Brickell</h3>
         <p className="text-sm text-fog/90">
-          <span className="font-bold text-lime">Hear me out — </span>
+          <span className="font-bold text-sig">Hear me out — </span>
           the frita cubana is the best burger in Miami. Fight me.
         </p>
       </div>
-      <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-lime/25 via-ink-2 to-ink-3">
-        <TallyIcon saved className="h-24 w-24 text-lime/25" />
-        <span className="absolute bottom-2 right-3 text-[10px] font-black uppercase tracking-[0.3em] text-lime/60">
+      <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-sig/25 via-ink-2 to-ink-3">
+        <TallyIcon saved className="h-24 w-24 text-sig/25" />
+        <span className="absolute bottom-2 right-3 text-[10px] font-black uppercase tracking-[0.3em] text-sig/60">
           Miami · Food & Drink
         </span>
       </div>
       <div className="px-4 py-4">
         <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-ink-3">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-win to-lime transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-win to-sig transition-all duration-500"
             style={{ width: `${score}%` }}
           />
         </div>
@@ -335,7 +335,7 @@ function DemoCard() {
                   ? v === 'W'
                     ? 'bg-win text-ink'
                     : 'bg-miss text-white'
-                  : 'border border-line bg-ink-3 text-fog hover:border-lime/60'
+                  : 'border border-line bg-ink-3 text-fog hover:border-sig/60'
               } ${slam === v ? 'verdict-slam' : ''}`}
             >
               {v}
@@ -344,7 +344,7 @@ function DemoCard() {
           ))}
         </div>
         <p className="mt-3 text-center text-xs text-mute">
-          <b className="text-lime">{score}</b> taste score · your vote moves it
+          <b className="text-sig">{score}</b> taste score · your vote moves it
         </p>
       </div>
     </div>
@@ -422,7 +422,7 @@ function AuthForm() {
               setTab(t)
               setError(null)
             }}
-            className={`rounded-full py-2 text-sm font-black transition ${tab === t ? 'bg-lime text-[#191725]' : 'text-mute'}`}
+            className={`rounded-full py-2 text-sm font-black transition ${tab === t ? 'bg-sig text-[var(--color-sig-ink)]' : 'text-mute'}`}
           >
             {t === 'in' ? 'Log in' : 'Sign up'}
           </button>
@@ -435,7 +435,7 @@ function AuthForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           autoComplete="email"
-          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-sig"
         />
         <input
           type="password"
@@ -443,7 +443,7 @@ function AuthForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password (6+ characters)"
           autoComplete={tab === 'in' ? 'current-password' : 'new-password'}
-          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-sig"
         />
         {error && <p className="text-sm font-bold text-miss">{error}</p>}
         <button

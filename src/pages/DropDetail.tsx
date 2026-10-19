@@ -201,13 +201,13 @@ export default function DropDetail({ id }: { id: string }) {
   return (
     <div className="pb-8">
       {!user && (
-        <div className="border-b border-line bg-lime px-4 py-3 text-center">
+        <div className="border-b border-line bg-sig px-4 py-3 text-center">
           <p className="text-sm font-black text-ink">
             Someone put you on — join TALLY to save it and call W or L.
           </p>
           <button
             onClick={() => navigate('/auth')}
-            className="mt-2 rounded-full bg-ink px-6 py-2 text-sm font-black text-lime"
+            className="mt-2 rounded-full bg-ink px-6 py-2 text-sm font-black text-sig"
           >
             Join TALLY
           </button>
@@ -254,8 +254,8 @@ export default function DropDetail({ id }: { id: string }) {
         {(drop.score != null || drop.imdb_rating != null) && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {drop.score != null && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-lime/50 bg-lime/10 px-4 py-1.5">
-                <span className="text-xl font-black text-lime">{drop.score}</span>
+              <div className="inline-flex items-center gap-2 rounded-full border border-sig/50 bg-sig/10 px-4 py-1.5">
+                <span className="text-xl font-black text-sig">{drop.score}</span>
                 <span className="text-xs font-bold text-mute">/10 — {author?.display_name ?? author?.username ?? 'author'}'s call</span>
               </div>
             )}
@@ -267,7 +267,7 @@ export default function DropDetail({ id }: { id: string }) {
           </div>
         )}
         <p className="mt-2 text-[17px] leading-relaxed">
-          <span className="font-bold text-lime">Hear me out — </span>
+          <span className="font-bold text-sig">Hear me out — </span>
           {drop.description}
         </p>
         {(drop.street_address || drop.neighborhood || drop.city) && (
@@ -282,13 +282,13 @@ export default function DropDetail({ id }: { id: string }) {
           <div className="mt-3 overflow-hidden rounded-2xl border border-line">
             {drop.ingredients.length > 0 && (
               <div className="bg-ink-2 p-4">
-                <div className="mb-2 text-xs font-black uppercase tracking-widest text-lime">
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-sig">
                   Ingredients · {drop.ingredients.length}
                 </div>
                 <ul className="space-y-1.5">
                   {drop.ingredients.map((ing, i) => (
                     <li key={i} className="flex items-start gap-2 text-[15px]">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime" />
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sig" />
                       <span>{ing}</span>
                     </li>
                   ))}
@@ -297,13 +297,13 @@ export default function DropDetail({ id }: { id: string }) {
             )}
             {drop.instructions.length > 0 && (
               <div className="border-t border-line bg-ink p-4">
-                <div className="mb-2 text-xs font-black uppercase tracking-widest text-lime">
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-sig">
                   Steps · {drop.instructions.length}
                 </div>
                 <ol className="space-y-2.5">
                   {drop.instructions.map((step, i) => (
                     <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-black text-ink">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sig text-xs font-black text-ink">
                         {i + 1}
                       </span>
                       <span className="pt-0.5">{step}</span>
@@ -315,8 +315,8 @@ export default function DropDetail({ id }: { id: string }) {
           </div>
         )}
         {drop.tip && (
-          <div className="mt-3 rounded-2xl border border-lime/40 bg-ink-2 p-4">
-            <div className="mb-1 text-xs font-black uppercase tracking-widest text-lime">
+          <div className="mt-3 rounded-2xl border border-sig/40 bg-ink-2 p-4">
+            <div className="mb-1 text-xs font-black uppercase tracking-widest text-sig">
               Trust me{author ? ` — hear ${author.display_name ?? author.username} out` : ''}
             </div>
             <p className="text-sm">{drop.tip}</p>
@@ -339,7 +339,7 @@ export default function DropDetail({ id }: { id: string }) {
             }}
             disabled={saveBusy}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition disabled:opacity-50 ${
-              saved ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-fog hover:border-lime'
+              saved ? 'bg-sig text-ink' : 'border border-line bg-ink-2 text-fog hover:border-sig'
             }`}
           >
             <TallyIcon saved={saved} className="h-4 w-4" />
@@ -348,14 +348,14 @@ export default function DropDetail({ id }: { id: string }) {
           {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
           <button
             onClick={copyLink}
-            className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-lime"
+            className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
           >
             {copied ? 'Link copied ✓' : 'Copy link'}
           </button>
           <button
             onClick={exportCard}
             disabled={cardBusy}
-            className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-lime disabled:opacity-50"
+            className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig disabled:opacity-50"
           >
             {cardBusy ? 'Rendering…' : 'Share taste card'}
           </button>
@@ -363,7 +363,7 @@ export default function DropDetail({ id }: { id: string }) {
             <>
               <button
                 onClick={() => navigate(`/edit/${drop.id}`)}
-                className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-lime"
+                className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
               >
                 Edit
               </button>
@@ -382,7 +382,7 @@ export default function DropDetail({ id }: { id: string }) {
           <VerdictBox drop={drop} stats={stats} myVerdict={myVerdict} onChanged={load} />
           {authorRate && (
             <p className="mt-2 text-center text-xs text-mute">
-              @{author?.username}'s record: <span className="font-bold text-lime">{authorRate}</span>
+              @{author?.username}'s record: <span className="font-bold text-sig">{authorRate}</span>
             </p>
           )}
         </div>
@@ -401,14 +401,14 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         {!user && (
-          <div className="mt-8 rounded-3xl border border-lime/50 bg-ink-2 p-6 text-center">
+          <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">
             <h3 className="mb-2 text-xl font-black">Don't sleep on this</h3>
             <p className="mb-4 text-sm text-mute">
               Join TALLY to save this drop, try it, and put your own W/L on the record.
             </p>
             <button
               onClick={() => navigate('/auth')}
-              className="rounded-full bg-lime px-8 py-3 font-black text-ink"
+              className="rounded-full bg-sig px-8 py-3 font-black text-ink"
             >
               See more drops
             </button>
