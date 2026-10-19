@@ -73,24 +73,21 @@ function MobileNav({ route }: { route: Route }) {
       key={n.name}
       data-nav-tab={n.name}
       onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
-      className="flex flex-col items-center gap-0.5 py-2.5"
+      className="flex items-center justify-center py-2"
       aria-label={n.label}
     >
       <span
-        className={`flex h-8 w-8 items-center justify-center rounded-full text-xl ${
+        className={`flex h-9 w-9 items-center justify-center rounded-full text-xl transition ${
           active(n.name) ? 'bg-lime text-ink' : 'text-mute'
         }`}
       >
         {n.name === 'saved' ? (
           <TallyIcon saved={active(n.name)} className="h-5 w-5" />
         ) : n.name === 'profile' && profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+          <img src={profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
         ) : (
           n.icon
         )}
-      </span>
-      <span className={`text-[10px] font-semibold ${active(n.name) ? 'text-lime' : 'text-mute'}`}>
-        {n.label}
       </span>
     </button>
   )
@@ -103,7 +100,7 @@ function MobileNav({ route }: { route: Route }) {
           <button
             onClick={() => navigate('/camera')}
             aria-label="Open camera"
-            className="-mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
+            className="-mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
               <path
@@ -280,7 +277,7 @@ export default function App() {
       <div className="mx-auto flex max-w-6xl">
         {showChrome && <DesktopRail />}
         <main
-          className={`min-h-screen min-w-0 flex-1 ${showChrome ? 'md:border-r md:border-line' : ''} pb-24 md:pb-0`}
+          className={`min-h-screen min-w-0 flex-1 ${showChrome ? 'md:border-r md:border-line' : ''} pb-20 md:pb-0`}
           style={{ maxWidth: showChrome ? 640 : undefined, margin: showChrome ? undefined : '0 auto' }}
         >
           {renderMain()}
