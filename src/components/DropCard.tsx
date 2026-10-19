@@ -57,29 +57,29 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onVote(v)
   }
 
-  // TikTok-style vertical action rail overlaid on the media's right edge.
-  const rail = (
+  // Horizontal action bar overlaid on the media's bottom edge.
+  const bottomBar = (
     <div
-      className="absolute right-2.5 top-1/2 flex -translate-y-1/2 flex-col items-center gap-4"
+      className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10"
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex flex-col items-center gap-1">
-        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[26px] font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
-        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
-      </button>
-      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex flex-col items-center gap-1">
-        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[26px] font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
-        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
-      </button>
-      <button onClick={toggleComments} aria-label="Comments" className="press flex flex-col items-center gap-1">
-        <ChatIcon className="h-7 w-7 text-white drop-shadow-lg" />
-        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
-      </button>
-      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex flex-col items-center gap-1">
+      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex items-center gap-1.5">
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
-          <TallyIcon saved={saved} className="h-7 w-7" />
+          <TallyIcon saved={saved} className="h-6 w-6" />
         </span>
-        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
+        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
+      </button>
+      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex items-center gap-1.5">
+        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
+        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
+      </button>
+      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex items-center gap-1.5">
+        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
+        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
+      </button>
+      <button onClick={toggleComments} aria-label="Comments" className="press flex items-center gap-1.5">
+        <ChatIcon className="h-6 w-6 text-white drop-shadow-lg" />
+        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
       </button>
     </div>
   )
@@ -181,12 +181,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           </span>
         </div>
 
-        {/* full-bleed media with TikTok-style action rail */}
+        {/* full-bleed media with horizontal action bar overlaid at the bottom */}
         {items.length > 0 && (
           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             <MediaCarousel
               flush
-              overlay={rail}
+              overlay={bottomBar}
               items={items}
               renderItem={(it) =>
                 it.type === 'video' ? (
