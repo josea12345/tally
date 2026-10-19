@@ -215,3 +215,15 @@ body {
 .feed-video video {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* iOS standalone PWA: keep sticky headers below the status bar / notch */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* iOS standalone PWA: push page content below the status bar (browser tabs unaffected) */
+@media (display-mode: standalone) {
+  main {
+    padding-top: env(safe-area-inset-top);
+  }
+}

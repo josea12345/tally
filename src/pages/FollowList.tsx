@@ -73,7 +73,7 @@ export default function FollowList({ profileId, kind }: { profileId: string; kin
 
   return (
     <div className="pb-8">
-      <div className="sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-3 pt-4 backdrop-blur">
+      <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-3 pt-4 backdrop-blur">
         <div className="mb-3 flex items-center gap-3">
           <button
             onClick={() => navigate(`/profile/${profileId}`)}

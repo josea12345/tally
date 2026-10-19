@@ -221,7 +221,7 @@ export default function Discover() {
 
   return (
     <div>
-      <div className="sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-2 pt-3 backdrop-blur">
+      <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-2 pt-3 backdrop-blur">
         <div className="mb-2 flex items-center justify-between">
           <div className="font-display text-lg font-bold tracking-tight">
             TALLY<span className="text-lime">.</span>
