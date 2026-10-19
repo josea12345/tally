@@ -320,12 +320,11 @@ export default function Profile({ id }: { id?: string }) {
                   cy="50"
                   r="44"
                   fill="none"
-                  stroke="#c8f31d"
                   strokeWidth="7"
                   strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 44}
                   strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
-                  style={{ filter: 'drop-shadow(0 0 8px rgba(200,243,29,0.5))' }}
+                  style={{ stroke: 'var(--color-lime)', filter: 'drop-shadow(0 0 8px rgba(200,243,29,0.5))' }}
                 />
               )}
             </svg>

@@ -6,6 +6,17 @@
     <title>TALLY — Good taste deserves a track record.</title>
     <meta name="description" content="Find places worth knowing. Put your friends onto something great. Build a reputation for getting it right." />
     <meta name="theme-color" content="#0a0a0b" />
+    <script>
+      // Set the theme before first paint to avoid a flash.
+      try {
+        var t = localStorage.getItem('tally-theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = t;
+        document.documentElement.style.colorScheme = t;
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', t === 'light' ? '#f7f7f4' : '#0a0a0b');
+      } catch (e) {}
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

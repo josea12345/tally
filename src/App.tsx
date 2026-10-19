@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
+import { applyTheme, getChoice, initTheme, systemTheme } from './lib/theme'
 import Landing from './pages/Landing'
 import Onboarding from './pages/Onboarding'
 import Discover from './pages/Discover'
@@ -206,6 +207,17 @@ export function Avatar({ url, name, size = 40 }: { url: string | null; name: str
 export default function App() {
   const route = useRoute()
   const { user, loading, needsOnboarding } = useAuth()
+
+  useEffect(() => {
+    initTheme()
+    // Follow the OS while the choice is "system".
+    const mq = window.matchMedia('(prefers-color-scheme: light)')
+    const onChange = () => {
+      if (getChoice() === 'system') applyTheme(systemTheme())
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     if (loading) return

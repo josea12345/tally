@@ -5,6 +5,7 @@ import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
 import { useBadges } from '../lib/useBadges'
 import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
+import { getChoice, setChoice, type ThemeChoice } from '../lib/theme'
 
 interface FollowRequest {
   follower_id: string
@@ -25,6 +26,7 @@ export default function Settings() {
   const [busy, setBusy] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>(profile?.dismissed_badges ?? [])
+  const [themeChoice, setThemeChoice] = useState<ThemeChoice>(getChoice())
   const badges = useBadges(user?.id)
   const [blocked, setBlocked] = useState<BlockedRow[]>([])
 
@@ -279,6 +281,32 @@ export default function Settings() {
               {copied ? 'Copied!' : 'Copy link'}
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* appearance */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Appearance</h2>
+        <div className="rounded-2xl border border-line bg-ink-2 p-4">
+          <div className="grid grid-cols-3 gap-2">
+            {(['system', 'light', 'dark'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setChoice(t)
+                  setThemeChoice(t)
+                }}
+                className={`rounded-xl border py-2.5 text-sm font-black capitalize transition ${
+                  themeChoice === t
+                    ? 'border-lime bg-lime/10 text-lime'
+                    : 'border-line text-mute hover:text-fog'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-mute">System follows your phone's light/dark setting.</p>
         </div>
       </section>
 

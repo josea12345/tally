@@ -292,7 +292,7 @@ export default function Discover() {
           <div className="rail-scroll flex gap-4 overflow-x-auto pb-1">
             {tastemakers.map((p) => (
               <button key={p.id} onClick={() => navigate(`/profile/${p.id}`)} className="flex w-16 shrink-0 flex-col items-center gap-1">
-                <span className="rounded-full p-[2px]" style={{ boxShadow: '0 0 0 2px #0a0a0b, 0 0 0 4px #c8f31d' }}>
+                <span className="rounded-full p-[2px]" style={{ boxShadow: '0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-lime)' }}>
                   <Avatar url={p.avatar_url} name={p.display_name ?? p.username} size={52} />
                 </span>
                 <span className="w-full truncate text-center text-[10px] font-bold">@{p.username}</span>
