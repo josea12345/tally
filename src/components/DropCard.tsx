@@ -7,7 +7,8 @@ import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
-import { dropMedia } from '../lib/types'
+import { dropMedia, isPlaceCategory } from '../lib/types'
+import { mapsUrlForPlace } from '../lib/geo'
 import TallyIcon from './TallyIcon'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
@@ -114,6 +115,39 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         <span className="text-[11px] font-bold text-mute">IMDb</span>
       </div>
     ) : null
+
+  // Title link target: the location for places, IMDb for movies/TV, else the external link.
+  const titleUrl = (() => {
+    if (isPlaceCategory(drop.category) && (drop.street_address || drop.city || drop.maps_url)) {
+      return drop.street_address || drop.city
+        ? mapsUrlForPlace(drop.title, drop.street_address, drop.city)
+        : (drop.maps_url as string)
+    }
+    if (drop.imdb_id) return `https://www.imdb.com/title/${drop.imdb_id}/`
+    if (drop.external_url) return drop.external_url
+    return null
+  })()
+
+  // Title overlaid centered on the media's top edge (linked when we have a target).
+  const titleOverlay = (
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-3">
+      {titleUrl ? (
+        <a
+          href={titleUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="pointer-events-auto max-w-[70%] truncate px-2 text-center text-[17px] font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]"
+        >
+          {drop.title}
+        </a>
+      ) : (
+        <span className="max-w-[70%] truncate px-2 text-center text-[17px] font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+          {drop.title}
+        </span>
+      )}
+    </div>
+  )
 
   // Horizontal action bar overlaid on the media's bottom edge.
   const bottomBar = (
@@ -226,7 +260,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             <MediaCarousel
               flush
-              overlay={bottomBar}
+              overlay={
+                <>
+                  {titleOverlay}
+                  {bottomBar}
+                </>
+              }
               topBadge={scoreBadge}
               items={items}
               renderItem={(it) =>
@@ -243,10 +282,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {/* caption */}
         <div className="px-4 pt-3">
           <p className="text-[15px] leading-snug">
-            <span className="font-bold">{drop.title}</span>
+            {items.length === 0 && <span className="font-bold">{drop.title} </span>}
             {drop.description ? (
               <>
-                {' '}<span className="font-bold text-lime">Hear me out — </span>
+                <span className="font-bold text-lime">Hear me out — </span>
                 <span className="text-fog/90">{drop.description}</span>
               </>
             ) : null}
