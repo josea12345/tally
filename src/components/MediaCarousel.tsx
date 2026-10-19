@@ -10,10 +10,13 @@ export default function MediaCarousel({
   items,
   renderItem,
   overlay,
+  flush = false,
 }: {
   items: CarouselItem[]
   renderItem: (item: CarouselItem, index: number) => React.ReactNode
   overlay?: React.ReactNode
+  /** Full-bleed mode: no rounding or border (edge-to-edge feed media). */
+  flush?: boolean
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
@@ -34,7 +37,7 @@ export default function MediaCarousel({
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-black">
+      <div className={`relative overflow-hidden bg-black ${flush ? '' : 'rounded-2xl border border-line'}`}>
         <div
           ref={trackRef}
           onScroll={onScroll}

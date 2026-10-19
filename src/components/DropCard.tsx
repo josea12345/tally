@@ -9,6 +9,7 @@ import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
 import { dropMedia } from '../lib/types'
 import TallyIcon from './TallyIcon'
+import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
 
 interface Props {
@@ -58,11 +59,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   return (
     <Reveal delay={revealDelay}>
-      <article
-        onClick={open}
-        className="cursor-pointer border-b border-line px-4 pb-3 pt-4 transition hover:bg-ink-2/60"
-      >
-        <div className="flex gap-3">
+      <article onClick={open} className="cursor-pointer pb-8">
+        {/* header: who, when, their call, menu */}
+        <div className="flex items-center gap-3 px-4">
           <div onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => author && navigate(`/profile/${author.id}`)}
@@ -86,144 +85,114 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 </button>
               )}
               <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
-              <span className="ml-auto">
-                <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
-              </span>
             </div>
-
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h3 className="font-display text-[17px] font-bold leading-snug tracking-tight">{drop.title}</h3>
-            </div>
-            <p className="mt-0.5 text-[15px] leading-snug text-fog/90">
-              <span className="font-bold text-lime">Hear me out — </span>
-              {drop.description}
-            </p>
-            {drop.category === 'recipes' && (drop.ingredients.length > 0 || drop.instructions.length > 0) && (
-              <p className="mt-1 text-xs font-bold text-mute">
-                Recipe · {drop.ingredients.length} ingredients · {drop.instructions.length} steps
-              </p>
-            )}
           </div>
           {drop.score != null ? (
             <div
-              className="flex shrink-0 flex-col items-center justify-center self-center rounded-2xl border border-lime/40 bg-lime/10 px-3.5 py-2"
+              className="flex shrink-0 items-baseline gap-1 rounded-full border border-lime/40 bg-lime/10 px-3 py-1.5"
               title="Author's call"
             >
-              <span className="text-[26px] font-black leading-none text-lime">{drop.score}</span>
-              <span className="mt-0.5 text-[10px] font-bold text-mute">/10</span>
+              <span className="text-xl font-black leading-none text-lime">{drop.score}</span>
+              <span className="text-[11px] font-bold text-mute">/10</span>
               {drop.imdb_rating != null && (
-                <span className="mt-1 border-t border-line pt-1 text-[10px] font-bold text-mute">
+                <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
                   IMDb {drop.imdb_rating}
                 </span>
               )}
             </div>
           ) : drop.imdb_rating != null ? (
             <div
-              className="flex shrink-0 flex-col items-center justify-center self-center rounded-2xl border border-line bg-ink-2 px-3.5 py-2"
+              className="flex shrink-0 items-baseline gap-1 rounded-full border border-line bg-ink-2 px-3 py-1.5"
               title="IMDb rating"
             >
-              <span className="text-[26px] font-black leading-none">{drop.imdb_rating}</span>
-              <span className="mt-0.5 text-[10px] font-bold text-mute">IMDb</span>
+              <span className="text-xl font-black leading-none">{drop.imdb_rating}</span>
+              <span className="text-[11px] font-bold text-mute">IMDb</span>
             </div>
           ) : null}
+          <span className="shrink-0">
+            <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
+          </span>
         </div>
 
-        {items.length > 0 ? (
+        {/* full-bleed media */}
+        {items.length > 0 && (
           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             <MediaCarousel
+              flush
               items={items}
               renderItem={(it) =>
                 it.type === 'video' ? (
                   <FeedVideo src={it.url} poster={it.posterUrl} />
                 ) : (
-                  <img src={it.url} alt={drop.title} loading="lazy" className="max-h-[260px] w-full object-cover" />
+                  <img src={it.url} alt={drop.title} loading="lazy" className="max-h-[420px] w-full object-cover" />
                 )
-              }
-              overlay={
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10">
-              <button
-                onClick={toggleSave}
-                aria-label={saved ? 'Untally' : 'Tally'}
-                className="press flex items-center gap-1.5"
-              >
-                <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
-                  <TallyIcon saved={saved} className="h-6 w-6" />
-                </span>
-                <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
-              </button>
-              <button
-                onClick={(e) => castVote(e, 'W')}
-                aria-label="Vote W"
-                className="press flex items-center gap-1.5"
-              >
-                <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
-                <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
-              </button>
-              <button
-                onClick={(e) => castVote(e, 'L')}
-                aria-label="Vote L"
-                className="press flex items-center gap-1.5"
-              >
-                <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
-                <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
-              </button>
-              <button
-                onClick={toggleComments}
-                aria-label="Comments"
-                className="press flex items-center gap-1.5"
-              >
-                <span className="text-xl leading-none drop-shadow-lg">💬</span>
-                <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
-              </button>
-            </div>
               }
             />
           </div>
-        ) : (
-          /* text-only drop: compact action row below */
-          <div className="mt-3 flex items-center gap-5 text-sm">
-            <button
-              onClick={toggleSave}
-              aria-label={saved ? 'Untally' : 'Tally'}
-              className={`press flex items-center gap-1.5 font-bold transition ${saved ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            >
-              <span className={heartPop ? 'heart-pop inline-block' : 'inline-block'}>
-                <TallyIcon saved={saved} className="h-4 w-4" />
-              </span>
-              {formatCount(stats.saves)}
-            </button>
-            <button
-              onClick={(e) => castVote(e, 'W')}
-              aria-label="Vote W"
-              className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'W' ? 'text-lime' : 'text-mute hover:text-lime'}`}
-            >
-              <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>W</span>
-              {formatCount(stats.wins)}
-            </button>
-            <button
-              onClick={(e) => castVote(e, 'L')}
-              aria-label="Vote L"
-              className={`press flex items-center gap-1.5 font-bold transition ${myVote === 'L' ? 'text-miss' : 'text-mute hover:text-miss'}`}
-            >
-              <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[15px] font-black`}>L</span>
-              {formatCount(stats.losses)}
-            </button>
-            <button
-              onClick={toggleComments}
-              aria-label="Comments"
-              className="press flex items-center gap-1.5 font-bold text-mute transition hover:text-lime"
-            >
-              <span className="text-base">💬</span> {formatCount(commentCount)}
-            </button>
-          </div>
         )}
 
-        <div className="pt-1">
+        {/* action row */}
+        <div className="flex items-center gap-5 px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => castVote(e, 'W')}
+            aria-label="Vote W"
+            className="press flex items-center gap-1.5"
+          >
+            <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-lime' : 'text-fog'}`}>W</span>
+            <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
+          </button>
+          <button
+            onClick={(e) => castVote(e, 'L')}
+            aria-label="Vote L"
+            className="press flex items-center gap-1.5"
+          >
+            <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'L' ? 'text-miss' : 'text-fog'}`}>L</span>
+            <span className="text-sm font-bold text-mute">{formatCount(stats.losses)}</span>
+          </button>
+          <button
+            onClick={toggleComments}
+            aria-label="Comments"
+            className="press flex items-center gap-1.5"
+          >
+            <ChatIcon className="h-[22px] w-[22px] text-fog" />
+            <span className="text-sm font-bold text-mute">{formatCount(commentCount)}</span>
+          </button>
+          <button
+            onClick={toggleSave}
+            aria-label={saved ? 'Untally' : 'Tally'}
+            className="press ml-auto flex items-center gap-1.5"
+          >
+            <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-lime' : 'text-fog'}`}>
+              <TallyIcon saved={saved} className="h-6 w-6" />
+            </span>
+            <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
+          </button>
+        </div>
+
+        {/* caption */}
+        <div className="px-4 pt-2">
+          <p className="text-[15px] leading-snug">
+            <span className="font-bold">{drop.title}</span>
+            {drop.description ? (
+              <>
+                {' '}<span className="font-bold text-lime">Hear me out — </span>
+                <span className="text-fog/90">{drop.description}</span>
+              </>
+            ) : null}
+          </p>
+          {drop.category === 'recipes' && (drop.ingredients.length > 0 || drop.instructions.length > 0) && (
+            <p className="mt-1 text-xs font-bold text-mute">
+              Recipe · {drop.ingredients.length} ingredients · {drop.instructions.length} steps
+            </p>
+          )}
+        </div>
+
+        <div className="px-4 pt-2">
           <LinkChips drop={drop} />
         </div>
 
         {showComments && (
-          <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+          <div className="px-4 pt-2" onClick={(e) => e.stopPropagation()}>
             <Comments dropId={drop.id} authorId={drop.author_id} onCountChange={setCommentCount} />
           </div>
         )}
