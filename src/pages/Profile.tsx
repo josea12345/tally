@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, DropStats, Profile, Verdict } from '../lib/types'
+import type { Drop, Profile, Verdict } from '../lib/types'
 import { winRateFor, WIN_RATE_MINIMUM } from '../lib/stats'
 import { Avatar, navigate } from '../App'
-import DropCard from '../components/DropCard'
+import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import BadgeList from '../components/BadgeList'
-import { useFeedVotes } from '../lib/feedVotes'
 import TallyMarks from '../components/TallyMarks'
 import CountUp from '../components/CountUp'
 import Saved from './Saved'
@@ -22,22 +21,10 @@ interface ProfileStats {
 
 function DropsList({
   drops,
-  dropStats,
-  mySaves,
-  myVotes,
-  toggleSave,
-  vote,
-  setDropStats,
   profile,
   isOwn,
 }: {
   drops: Drop[]
-  dropStats: Map<string, DropStats>
-  mySaves: Set<string>
-  myVotes: Map<string, 'W' | 'L'>
-  toggleSave: (id: string) => void
-  vote: (dropId: string, v: 'W' | 'L', setStats: React.Dispatch<React.SetStateAction<Map<string, DropStats>>>, authorId?: string) => void
-  setDropStats: React.Dispatch<React.SetStateAction<Map<string, DropStats>>>
   profile: Profile
   isOwn: boolean
 }) {
@@ -54,35 +41,17 @@ function DropsList({
       />
     )
   }
-  return (
-    <>
-      {drops.map((d, i) => (
-        <DropCard
-          key={d.id}
-          drop={{ ...d, author: profile }}
-          stats={dropStats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
-          saved={mySaves.has(d.id)}
-          onToggleSave={() => toggleSave(d.id)}
-          myVote={myVotes.get(d.id) ?? null}
-          onVote={(v) => vote(d.id, v, setDropStats, d.author_id)}
-          revealDelay={(i % 6) * 70}
-        />
-      ))}
-    </>
-  )
+  return <DropGrid drops={drops} />
 }
 
 export default function Profile({ id }: { id?: string }) {
   const { user, refreshProfile } = useAuth()
-  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const profileId = id ?? user?.id
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [followers, setFollowers] = useState(0)
   const [following, setFollowing] = useState(0)
   const [drops, setDrops] = useState<Drop[]>([])
-  const [dropStats, setDropStats] = useState<Map<string, DropStats>>(new Map())
-  const [mySaves, setMySaves] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ display_name: '', bio: '', city: '', avatar_url: '' })
@@ -164,27 +133,15 @@ export default function Profile({ id }: { id?: string }) {
       const ids = list.map((d) => d.id)
       let savedByOthers = 0
       let verdictsReceived: Verdict[] = []
-      const m = new Map<string, DropStats>()
       if (ids.length > 0) {
-        const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
+        const [{ data: saves }, { data: vts }] = await Promise.all([
           supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
           supabase.from('verdicts').select('*').in('drop_id', ids).limit(5000),
-          supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
         ])
         savedByOthers = (saves ?? []).length
         verdictsReceived = (vts ?? []) as Verdict[]
-        for (const did of ids) m.set(did, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
-        for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
-        for (const v of verdictsReceived) {
-          const e = m.get(v.drop_id)!
-          if (v.verdict === 'W') e.wins++
-          else if (v.verdict === 'L') e.losses++
-        }
-        for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
       }
       if (!live) return
-      setDropStats(m)
-      setVotesFromRows(verdictsReceived)
       setStats({
         drops: list.length,
         savedByOthers,
@@ -192,10 +149,6 @@ export default function Profile({ id }: { id?: string }) {
         rate: winRateFor(verdictsReceived),
       })
 
-      if (user) {
-        const { data: mine } = await supabase.from('saves').select('drop_id').eq('user_id', user.id).limit(2000)
-        if (live) setMySaves(new Set(((mine ?? []) as Array<{ drop_id: string }>).map((s) => s.drop_id)))
-      }
       setLoading(false)
     }
     load()
@@ -203,21 +156,6 @@ export default function Profile({ id }: { id?: string }) {
       live = false
     }
   }, [profileId, user])
-
-  const toggleSave = async (dropId: string) => {
-    if (!user) {
-      navigate('/auth')
-      return
-    }
-    const saved = mySaves.has(dropId)
-    if (saved) {
-      await supabase.from('saves').delete().eq('user_id', user.id).eq('drop_id', dropId)
-      setMySaves((p) => { const n = new Set(p); n.delete(dropId); return n })
-    } else {
-      await supabase.from('saves').insert({ user_id: user.id, drop_id: dropId })
-      setMySaves((p) => new Set(p).add(dropId))
-    }
-  }
 
   const onAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -456,17 +394,7 @@ export default function Profile({ id }: { id?: string }) {
           {tab === 'tallies' && isOwn ? (
             <Saved bare />
           ) : (
-            <DropsList
-              drops={drops}
-              dropStats={dropStats}
-              mySaves={mySaves}
-              myVotes={myVotes}
-              toggleSave={toggleSave}
-              vote={vote}
-              setDropStats={setDropStats}
-              profile={profile}
-              isOwn={isOwn}
-            />
+            <DropsList drops={drops} profile={profile} isOwn={isOwn} />
           )}
         </>
       )}

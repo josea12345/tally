@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, DropStats } from '../lib/types'
+import type { Drop } from '../lib/types'
 import { navigate } from '../App'
-import DropCard from '../components/DropCard'
+import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
-
-import { useFeedVotes } from '../lib/feedVotes'
 
 export default function Saved({ bare = false }: { bare?: boolean }) {
   const { user } = useAuth()
-  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
   const [drops, setDrops] = useState<Drop[]>([])
-  const [stats, setStats] = useState<Map<string, DropStats>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,41 +24,13 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       if (!live) return
       const list = ((data ?? []) as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
       setDrops(list)
-      const m = new Map<string, DropStats>()
-      const voteRows: Array<{ drop_id: string; verdict: string | null; user_id: string }> = []
-      for (const d of list) {
-        const [{ count: s }, { data: vts }, { count: c }] = await Promise.all([
-          supabase.from('saves').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
-          supabase.from('verdicts').select('verdict,user_id').eq('drop_id', d.id).limit(5000),
-          supabase.from('comments').select('id', { count: 'exact', head: true }).eq('drop_id', d.id),
-        ])
-        const vs = (vts ?? []) as Array<{ verdict: string | null; user_id: string }>
-        m.set(d.id, {
-          saves: s ?? 0,
-          wins: vs.filter((v) => v.verdict === 'W').length,
-          losses: vs.filter((v) => v.verdict === 'L').length,
-          tried: 0,
-          comments: c ?? 0,
-        })
-        for (const v of vs) voteRows.push({ drop_id: d.id, verdict: v.verdict, user_id: v.user_id })
-      }
-      if (live) {
-        setStats(m)
-        setVotesFromRows(voteRows)
-        setLoading(false)
-      }
+      setLoading(false)
     }
     load()
     return () => {
       live = false
     }
   }, [user])
-
-  const unsave = async (dropId: string) => {
-    if (!user) return
-    await supabase.from('saves').delete().eq('user_id', user.id).eq('drop_id', dropId)
-    setDrops((ds) => ds.filter((d) => d.id !== dropId))
-  }
 
   if (loading) {
     return (
@@ -92,19 +60,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           }
         />
       ) : (
-        drops.map((d, i) => (
-          <DropCard
-            key={d.id}
-            drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
-            saved
-            onToggleSave={() => unsave(d.id)}
-            myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setStats, d.author_id)}
-            revealDelay={(i % 6) * 70}
-            onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
-          />
-        ))
+        <DropGrid drops={drops} />
       )}
     </div>
   )
