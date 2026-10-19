@@ -30,7 +30,7 @@ export default function CategoryTabs({
   const active = CATEGORY_GROUPS.find((g) => g.id === group)
   return (
     <div>
-      <div className="rail-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div className="grid grid-cols-4 gap-1.5 pb-1">
         <Tab active={group === 'all'} onClick={() => onGroup('all')} label="All" />
         {CATEGORY_GROUPS.map((g) => (
           <Tab key={g.id} active={group === g.id} onClick={() => onGroup(g.id)} label={g.label} />
@@ -52,7 +52,7 @@ function Tab({ active, onClick, label }: { active: boolean; onClick: () => void;
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
+      className={`min-w-0 truncate rounded-full px-2 py-1.5 text-[11px] font-bold tracking-tight transition ${
         active ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
