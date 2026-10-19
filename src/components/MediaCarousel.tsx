@@ -42,7 +42,33 @@ export default function MediaCarousel({
 
   return (
     <div>
-      <div className={`relative overflow-hidden bg-black ${flush ? '' : 'rounded-2xl border border-line'}`}>
+      <div className={`relative overflow-hidden ${flush ? 'bg-ink' : 'rounded-2xl border border-line bg-black'}`}>
+        {/* Blurred letterbox fill behind the narrowed 9:16 frame (flush feed mode only):
+            the same media, scaled up and blurred, replaces the black side bars. */}
+        {flush && items.length > 0 && (
+          <div
+            key={items[index]?.url}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden"
+          >
+            {items[index]?.type === 'video' ? (
+              <video
+                src={items[index].url}
+                poster={items[index].posterUrl ?? undefined}
+                muted
+                playsInline
+                preload="metadata"
+                className="h-full w-full scale-110 object-cover blur-2xl brightness-[.55] saturate-150"
+              />
+            ) : (
+              <img
+                src={items[index]?.url}
+                alt=""
+                className="h-full w-full scale-110 object-cover blur-2xl brightness-[.55] saturate-150"
+              />
+            )}
+          </div>
+        )}
         <div
           ref={trackRef}
           onScroll={onScroll}
