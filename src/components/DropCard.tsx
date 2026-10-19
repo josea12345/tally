@@ -57,12 +57,31 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   }
 
   // One tap = "I've tried it, calling it." Voting implies tried.
-  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
-    e.stopPropagation()
+  const doVote = (v: 'W' | 'L') => {
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
     if (myVote !== v) setBurst({ v, id: ++fxId.current })
     onVote(v)
+  }
+  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
+    e.stopPropagation()
+    doVote(v)
+  }
+
+  // Double-tap on media = W (Instagram-style). Single/double disambiguated
+  // with a short window so video fullscreen doesn't fire on a double-tap.
+  const tapTimer = useRef<number | null>(null)
+  const handleMediaTap = (isVideo: boolean, expandVideo?: () => void) => {
+    if (tapTimer.current) {
+      clearTimeout(tapTimer.current)
+      tapTimer.current = null
+      if (myVote !== 'W') doVote('W')
+    } else {
+      tapTimer.current = window.setTimeout(() => {
+        tapTimer.current = null
+        if (isVideo) expandVideo?.()
+      }, 280)
+    }
   }
 
   // Score badge: glassy pill overlaid on the media's top-left (text-only drops keep it in the header).
@@ -256,9 +275,21 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               items={items}
               renderItem={(it) =>
                 it.type === 'video' ? (
-                  <FeedVideo src={it.url} poster={it.posterUrl} />
+                  <FeedVideo
+                    src={it.url}
+                    poster={it.posterUrl}
+                    onDoubleTap={() => {
+                      if (myVote !== 'W') doVote('W')
+                    }}
+                  />
                 ) : (
-                  <img src={it.url} alt={drop.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img
+                    src={it.url}
+                    alt={drop.title}
+                    loading="lazy"
+                    onClick={() => handleMediaTap(false)}
+                    className="h-full w-full object-cover"
+                  />
                 )
               }
             />

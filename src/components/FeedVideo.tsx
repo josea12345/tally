@@ -9,14 +9,18 @@ export default function FeedVideo({
   src,
   poster,
   className = '',
+  onDoubleTap,
 }: {
   src: string
   poster?: string | null
   className?: string
+  /** Double-tap handler (e.g. vote W). Single tap still expands, delayed to disambiguate. */
+  onDoubleTap?: () => void
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const fsRef = useRef(false)
+  const tapTimer = useRef<number | null>(null)
   const [muted, setMuted] = useState(true)
   const [failed, setFailed] = useState(false)
 
@@ -87,6 +91,24 @@ export default function FeedVideo({
     }
   }
 
+  /** Tap: single → fullscreen, double → onDoubleTap (disambiguated with a short window). */
+  const handleTap = () => {
+    if (!onDoubleTap) {
+      expand()
+      return
+    }
+    if (tapTimer.current) {
+      clearTimeout(tapTimer.current)
+      tapTimer.current = null
+      onDoubleTap()
+    } else {
+      tapTimer.current = window.setTimeout(() => {
+        tapTimer.current = null
+        expand()
+      }, 280)
+    }
+  }
+
   if (failed) return null
 
   return (
@@ -104,7 +126,7 @@ export default function FeedVideo({
         autoPlay
         preload="metadata"
         onError={() => setFailed(true)}
-        onClick={expand}
+        onClick={handleTap}
         className="h-full w-full bg-black object-cover"
       />
       <button
