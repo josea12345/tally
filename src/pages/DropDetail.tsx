@@ -51,14 +51,15 @@ export default function DropDetail({ id }: { id: string }) {
       const d = data as Drop
       setDrop(d)
 
-      // How many other put-ons share this topic (RLS hides blocked/private).
+      // How many put-ons share this topic, including this one (RLS hides
+      // blocked/private). The button always shows — it teaches the feature
+      // even before a second person posts about the same thing.
       const tkey = d.topic_key ?? topicKeyFor(d)
       supabase
         .from('drops')
         .select('id', { count: 'exact', head: true })
         .eq('topic_key', tkey)
-        .neq('id', d.id)
-        .then(({ count }) => setRelatedCount(count ?? 0))
+        .then(({ count }) => setRelatedCount(count ?? 1))
 
       const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
         supabase.from('saves').select('id').eq('drop_id', id).limit(5000),
@@ -261,7 +262,7 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight">{drop.title}</h1>
-        {relatedCount != null && relatedCount > 0 && (
+        {relatedCount != null && (
           <button
             onClick={() =>
               navigate(`/topic/${encodeURIComponent(drop.topic_key ?? topicKeyFor(drop))}`)
@@ -271,7 +272,7 @@ export default function DropDetail({ id }: { id: string }) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-2M7 8h2m-2 0a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-2" />
             </svg>
-            {relatedCount} other put-on{relatedCount === 1 ? '' : 's'} about this
+            {relatedCount} put-on{relatedCount === 1 ? '' : 's'} about this
           </button>
         )}
         {(drop.score != null || drop.imdb_rating != null) && (
