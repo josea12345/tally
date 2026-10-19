@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
+import { useAuth } from '../context/AuthContext'
 import { timeAgo, formatCount } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import Comments from './Comments'
@@ -26,8 +27,10 @@ interface Props {
 }
 
 export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked }: Props) {
+  const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
+  const isAuthor = !!user && user.id === drop.author_id
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
@@ -58,7 +61,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   }
 
   // One tap = "I've tried it, calling it." Voting implies tried.
+  // Authors can't vote on their own drops (DB rejects it) — no-op instead of a flash-then-revert.
   const doVote = (v: 'W' | 'L') => {
+    if (isAuthor) return
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
     if (myVote !== v) setBurst({ v, id: ++fxId.current })

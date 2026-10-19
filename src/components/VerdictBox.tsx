@@ -87,6 +87,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
   }
 
   const tried = !!myVerdict?.tried
+  const isAuthor = !!user && user.id === drop.author_id
 
   return (
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
@@ -119,37 +120,45 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
         </div>
       )}
 
-      {!tried ? (
-        <button
-          onClick={markTried}
-          disabled={busy}
-          className="press w-full rounded-full border border-lime px-4 py-3 text-sm font-black text-lime transition hover:bg-lime hover:text-ink disabled:opacity-50"
-        >
-          {triedLabel(drop.category)}
-        </button>
+      {isAuthor ? (
+        <p className="text-center text-xs text-mute">
+          This is your drop — only other people's verdicts count toward your Taste Score.
+        </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => vote('W')}
-            disabled={busy}
-            className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'W' ? 'verdict-slam bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
-            }`}
-          >
-            W{myVerdict?.verdict === 'W' ? ' ✓' : ''}
-          </button>
-          <button
-            onClick={() => vote('L')}
-            disabled={busy}
-            className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-              myVerdict?.verdict === 'L' ? 'verdict-slam bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
-            }`}
-          >
-            L{myVerdict?.verdict === 'L' ? ' ✓' : ''}
-          </button>
-        </div>
+        <>
+          {!tried ? (
+            <button
+              onClick={markTried}
+              disabled={busy}
+              className="press w-full rounded-full border border-lime px-4 py-3 text-sm font-black text-lime transition hover:bg-lime hover:text-ink disabled:opacity-50"
+            >
+              {triedLabel(drop.category)}
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => vote('W')}
+                disabled={busy}
+                className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
+                  myVerdict?.verdict === 'W' ? 'verdict-slam bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
+                }`}
+              >
+                W{myVerdict?.verdict === 'W' ? ' ✓' : ''}
+              </button>
+              <button
+                onClick={() => vote('L')}
+                disabled={busy}
+                className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
+                  myVerdict?.verdict === 'L' ? 'verdict-slam bg-miss text-ink' : 'border border-line bg-ink-3 text-miss hover:border-miss'
+                }`}
+              >
+                L{myVerdict?.verdict === 'L' ? ' ✓' : ''}
+              </button>
+            </div>
+          )}
+          {tried && <p className="mt-2 text-center text-[11px] text-mute">You can change your verdict anytime.</p>}
+        </>
       )}
-      {tried && <p className="mt-2 text-center text-[11px] text-mute">You can change your verdict anytime.</p>}
     </div>
   )
 }
