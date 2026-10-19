@@ -67,8 +67,34 @@ function useRoute(): Route {
   return route
 }
 
-function MobileNav({ route }: { route: Route }) {
-  const { profile } = useAuth()
+/** The hero create button: raised, lime, glowing. Squashes on press, springs
+ *  back with an overshoot pop + ripple ring on release. */
+function CreateButton() {
+  const [pop, setPop] = useState(false)
+  return (
+    <button
+      onClick={() => {
+        setPop(true)
+        navigate('/camera')
+      }}
+      onAnimationEnd={() => setPop(false)}
+      aria-label="Open camera"
+      className={`create-btn -mt-3 flex h-12 w-12 items-center justify-center rounded-full bg-sig text-ink shadow-[0_4px_20px_rgba(69,200,255,0.4)] ${pop ? 'pop' : ''}`}
+    >
+      <span className="create-ripple" aria-hidden="true" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
+        />
+        <circle cx="12" cy="13.5" r="3.4" />
+      </svg>
+    </button>
+  )
+}
+
+function MobileNav({ route }: { route: Route }) {  const { profile } = useAuth()
   const active = (n: string) =>
     (route.name === 'home' && n === 'home') || route.name === (n as Route['name'])
   const tab = (n: { name: 'home' | 'saved' | 'search' | 'profile'; label: string; icon: ReactNode }) => (
@@ -100,20 +126,7 @@ function MobileNav({ route }: { route: Route }) {
         {tab({ name: 'home', label: 'Discover', icon: <HomeIcon className="h-6 w-6" /> })}
         {tab({ name: 'saved', label: 'Tallies', icon: <TallyIcon saved={false} className="h-5 w-5" /> })}
         <div className="flex items-start justify-center">
-          <button
-            onClick={() => navigate('/camera')}
-            aria-label="Open camera"
-            className="press -mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-sig text-ink shadow-[0_4px_20px_rgba(69,200,255,0.4)]"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
-              />
-              <circle cx="12" cy="13.5" r="3.4" />
-            </svg>
-          </button>
+          <CreateButton />
         </div>
         {tab({ name: 'search', label: 'Search', icon: <SearchIcon className="h-6 w-6" /> })}
         {tab({ name: 'profile', label: 'Profile', icon: <ProfileIcon className="h-6 w-6" /> })}
