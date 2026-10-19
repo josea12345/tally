@@ -163,6 +163,14 @@ export default function Profile({ id }: { id?: string }) {
     e.target.value = ''
     if (!f || !user) return
     setAvatarError(null)
+    if (!f.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file.')
+      return
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setAvatarError('That image is over 5 MB — pick something smaller.')
+      return
+    }
     setSaving(true)
     try {
       const path = `${user.id}/avatar.jpg`
