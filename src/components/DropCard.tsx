@@ -7,6 +7,7 @@ import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
+import MediaViewer from './MediaViewer'
 import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
 import { safeExternalUrl } from '../lib/urls'
@@ -41,6 +42,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const fxId = useRef(0)
   const [burst, setBurst] = useState<{ v: 'W' | 'L'; id: number } | null>(null)
   const [fly, setFly] = useState<{ from: DOMRect; id: number } | null>(null)
+  // Fullscreen viewer (photos + video share the same TikTok-style viewer).
+  const [viewerItem, setViewerItem] = useState<(typeof items)[number] | null>(null)
   useEffect(() => {
     setCommentCount(stats.comments)
   }, [stats.comments])
@@ -82,9 +85,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   }
 
   // Double-tap on media = W (Instagram-style). Single/double disambiguated
-  // with a short window so video fullscreen doesn't fire on a double-tap.
+  // with a short window so the fullscreen viewer doesn't open on a double-tap.
   const tapTimer = useRef<number | null>(null)
-  const handleMediaTap = (isVideo: boolean, expandVideo?: () => void) => {
+  const handleMediaTap = (isVideo: boolean, expandVideo?: () => void, expandPhoto?: () => void) => {
     if (tapTimer.current) {
       clearTimeout(tapTimer.current)
       tapTimer.current = null
@@ -93,6 +96,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       tapTimer.current = window.setTimeout(() => {
         tapTimer.current = null
         if (isVideo) expandVideo?.()
+        else expandPhoto?.()
       }, 280)
     }
   }
@@ -160,18 +164,19 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   })()
 
   // Title shown under the username in the header (linked when we have a target).
+  // Centered per the founder's call; the username/handle row above stays left-aligned.
   const titleLine = titleUrl ? (
     <a
       href={titleUrl}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="block truncate text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
+      className="block truncate text-center text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
     >
       {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
     </a>
   ) : (
-    <div className="truncate text-[15px] font-bold tracking-tight">{drop.title}</div>
+    <div className="truncate text-center text-[15px] font-bold tracking-tight">{drop.title}</div>
   )
 
   // Horizontal action bar overlaid on the media's bottom edge.
@@ -301,13 +306,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                     onDoubleTap={() => {
                       if (myVote !== 'W') doVote('W')
                     }}
+                    onExpand={() => setViewerItem(it)}
                   />
                 ) : (
                   <img
                     src={it.url}
                     alt={drop.title}
                     loading="lazy"
-                    onClick={() => handleMediaTap(false)}
+                    onClick={() => handleMediaTap(false, undefined, () => setViewerItem(it))}
                     className="h-full w-full object-cover"
                   />
                 )
@@ -342,6 +348,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {/* full-screen FX, portaled to body */}
         {burst && <VerdictBurst key={burst.id} v={burst.v} onDone={() => setBurst(null)} />}
         {fly && <FlyToTally key={fly.id} from={fly.from} onDone={() => setFly(null)} />}
+        {/* TikTok-style fullscreen viewer for photos + video */}
+        {viewerItem && (
+          <MediaViewer
+            item={viewerItem}
+            onClose={() => setViewerItem(null)}
+            onDoubleTap={() => {
+              if (myVote !== 'W') doVote('W')
+            }}
+          />
+        )}
       </article>
     </Reveal>
   )
