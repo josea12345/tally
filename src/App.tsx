@@ -103,9 +103,9 @@ function MobileNav({ route }: { route: Route }) {
           <button
             onClick={() => navigate('/camera')}
             aria-label="Open camera"
-            className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
+            className="-mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-7 w-7">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
