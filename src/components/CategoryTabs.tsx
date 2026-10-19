@@ -31,7 +31,7 @@ export default function CategoryTabs({
   return (
     <div>
       <div className="rail-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        <Tab active={group === 'all'} onClick={() => onGroup('all')} label="Everything" />
+        <Tab active={group === 'all'} onClick={() => onGroup('all')} label="All" />
         {CATEGORY_GROUPS.map((g) => (
           <Tab key={g.id} active={group === g.id} onClick={() => onGroup(g.id)} label={g.label} />
         ))}
