@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
 
@@ -30,6 +31,53 @@ export default function MediaViewer({
   const [flash, setFlash] = useState<'play' | 'pause' | 'w' | null>(null)
   const [failed, setFailed] = useState(false)
 
+  // Swipe-to-dismiss: drag the media vertically, release past the threshold
+  // to fling it away, otherwise it springs back. A swipe must not trigger
+  // the tap handlers, so the click right after a swipe is swallowed.
+  const touchRef = useRef<{ y0: number; dy: number; id: number } | null>(null)
+  const swipeAt = useRef(0)
+  const closeTimer = useRef<number | null>(null)
+  const [dragY, setDragY] = useState(0)
+  const [dragOn, setDragOn] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+
+  const justSwiped = () => Date.now() - swipeAt.current < 500
+
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0]
+    touchRef.current = { y0: t.clientY, dy: 0, id: t.identifier }
+  }
+  const onTouchMove = (e: TouchEvent) => {
+    const tr = touchRef.current
+    if (!tr || leaving) return
+    let t: Touch | undefined
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === tr.id) t = e.touches[i]
+    }
+    const dy = (t ?? e.touches[0]).clientY - tr.y0
+    tr.dy = dy
+    if (Math.abs(dy) > 8) {
+      setDragOn(true)
+      setDragY(dy)
+    }
+  }
+  const onTouchEnd = () => {
+    const tr = touchRef.current
+    touchRef.current = null
+    if (!tr || leaving) return
+    if (Math.abs(tr.dy) > 110) {
+      // Fling away, then close once it's off-screen.
+      swipeAt.current = Date.now()
+      setDragOn(false)
+      setLeaving(true)
+      setDragY(tr.dy > 0 ? window.innerHeight : -window.innerHeight)
+      closeTimer.current = window.setTimeout(onClose, 200)
+    } else {
+      setDragOn(false)
+      setDragY(0)
+    }
+  }
+
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -41,6 +89,7 @@ export default function MediaViewer({
     return () => {
       document.body.style.overflow = prev
       document.removeEventListener('keydown', onKey)
+      if (closeTimer.current) clearTimeout(closeTimer.current)
     }
   }, [onClose])
 
@@ -91,6 +140,7 @@ export default function MediaViewer({
   }
 
   const handleTap = () => {
+    if (justSwiped()) return
     if (tapTimer.current) {
       clearTimeout(tapTimer.current)
       tapTimer.current = null
@@ -110,14 +160,28 @@ export default function MediaViewer({
     return null
   }
 
+  // Media follows the finger while dragging, with a slight shrink + backdrop
+  // fade for the iOS-photos feel. Springs back on release under the threshold.
+  const dragMag = Math.abs(dragY)
+  const mediaStyle: CSSProperties = {
+    transform: `translateY(${dragY}px) scale(${1 - Math.min(dragMag / 1400, 0.07)})`,
+    transition: dragOn ? 'none' : 'transform 200ms ease-out',
+  }
+  const chromeOpacity = leaving ? 0 : 1 - Math.min(dragMag / 600, 0.7)
+
   return createPortal(
     <div
       className="viewer-in fixed inset-0 z-[100] flex items-center justify-center bg-black"
+      style={{ touchAction: 'none', opacity: chromeOpacity }}
       role="dialog"
       aria-modal="true"
       aria-label={isVideo ? 'Video viewer' : 'Photo viewer'}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       onClick={(e) => {
         e.stopPropagation()
+        if (justSwiped()) return
         onClose()
       }}
     >
@@ -139,6 +203,7 @@ export default function MediaViewer({
             setProgress(v.duration > 0 ? v.currentTime / v.duration : 0)
           }}
           onError={() => setFailed(true)}
+          style={mediaStyle}
           className="h-full w-full object-contain"
         />
       ) : (
@@ -149,6 +214,7 @@ export default function MediaViewer({
             e.stopPropagation()
             handleTap()
           }}
+          style={mediaStyle}
           className="max-h-full max-w-full object-contain"
           draggable={false}
         />
