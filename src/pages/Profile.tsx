@@ -59,6 +59,7 @@ export default function Profile({ id }: { id?: string }) {
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
+  const [showFormula, setShowFormula] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>([])
 
@@ -355,6 +356,25 @@ export default function Profile({ id }: { id?: string }) {
             <p className="mt-1 text-center text-[11px] text-mute/70">
               Starts at 50 — real verdicts move it. Saves don't count.
             </p>
+          )}
+          <button
+            onClick={() => setShowFormula((s) => !s)}
+            className="mt-2 text-xs font-bold text-mute transition hover:text-lime"
+          >
+            How it's calculated {showFormula ? '▴' : '▾'}
+          </button>
+          {showFormula && (
+            <div className="mt-2 w-full max-w-[300px] rounded-2xl border border-line bg-ink-2 p-4">
+              <div className="mb-2 text-center text-sm font-black tracking-tight">
+                Score = 100 × (W + 2) ÷ (W + L + 4)
+              </div>
+              <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
+                <li>· Everyone starts at 50 — the +2/+4 assumes a 2–2 record until real verdicts come in.</li>
+                <li>· Only W/L verdicts move it. Saves, views, and missing verdicts never count.</li>
+                <li>· The padding keeps one lucky vote from shooting you to 100 — volume earns the extremes.</li>
+                <li>· Your score appears after {WIN_RATE_MINIMUM} verdicts.</li>
+              </ul>
+            </div>
           )}
         </div>
 
