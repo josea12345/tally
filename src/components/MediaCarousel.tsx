@@ -27,13 +27,15 @@ export default function MediaCarousel({
   const onScroll = () => {
     const el = trackRef.current
     if (!el || el.clientWidth === 0) return
-    setIndex(Math.min(items.length - 1, Math.round(el.scrollLeft / el.clientWidth)))
+    const slideW = el.firstElementChild?.clientWidth || el.clientWidth
+    setIndex(Math.min(items.length - 1, Math.round(el.scrollLeft / slideW)))
   }
 
   const go = (i: number) => {
     const el = trackRef.current
     if (!el) return
-    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
+    const slideW = el.firstElementChild?.clientWidth || el.clientWidth
+    el.scrollTo({ left: i * slideW, behavior: 'smooth' })
   }
 
   if (items.length === 0) return null
@@ -48,7 +50,7 @@ export default function MediaCarousel({
           style={{ scrollbarWidth: 'none' }}
         >
           {items.map((it, i) => (
-            <div key={`${it.url}-${i}`} className={`w-full shrink-0 snap-center ${flush ? 'aspect-[9/16] max-h-[56svh]' : ''}`}>
+            <div key={`${it.url}-${i}`} className={`shrink-0 snap-center ${flush ? 'mx-auto h-[56svh] aspect-[9/16]' : 'w-full'}`}>
               {renderItem(it, i)}
             </div>
           ))}
