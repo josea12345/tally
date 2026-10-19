@@ -129,17 +129,29 @@ export default function MediaUpload({
     setBusy(true)
     try {
       const out: UploadedMedia[] = []
-      for (const file of batch) {
-        const isVideo = file.type.startsWith('video/')
-        const ext = (file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase().slice(0, 5)
-        const path = `${userId}/${crypto.randomUUID()}.${ext}`
-        const { error: upErr } = await supabase.storage.from('drop-media').upload(path, file, {
-          contentType: file.type,
-          upsert: false,
-        })
-        if (upErr) throw upErr
-        const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
-        out.push({ url: data.publicUrl, type: isVideo ? 'video' : 'photo' })
+      const uploadedPaths: string[] = []
+      try {
+        for (const file of batch) {
+          const isVideo = file.type.startsWith('video/')
+          const ext = (file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase().slice(0, 5)
+          const path = `${userId}/${crypto.randomUUID()}.${ext}`
+          const { error: upErr } = await supabase.storage.from('drop-media').upload(path, file, {
+            contentType: file.type,
+            upsert: false,
+          })
+          if (upErr) throw upErr
+          uploadedPaths.push(path)
+          const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
+          out.push({ url: data.publicUrl, type: isVideo ? 'video' : 'photo' })
+        }
+      } catch (e) {
+        // Partial batch failure: remove what THIS batch uploaded so files
+        // never referenced by any post aren't orphaned. Only paths tracked
+        // above are ever deleted — pre-existing items are untouched.
+        if (uploadedPaths.length > 0) {
+          await supabase.storage.from('drop-media').remove(uploadedPaths)
+        }
+        throw e
       }
       onAdd(out)
     } catch (e) {
