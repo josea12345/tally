@@ -25,9 +25,11 @@ interface Props {
   onVote: (v: 'W' | 'L') => void
   revealDelay?: number
   onAuthorBlocked?: (authorId: string) => void
+  /** How many visible put-ons share this drop's topic (null = not loaded yet). */
+  topicCount?: number | null
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked, topicCount = null }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -186,9 +188,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           e.stopPropagation()
           navigate(`/topic/${encodeURIComponent(drop.topic_key ?? topicKeyFor(drop))}`)
         }}
-        className="mx-auto mt-0.5 block text-[11px] font-bold text-mute transition hover:text-sig"
+        className="press mx-auto mt-1.5 flex items-center gap-1.5 rounded-full border border-sig/40 bg-sig/10 px-3 py-1 text-[11px] font-black text-sig"
       >
-        All posts about this →
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-3 w-3" aria-hidden>
+          <rect x="9" y="9" width="11" height="11" rx="2.5" />
+          <path d="M5 15V6a2 2 0 0 1 2-2h9" strokeLinecap="round" />
+        </svg>
+        {topicCount != null ? `${topicCount} put-on${topicCount === 1 ? '' : 's'}` : 'All posts about this'}
+        <span aria-hidden>→</span>
       </button>
     </>
   )

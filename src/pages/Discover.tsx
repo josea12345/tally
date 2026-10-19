@@ -57,6 +57,7 @@ export default function Discover() {
   }, [searchOpen])
   const [drops, setDrops] = useState<Drop[]>([])
   const [stats, setStats] = useState<Map<string, DropStats>>(new Map())
+  const [topicCounts, setTopicCounts] = useState<Map<string, number>>(new Map())
   const [mySaves, setMySaves] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState<Set<string>>(new Set())
   const [tastemakers, setTastemakers] = useState<Profile[]>([])
@@ -97,12 +98,23 @@ export default function Discover() {
 
         const ids = list.map((d) => d.id)
         if (ids.length > 0) {
-          const [{ data: saves }, { data: verdicts }, { data: cmts }] = await Promise.all([
+          const tkeys = [...new Set(list.map((d) => d.topic_key).filter(Boolean))] as string[]
+          const [{ data: saves }, { data: verdicts }, { data: cmts }, { data: trows }] = await Promise.all([
             supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
             supabase.from('verdicts').select('drop_id,verdict,user_id').in('drop_id', ids).limit(5000),
             supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
+            // one lightweight query for every visible topic's post count
+            // (RLS hides blocked/private drops, so counts stay honest)
+            tkeys.length > 0
+              ? supabase.from('drops').select('topic_key').in('topic_key', tkeys).limit(5000)
+              : Promise.resolve({ data: [] as Array<{ topic_key: string }> }),
           ])
           if (!live) return
+          const tc = new Map<string, number>()
+          for (const r of (trows ?? []) as Array<{ topic_key: string }>) {
+            tc.set(r.topic_key, (tc.get(r.topic_key) ?? 0) + 1)
+          }
+          setTopicCounts(tc)
           const m = new Map<string, DropStats>()
           for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
           for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
@@ -116,6 +128,7 @@ export default function Discover() {
           setVotesFromRows((verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>)
         } else {
           setStats(new Map())
+          setTopicCounts(new Map())
         }
 
         let followingIds = new Set<string>()
@@ -381,6 +394,7 @@ export default function Discover() {
             onVote={(v) => vote(d.id, v, setStats, d.author_id)}
             revealDelay={(i % 6) * 70}
             onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
+            topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}
           />
         ))
       )}
