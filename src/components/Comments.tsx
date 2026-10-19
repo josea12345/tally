@@ -20,6 +20,7 @@ export default function Comments({
   const [comments, setComments] = useState<Comment[]>([])
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let live = true
@@ -52,6 +53,7 @@ export default function Comments({
     const text = body.trim()
     if (!text || !user || busy) return
     setBusy(true)
+    setError(null)
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -68,7 +70,8 @@ export default function Comments({
       setBody('')
       if (authorId) void notify(authorId, user.id, 'comment', dropId)
     } catch {
-      /* keep the draft; a toast system doesn't exist yet */
+      // Draft is preserved above (setBody only runs on success).
+      setError('Could not post your comment — check your connection and try again.')
     } finally {
       setBusy(false)
     }
@@ -77,12 +80,15 @@ export default function Comments({
   const remove = async (id: string) => {
     if (!user || busy) return
     setBusy(true)
+    setError(null)
     try {
       const { error } = await supabase.from('comments').delete().eq('id', id).eq('user_id', user.id)
       if (error) throw error
       const next = comments.filter((c) => c.id !== id)
       setComments(next)
       onCountChange?.(next.length)
+    } catch {
+      setError('Could not delete that comment — try again.')
     } finally {
       setBusy(false)
     }
@@ -124,6 +130,8 @@ export default function Comments({
           ))}
         </div>
       )}
+
+      {error && <p className="mb-2 text-xs font-bold text-miss">{error}</p>}
 
       {user ? (
         <div className="flex gap-2">
