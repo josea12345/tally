@@ -4,11 +4,18 @@ import { useAuth } from '../context/AuthContext'
 import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
 import { useBadges } from '../lib/useBadges'
+import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
 
 interface FollowRequest {
   follower_id: string
   created_at: string
   follower: { username: string; display_name: string | null; avatar_url: string | null }
+}
+
+interface BlockedRow {
+  blocked_id: string
+  created_at: string
+  blocked: { username: string; display_name: string | null; avatar_url: string | null }
 }
 
 export default function Settings() {
@@ -19,6 +26,7 @@ export default function Settings() {
   const [leaving, setLeaving] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>(profile?.dismissed_badges ?? [])
   const badges = useBadges(user?.id)
+  const [blocked, setBlocked] = useState<BlockedRow[]>([])
 
   const restoreBadge = async (id: string) => {
     if (!user) return
@@ -26,6 +34,79 @@ export default function Settings() {
     setDismissed(next)
     await supabase.from('profiles').update({ dismissed_badges: next }).eq('id', user.id)
     refreshProfile()
+  }
+
+  const unblock = async (blockedId: string) => {
+    if (!user) return
+    await supabase.from('blocks').delete().eq('blocker_id', user.id).eq('blocked_id', blockedId)
+    setBlocked((b) => b.filter((x) => x.blocked_id !== blockedId))
+  }
+
+  const [copied, setCopied] = useState(false)
+  const [pushState, setPushState] = useState<PushState>('busy')
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+
+  useEffect(() => {
+    getPushState().then(setPushState)
+  }, [])
+
+  const togglePush = async () => {
+    if (!user || pushState === 'busy' || pushState === 'denied' || pushState === 'unsupported' || pushState === 'unconfigured') return
+    if (pushState === 'on') {
+      setPushState('busy')
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        const endpoint = sub?.endpoint
+        await unsubscribePush()
+        if (endpoint) {
+          await supabase.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint)
+        }
+      } finally {
+        setPushState('off')
+      }
+    } else {
+      setPushState('busy')
+      const json = await subscribePush()
+      if (json?.endpoint && json.keys?.p256dh && json.keys?.auth) {
+        await supabase.from('push_subscriptions').upsert(
+          {
+            user_id: user.id,
+            endpoint: json.endpoint,
+            p256dh: json.keys.p256dh,
+            auth: json.keys.auth,
+          },
+          { onConflict: 'user_id,endpoint' }
+        )
+        setPushState('on')
+      } else {
+        setPushState(await getPushState())
+      }
+    }
+  }
+  const inviteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tally-rho-ten.vercel.app'
+  const inviteText = `I'm on TALLY — good taste deserves a track record. Come get put on: ${inviteUrl}`
+
+  const shareInvite = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'TALLY', text: inviteText, url: inviteUrl })
+      } catch {
+        /* user dismissed the sheet */
+      }
+    } else {
+      copyInvite()
+    }
+  }
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard unavailable */
+    }
   }
 
   useEffect(() => {
@@ -43,6 +124,14 @@ export default function Settings() {
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (live) setRequests((data ?? []) as FollowRequest[])
+      })
+    supabase
+      .from('blocks')
+      .select('blocked_id, created_at, blocked:profiles!blocks_blocked_id_fkey(username, display_name, avatar_url)')
+      .eq('blocker_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (live) setBlocked((data ?? []) as BlockedRow[])
       })
     return () => {
       live = false
@@ -168,6 +257,73 @@ export default function Settings() {
         )}
       </section>
 
+      {/* invite */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Invite friends</h2>
+        <div className="rounded-2xl border border-lime/40 bg-lime/5 p-4">
+          <p className="text-sm font-bold">Taste is better with your people.</p>
+          <p className="mt-1 text-xs leading-relaxed text-mute">
+            Put your friends on — the more of your circle that's here, the faster the W/L verdicts roll in.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={shareInvite}
+              className="press flex-1 rounded-full bg-lime py-2.5 text-sm font-black text-ink"
+            >
+              Share invite
+            </button>
+            <button
+              onClick={copyInvite}
+              className="press flex-1 rounded-full border border-line py-2.5 text-sm font-black text-fog transition hover:border-lime hover:text-lime"
+            >
+              {copied ? 'Copied!' : 'Copy link'}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* push notifications */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Notifications</h2>
+        <div className="rounded-2xl border border-line bg-ink-2 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-bold">Push notifications</div>
+              <div className="mt-0.5 text-xs leading-relaxed text-mute">
+                W/L calls, follows, and comments — even when TALLY is closed.
+              </div>
+            </div>
+            <button
+              onClick={togglePush}
+              disabled={pushState === 'busy' || pushState === 'denied' || pushState === 'unsupported' || pushState === 'unconfigured'}
+              aria-label="Toggle push notifications"
+              className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-40 ${
+                pushState === 'on' ? 'bg-lime' : 'bg-ink-3'
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                  pushState === 'on' ? 'left-7' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+          {pushState === 'denied' && (
+            <p className="mt-2 text-xs text-miss">
+              Notifications are blocked — enable them in your browser settings to turn this on.
+            </p>
+          )}
+          {pushState === 'unsupported' && (
+            <p className="mt-2 text-xs text-mute">Push isn't supported in this browser.</p>
+          )}
+          {isIOS && pushState !== 'on' && (
+            <p className="mt-2 text-xs text-mute">
+              iPhone note: install TALLY to your Home Screen first (needs iOS 16.4+), then flip this on.
+            </p>
+          )}
+        </div>
+      </section>
+
       {/* badges */}
       <section className="px-4 pt-8">
         <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Badges</h2>
@@ -197,6 +353,34 @@ export default function Settings() {
                 </div>
               )
             })}
+          </div>
+        )}
+      </section>
+
+      {/* blocked accounts */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Blocked accounts</h2>
+        {blocked.length === 0 ? (
+          <p className="text-sm leading-relaxed text-mute">
+            Nobody blocked. Blocked accounts can't see your drops, and you won't see theirs.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {blocked.map((b) => (
+              <div key={b.blocked_id} className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-4 py-3">
+                <Avatar url={b.blocked.avatar_url} name={b.blocked.display_name ?? b.blocked.username} size={40} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold">{b.blocked.display_name || `@${b.blocked.username}`}</div>
+                  <div className="truncate text-xs text-mute">@{b.blocked.username}</div>
+                </div>
+                <button
+                  onClick={() => unblock(b.blocked_id)}
+                  className="press shrink-0 rounded-full border border-line px-4 py-1.5 text-xs font-black text-fog transition hover:border-lime hover:text-lime"
+                >
+                  Unblock
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </section>

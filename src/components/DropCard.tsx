@@ -9,6 +9,7 @@ import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
 import { dropMedia } from '../lib/types'
 import TallyIcon from './TallyIcon'
+import DropMenu from './DropMenu'
 
 interface Props {
   drop: Drop
@@ -18,9 +19,10 @@ interface Props {
   myVote: 'W' | 'L' | null
   onVote: (v: 'W' | 'L') => void
   revealDelay?: number
+  onAuthorBlocked?: (authorId: string) => void
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0 }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked }: Props) {
   const author = drop.author
   const items = dropMedia(drop)
   const open = () => navigate(`/drop/${drop.id}`)
@@ -84,6 +86,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 </button>
               )}
               <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
+              <span className="ml-auto">
+                <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
+              </span>
             </div>
 
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">

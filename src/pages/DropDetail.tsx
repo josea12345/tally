@@ -9,6 +9,7 @@ import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
 import MediaCarousel from '../components/MediaCarousel'
+import DropMenu from '../components/DropMenu'
 import { dropMedia } from '../lib/types'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
@@ -216,7 +217,12 @@ export default function DropDetail({ id }: { id: string }) {
               </div>
             </div>
           </div>
-          {author && !isOwner && <FollowButton followeeId={author.id} />}
+          <div className="flex shrink-0 items-center gap-1">
+            {author && !isOwner && <FollowButton followeeId={author.id} />}
+            {author && !isOwner && (
+              <DropMenu drop={drop} onBlocked={() => navigate('/')} />
+            )}
+          </div>
         </div>
 
         <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight">{drop.title}</h1>

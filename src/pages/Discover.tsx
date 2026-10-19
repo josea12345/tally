@@ -338,6 +338,7 @@ export default function Discover() {
             myVote={myVotes.get(d.id) ?? null}
             onVote={(v) => vote(d.id, v, setStats, d.author_id)}
             revealDelay={(i % 6) * 70}
+            onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
           />
         ))
       )}
