@@ -16,8 +16,9 @@ export interface Notification {
 
 /**
  * Best-effort notification write. The recipient never notifies themselves.
- * Vote notifications replace any earlier vote from the same actor on the drop
- * (so flipping W→L doesn't stack).
+ * Respects the recipient's notification preferences (fail-open: if prefs can't
+ * be read, the notification still goes through). Vote notifications replace any
+ * earlier vote from the same actor on the drop (so flipping W→L doesn't stack).
  */
 export async function notify(
   recipientId: string,
@@ -27,6 +28,20 @@ export async function notify(
 ): Promise<void> {
   if (!recipientId || recipientId === actorId) return
   try {
+    // Preference gate: skip kinds the recipient turned off.
+    const prefCol =
+      kind === 'W' || kind === 'L'
+        ? 'notify_wl'
+        : kind === 'comment'
+          ? 'notify_comments'
+          : 'notify_follows'
+    const { data: pref, error: prefErr } = await supabase
+      .from('profiles')
+      .select(`${prefCol}`)
+      .eq('id', recipientId)
+      .maybeSingle()
+    if (!prefErr && pref && (pref as Record<string, boolean>)[prefCol] === false) return
+
     if ((kind === 'W' || kind === 'L') && dropId) {
       await supabase
         .from('notifications')

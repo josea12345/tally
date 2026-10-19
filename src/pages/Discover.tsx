@@ -118,6 +118,7 @@ export default function Discover() {
           setStats(new Map())
         }
 
+        let followingIds = new Set<string>()
         if (user) {
           const [{ data: mine }, { data: follows }] = await Promise.all([
             supabase.from('saves').select('drop_id').eq('user_id', user.id).limit(2000),
@@ -125,7 +126,8 @@ export default function Discover() {
           ])
           if (!live) return
           setMySaves(new Set(((mine ?? []) as Array<{ drop_id: string }>).map((s) => s.drop_id)))
-          setFollowing(new Set(((follows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id)))
+          followingIds = new Set(((follows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id))
+          setFollowing(followingIds)
         }
 
         // Tastemaker rail: authors with a real win rate, top 10.
@@ -152,7 +154,13 @@ export default function Discover() {
             .in('id', rated.map((r) => r.authorId))
           if (!live) return
           const byId = new Map(((profs ?? []) as Profile[]).map((p) => [p.id, p]))
-          setTastemakers(rated.map((r) => byId.get(r.authorId)).filter((p): p is Profile => !!p))
+          // Private authors stay out of the public rail unless you follow them (or it's you).
+          setTastemakers(
+            rated
+              .map((r) => byId.get(r.authorId))
+              .filter((p): p is Profile => !!p)
+              .filter((p) => !p.is_private || p.id === user?.id || followingIds.has(p.id))
+          )
         } else {
           setTastemakers([])
         }

@@ -27,6 +27,27 @@ export default function Settings() {
   const [leaving, setLeaving] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>(profile?.dismissed_badges ?? [])
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(getChoice())
+  const [prefs, setPrefs] = useState({ wl: true, follows: true, comments: true })
+
+  useEffect(() => {
+    if (profile) {
+      setPrefs({
+        wl: profile.notify_wl ?? true,
+        follows: profile.notify_follows ?? true,
+        comments: profile.notify_comments ?? true,
+      })
+    }
+  }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const togglePref = async (key: 'wl' | 'follows' | 'comments') => {
+    if (!user) return
+    const col = key === 'wl' ? 'notify_wl' : key === 'follows' ? 'notify_follows' : 'notify_comments'
+    const next = { ...prefs, [key]: !prefs[key] }
+    setPrefs(next)
+    const { error } = await supabase.from('profiles').update({ [col]: next[key] }).eq('id', user.id)
+    if (error) setPrefs(prefs) // migration not run yet — revert
+    else refreshProfile()
+  }
   const badges = useBadges(user?.id)
   const [blocked, setBlocked] = useState<BlockedRow[]>([])
 
@@ -349,6 +370,40 @@ export default function Settings() {
               iPhone note: install TALLY to your Home Screen first (needs iOS 16.4+), then flip this on.
             </p>
           )}
+        </div>
+      </section>
+
+      {/* what notifies you */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">What notifies you</h2>
+        <div className="divide-y divide-line rounded-2xl border border-line bg-ink-2">
+          {(
+            [
+              { key: 'wl', title: 'W/L calls', body: 'When someone calls W or L on your drops.' },
+              { key: 'follows', title: 'Followers', body: 'New followers and follow requests.' },
+              { key: 'comments', title: 'Comments', body: 'When someone comments on your drops.' },
+            ] as const
+          ).map((row) => (
+            <div key={row.key} className="flex items-center justify-between gap-3 p-4">
+              <div className="min-w-0">
+                <div className="text-sm font-bold">{row.title}</div>
+                <div className="mt-0.5 text-xs leading-relaxed text-mute">{row.body}</div>
+              </div>
+              <button
+                onClick={() => togglePref(row.key)}
+                aria-label={`Toggle ${row.title} notifications`}
+                className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                  prefs[row.key] ? 'bg-lime' : 'bg-ink-3'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                    prefs[row.key] ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -1,25 +1,36 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import type { Drop, Profile, Verdict } from '../lib/types'
 import { buildLeaderboard, LEADERBOARD_MINIMUM, type LeaderboardRow } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 
 /** Weekly city leaderboard: win rate over the last 7 days, 3-verdict minimum to chart. */
 export default function LeaderboardRail({ city }: { city: string }) {
+  const { user } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null)
 
   useEffect(() => {
     let live = true
     const load = async () => {
       const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-      const [{ data: verdicts }, { data: drops }, { data: profiles }] = await Promise.all([
+      const followsPromise = user
+        ? supabase.from('follows').select('followee_id').eq('follower_id', user.id).limit(2000)
+        : Promise.resolve({ data: [] as Array<{ followee_id: string }> })
+      const [{ data: verdicts }, { data: drops }, { data: profiles }, { data: follows }] = await Promise.all([
         supabase.from('verdicts').select('*').gte('created_at', since).limit(2000),
         supabase.from('drops').select('*').gte('created_at', since).limit(2000),
         supabase.from('profiles').select('*').limit(500),
+        followsPromise,
       ])
       if (!live) return
       const dropById = new Map(((drops ?? []) as Drop[]).map((d) => [d.id, d]))
-      const profById = new Map(((profiles ?? []) as Profile[]).map((p) => [p.id, p]))
+      // Private authors stay off the public board unless you follow them (or it's you).
+      const followingIds = new Set(((follows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id))
+      const visible = ((profiles ?? []) as Profile[]).filter(
+        (p) => !p.is_private || p.id === user?.id || followingIds.has(p.id)
+      )
+      const profById = new Map(visible.map((p) => [p.id, p]))
       const withDrops = ((verdicts ?? []) as Verdict[])
         .map((v) => ({ ...v, drop: dropById.get(v.drop_id) }))
         .filter((v): v is Verdict & { drop: Drop } => !!v.drop)
