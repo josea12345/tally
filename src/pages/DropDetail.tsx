@@ -30,6 +30,8 @@ export default function DropDetail({ id }: { id: string }) {
   const [cardBusy, setCardBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [saveBusy, setSaveBusy] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -102,16 +104,31 @@ export default function DropDetail({ id }: { id: string }) {
       navigate('/auth')
       return
     }
-    if (!drop) return
+    if (!drop || saveBusy) return
+    setSaveBusy(true)
     if (saved) {
-      await supabase.from('saves').delete().eq('user_id', user.id).eq('drop_id', drop.id)
+      // Optimistic remove, rolled back if the delete fails.
       setSaved(false)
-      setStats((s) => ({ ...s, saves: s.saves - 1 }))
+      setStats((s) => ({ ...s, saves: Math.max(0, s.saves - 1) }))
+      const { error } = await supabase.from('saves').delete().eq('user_id', user.id).eq('drop_id', drop.id)
+      if (error) {
+        setSaved(true)
+        setStats((s) => ({ ...s, saves: s.saves + 1 }))
+        setSaveError('Could not remove the save — try again.')
+      }
     } else {
-      await supabase.from('saves').insert({ user_id: user.id, drop_id: drop.id })
+      // Optimistic add, rolled back on failure (e.g. a duplicate tap that
+      // lost the race — saves has a unique(user_id, drop_id) constraint).
       setSaved(true)
       setStats((s) => ({ ...s, saves: s.saves + 1 }))
+      const { error } = await supabase.from('saves').insert({ user_id: user.id, drop_id: drop.id })
+      if (error) {
+        setSaved(false)
+        setStats((s) => ({ ...s, saves: Math.max(0, s.saves - 1) }))
+        setSaveError('Could not save — try again.')
+      }
     }
+    setSaveBusy(false)
   }
 
   const shareUrl = () => `${window.location.origin}${window.location.pathname}#/drop/${id}`
@@ -308,14 +325,19 @@ export default function DropDetail({ id }: { id: string }) {
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button
-            onClick={toggleSave}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition ${
+            onClick={() => {
+              setSaveError(null)
+              void toggleSave()
+            }}
+            disabled={saveBusy}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition disabled:opacity-50 ${
               saved ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-fog hover:border-lime'
             }`}
           >
             <TallyIcon saved={saved} className="h-4 w-4" />
             {saved ? 'Tallied' : 'Tally'} · {stats.saves}
           </button>
+          {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
           <button
             onClick={copyLink}
             className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-lime"
