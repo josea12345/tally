@@ -221,9 +221,13 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* iOS standalone PWA: push page content below the status bar (browser tabs unaffected) */
+/* iOS standalone PWA: push page content below the status bar (browser tabs unaffected).
+   max() guarantees clearance even if the OS reports a zero inset. */
 @media (display-mode: standalone) {
   main {
-    padding-top: env(safe-area-inset-top);
+    padding-top: max(env(safe-area-inset-top), 60px);
+  }
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 60px);
   }
 }
