@@ -40,7 +40,7 @@ export interface CategoryGroup {
 export const CATEGORY_GROUPS: CategoryGroup[] = [
   { id: 'food', label: 'Food & Drink', categories: ['food_drink', 'recipes'] },
   { id: 'places', label: 'Local', categories: ['places', 'shops'] },
-  { id: 'entertainment', label: 'Entertainment', categories: ['movies', 'tv', 'music'] },
+  { id: 'entertainment', label: 'Play', categories: ['movies', 'tv', 'music'] },
 ]
 
 export interface Profile {
