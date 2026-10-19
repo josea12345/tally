@@ -271,7 +271,7 @@ export default function Camera() {
       />
 
       {/* top bar */}
-      <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-4">
+      <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
         <button
           onClick={() => navigate('/')}
           aria-label="Close camera"
