@@ -1,15 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop } from '../lib/types'
+import { CATEGORY_GROUPS } from '../lib/types'
 import { navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
+
+type Sort = 'recent' | 'oldest' | 'top'
+
+const SORTS: Array<{ id: Sort; label: string }> = [
+  { id: 'recent', label: 'Recent' },
+  { id: 'oldest', label: 'Oldest' },
+  { id: 'top', label: 'Top rated' },
+]
 
 export default function Saved({ bare = false }: { bare?: boolean }) {
   const { user } = useAuth()
   const [drops, setDrops] = useState<Drop[]>([])
   const [loading, setLoading] = useState(true)
+  const [group, setGroup] = useState('all')
+  const [sort, setSort] = useState<Sort>('recent')
 
   useEffect(() => {
     if (!user) return
@@ -31,6 +42,19 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       live = false
     }
   }, [user])
+
+  const visible = useMemo(() => {
+    let list = drops
+    if (group !== 'all') {
+      const g = CATEGORY_GROUPS.find((x) => x.id === group)
+      if (g) list = list.filter((d) => g.categories.includes(d.category))
+    }
+    if (sort === 'recent') return list
+    const sorted = [...list]
+    if (sort === 'oldest') sorted.reverse()
+    else sorted.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+    return sorted
+  }, [drops, group, sort])
 
   if (loading) {
     return (
@@ -61,7 +85,44 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           }
         />
       ) : (
-        <DropGrid drops={drops} />
+        <>
+          <div className="flex items-center gap-2 px-4 pb-2 pt-3">
+            <div className="no-scrollbar -mx-1 flex flex-1 gap-1.5 overflow-x-auto px-1">
+              {[{ id: 'all', label: 'All' }, ...CATEGORY_GROUPS].map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setGroup(g.id)}
+                  className={`press shrink-0 rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+                    group === g.id ? 'bg-sig text-ink' : 'border border-line bg-ink-2 text-mute'
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 px-4 pb-3">
+            <span className="mr-1 text-[11px] font-bold uppercase tracking-widest text-mute">Sort</span>
+            {SORTS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSort(s.id)}
+                className={`press rounded-full px-3 py-1.5 text-xs font-black transition ${
+                  sort === s.id ? 'bg-fog text-ink' : 'text-mute hover:text-fog'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {visible.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-mute">
+              Nothing here under this filter yet.
+            </p>
+          ) : (
+            <DropGrid drops={visible} showScores={sort === 'top'} />
+          )}
+        </>
       )}
     </div>
   )
