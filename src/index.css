@@ -231,3 +231,12 @@ body {
     padding-top: max(env(safe-area-inset-top), 60px);
   }
 }
+
+/* Same clearance driven by iOS's own navigator.standalone signal (see main.tsx),
+   for iOS versions where the display-mode media query doesn't match. */
+.ios-pwa main {
+  padding-top: max(env(safe-area-inset-top), 60px);
+}
+.ios-pwa .pt-safe {
+  padding-top: max(env(safe-area-inset-top), 60px);
+}
