@@ -35,15 +35,18 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
   if (!user || user.id === followeeId || following === null) return null
 
   const toggle = async () => {
+    if (busy) return
     setBusy(true)
     try {
       if (following) {
-        await supabase.from('follows').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
         setFollowing(false)
+        const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
+        if (error) setFollowing(true) // rollback: DB still has the follow
       } else if (isPrivate) {
         if (requested) {
-          await supabase.from('follow_requests').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
           setRequested(false)
+          const { error } = await supabase.from('follow_requests').delete().eq('follower_id', user.id).eq('followee_id', followeeId)
+          if (error) setRequested(true) // rollback
         } else {
           const { error } = await supabase
             .from('follow_requests')
