@@ -86,6 +86,8 @@ export interface Drop {
   /** Exact IMDb id (tt…) + rating, resolved via TMDB → OMDb at post time. */
   imdb_id: string | null
   imdb_rating: number | null
+  /** Spotify popularity (0–100) for music drops picked via Spotify search. */
+  spotify_popularity: number | null
   tip: string | null
   where_to: string | null
   score: number | null

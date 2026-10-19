@@ -275,7 +275,7 @@ export default function DropDetail({ id }: { id: string }) {
             {relatedCount} put-on{relatedCount === 1 ? '' : 's'} about this
           </button>
         )}
-        {(drop.score != null || drop.imdb_rating != null) && (
+        {(drop.score != null || drop.imdb_rating != null || drop.spotify_popularity != null) && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {drop.score != null && (
               <div className="inline-flex items-center gap-2 rounded-full border border-sig/50 bg-sig/10 px-4 py-1.5">
@@ -286,6 +286,11 @@ export default function DropDetail({ id }: { id: string }) {
             {drop.imdb_rating != null && (
               <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-4 py-1.5">
                 <span className="text-xl font-black">IMDb {drop.imdb_rating}</span>
+              </div>
+            )}
+            {drop.spotify_popularity != null && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-4 py-1.5">
+                <span className="text-xl font-black">Spotify {drop.spotify_popularity}</span>
               </div>
             )}
           </div>

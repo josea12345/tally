@@ -1,0 +1,93 @@
+import { useEffect, useState } from 'react'
+import { searchSpotify, type SpotifyTrack } from '../lib/spotify'
+
+/**
+ * Spotify track search for the composer (music). Picking a track fills the
+ * drop title, attaches the album art as the cover, and links the track —
+ * the music mirror of the TMDB title search. Renders nothing until the
+ * backend is configured; manual entry still works.
+ */
+export default function MusicSearch({ onPick }: { onPick: (t: SpotifyTrack) => void }) {
+  const [q, setQ] = useState('')
+  const [results, setResults] = useState<SpotifyTrack[]>([])
+  const [open, setOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
+
+  useEffect(() => {
+    if (!q.trim()) {
+      setResults([])
+      setOpen(false)
+      return
+    }
+    setSearching(true)
+    const t = setTimeout(async () => {
+      try {
+        const r = await searchSpotify(q)
+        setResults(r)
+        setUnavailable(false)
+      } catch {
+        // Backend not configured / keys missing — stay quiet, manual entry works.
+        setResults([])
+        setUnavailable(true)
+      } finally {
+        setSearching(false)
+        setOpen(true)
+      }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [q])
+
+  if (unavailable && !q.trim()) return null
+
+  return (
+    <div className="relative mb-3">
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Search songs…"
+        className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3.5 text-base font-bold outline-none placeholder:text-mute/60 focus:border-sig"
+      />
+      {open && (
+        <div className="absolute z-40 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-line bg-ink-3 shadow-2xl">
+          {searching && <p className="px-4 py-3 text-sm text-mute">Searching…</p>}
+          {!searching && results.length === 0 && (
+            <p className="px-4 py-3 text-sm text-mute">No matches — just type the title below.</p>
+          )}
+          {results.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => {
+                onPick(r)
+                setOpen(false)
+                setQ('')
+              }}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-ink-2"
+            >
+              {r.image ? (
+                <img src={r.image} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" loading="lazy" />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink-2 text-xs text-mute">
+                  ?
+                </div>
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold">{r.name}</span>
+                <span className="block truncate text-xs text-mute">
+                  {r.artists} · {r.album}
+                </span>
+              </span>
+              <span className="shrink-0 rounded-full bg-ink-2 px-2 py-1 text-[10px] font-black text-mute">
+                {r.popularity}
+              </span>
+            </button>
+          ))}
+          <p className="border-t border-line px-4 py-2 text-[10px] text-mute/70">
+            Track data by Spotify — not endorsed by Spotify.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -9,6 +9,8 @@ import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
 import TitleSearch from '../components/TitleSearch'
+import MusicSearch from '../components/MusicSearch'
+import type { SpotifyTrack } from '../lib/spotify'
 import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
@@ -68,6 +70,9 @@ export default function Composer({ editId }: { editId?: string }) {
   const [imdbId, setImdbId] = useState<string | null>(null)
   const [imdbRating, setImdbRating] = useState<number | null>(null)
   const [imdbLoading, setImdbLoading] = useState(false)
+  const [spotifyUrl, setSpotifyUrl] = useState<string | null>(null)
+  const [spotifyArt, setSpotifyArt] = useState<string | null>(null)
+  const [spotifyPopularity, setSpotifyPopularity] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
 
   /** TMDB title pick: fill the title, attach the poster as cover, link the TMDB page. */
@@ -95,6 +100,19 @@ export default function Composer({ editId }: { editId?: string }) {
     } finally {
       setImdbLoading(false)
     }
+  }
+
+  /** Spotify track pick: fill the title, attach the album art as cover, link the track. */
+  const pickTrack = (t: SpotifyTrack) => {
+    setTitle(`${t.name} — ${t.artists}`)
+    setSpotifyUrl(t.url)
+    setSpotifyPopularity(t.popularity)
+    setMediaList((prev) => {
+      const withoutOld = spotifyArt ? prev.filter((m) => m.url !== spotifyArt) : prev
+      if (!t.image || withoutOld.some((m) => m.url === t.image)) return withoutOld
+      return [{ url: t.image, type: 'photo' as const }, ...withoutOld]
+    })
+    setSpotifyArt(t.image)
   }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -158,6 +176,8 @@ export default function Composer({ editId }: { editId?: string }) {
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
         if (d.external_label === 'TMDB') setTmdbUrl(d.external_url)
+        if (d.external_label === 'Spotify') setSpotifyUrl(d.external_url)
+        if (d.spotify_popularity != null) setSpotifyPopularity(Number(d.spotify_popularity))
         if (d.imdb_id) setImdbId(d.imdb_id)
         if (d.imdb_rating != null) setImdbRating(Number(d.imdb_rating))
         if (d.media_url || (d.media_urls?.length ?? 0) > 0) {
@@ -224,6 +244,9 @@ export default function Composer({ editId }: { editId?: string }) {
       } else if (tmdbUrl && (category === 'movies' || category === 'tv')) {
         externalUrl = safeExternalUrl(tmdbUrl)
         externalLabel = externalUrl ? 'TMDB' : null
+      } else if (spotifyUrl && category === 'music') {
+        externalUrl = safeExternalUrl(spotifyUrl)
+        externalLabel = externalUrl ? 'Spotify' : null
       } else if (linkKind === 'paste' && pasteUrl.trim()) {
         externalUrl = safeExternalUrl(normalizePastedUrl(pasteUrl))
         // Pasted URLs get the honest generic label — never the service
@@ -263,6 +286,7 @@ export default function Composer({ editId }: { editId?: string }) {
         external_label: externalLabel,
         imdb_id: imdbId,
         imdb_rating: imdbRating,
+        spotify_popularity: spotifyPopularity,
         topic_key: topicKeyFor({
           category,
           title: title.trim(),
@@ -329,6 +353,7 @@ export default function Composer({ editId }: { editId?: string }) {
       {(category === 'movies' || category === 'tv') && (
         <TitleSearch category={category} onPick={pickTitle} />
       )}
+      {category === 'music' && <MusicSearch onPick={pickTrack} />}
       {isPlace ? (
         <PlaceAutocomplete
           category={category}

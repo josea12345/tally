@@ -117,6 +117,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             IMDb {drop.imdb_rating}
           </span>
         )}
+        {drop.spotify_popularity != null && (
+          <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
+            Spotify {drop.spotify_popularity}
+          </span>
+        )}
       </div>
     ) : drop.imdb_rating != null ? (
       <div
@@ -140,6 +145,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {drop.imdb_rating != null && (
           <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
             IMDb {drop.imdb_rating}
+          </span>
+        )}
+        {drop.spotify_popularity != null && (
+          <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
+            Spotify {drop.spotify_popularity}
           </span>
         )}
       </div>
