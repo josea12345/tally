@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { useAuth } from '../context/AuthContext'
-import { timeAgo, formatCount } from '../lib/format'
+import { timeAgo, formatCount, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import Comments from './Comments'
 import Reveal from './Reveal'
@@ -165,18 +165,32 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   // Title shown under the username in the header (linked when we have a target).
   // Centered per the founder's call; the username/handle row above stays left-aligned.
-  const titleLine = titleUrl ? (
-    <a
-      href={titleUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className="block truncate text-center text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
-    >
-      {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
-    </a>
-  ) : (
-    <div className="truncate text-center text-[15px] font-bold tracking-tight">{drop.title}</div>
+  // Right below it: the topic link — every put-on about this same place/title.
+  const titleLine = (
+    <>
+      {titleUrl ? (
+        <a
+          href={titleUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="block truncate text-center text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
+        >
+          {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
+        </a>
+      ) : (
+        <div className="truncate text-center text-[15px] font-bold tracking-tight">{drop.title}</div>
+      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          navigate(`/topic/${encodeURIComponent(drop.topic_key ?? topicKeyFor(drop))}`)
+        }}
+        className="mx-auto mt-0.5 block text-[11px] font-bold text-mute transition hover:text-sig"
+      >
+        All posts about this →
+      </button>
+    </>
   )
 
   // Horizontal action bar overlaid on the media's bottom edge.
