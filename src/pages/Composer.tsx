@@ -301,7 +301,7 @@ export default function Composer({ editId }: { editId?: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 pb-10 pt-5">
+    <div className="screen-in mx-auto max-w-xl px-4 pb-10 pt-5">
       <h1 className="wordmark mb-1 text-4xl">Drop a put-on</h1>
       <p className="mb-5 text-sm text-mute">Something worth knowing. Keep it real — <span className="doodle text-xl text-sig">your record's on the line</span></p>
 

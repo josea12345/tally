@@ -59,7 +59,7 @@ export default function Filter() {
   if (!objectUrl) return null
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink">
+    <div className="screen-in flex min-h-screen flex-col bg-ink">
       <div className="flex items-center justify-between px-4 py-3">
         <button
           onClick={() => navigate('/create')}
@@ -96,7 +96,7 @@ export default function Filter() {
             <button
               key={f.id}
               onClick={() => setFilterId(f.id)}
-              className="flex w-16 shrink-0 flex-col items-center gap-1"
+              className="press flex w-16 shrink-0 flex-col items-center gap-1"
             >
               <span
                 className={`h-16 w-16 overflow-hidden rounded-xl border-2 ${

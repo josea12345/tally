@@ -40,6 +40,8 @@ export default function Camera() {
   const [elapsed, setElapsed] = useState(0) // total recorded seconds, incl. live segment
   const [segments, setSegments] = useState<number[]>([]) // banked segment durations
   const [error, setError] = useState<string | null>(null)
+  const [flash, setFlash] = useState(false)
+  const flashTimer = useRef<number | null>(null)
 
   facingRef.current = facing
 
@@ -109,6 +111,7 @@ export default function Camera() {
       stopTracks(streamRef.current)
       streamRef.current = null
       cancelAnimationFrame(rafRef.current)
+      if (flashTimer.current) clearTimeout(flashTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, user])
@@ -195,6 +198,10 @@ export default function Camera() {
     canvas.toBlob(
       (b) => {
         if (b) {
+          // shutter flash: instant tactile feedback the moment the photo lands
+          setFlash(true)
+          if (flashTimer.current) clearTimeout(flashTimer.current)
+          flashTimer.current = window.setTimeout(() => setFlash(false), 240)
           setPendingRawMedia(b, 'camera.jpg', 'photo')
           navigate('/filter')
         }
@@ -258,7 +265,7 @@ export default function Camera() {
   const totalBanked = segments.reduce((a, b) => a + b, 0)
 
   return (
-    <div className="fixed inset-0 z-50 select-none bg-black touch-none" onContextMenu={(e) => e.preventDefault()}>
+    <div className="screen-in fixed inset-0 z-50 select-none bg-black touch-none" onContextMenu={(e) => e.preventDefault()}>
       {/* always rendered so the ref exists before the stream arrives —
           attaching srcObject to a not-yet-rendered element was a black screen */}
       <video
@@ -269,6 +276,7 @@ export default function Camera() {
         className={`absolute inset-0 h-full w-full object-cover ${camState === 'live' ? '' : 'invisible'}`}
         style={facing === 'user' ? { transform: 'scaleX(-1)' } : undefined}
       />
+      {flash && <div className="flash-out pointer-events-none absolute inset-0 z-20 bg-white" />}
 
       {/* top bar */}
       <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
@@ -327,7 +335,7 @@ export default function Camera() {
       {/* segmented clip progress — Vine-style blocks filling to 5s */}
       {camState === 'live' && (segments.length > 0 || recording) && (
         <div className="absolute left-0 right-0 top-16 px-5">
-          <div className="flex h-1 gap-1">
+          <div key={segments.length} className="seg-pop flex h-1 gap-1">
             {segments.map((d, i) => (
               <div key={i} className="rounded-full bg-sig" style={{ flexGrow: Math.max(d, 0.05) }} />
             ))}
@@ -383,7 +391,7 @@ export default function Camera() {
                 onPointerLeave={onPressUp}
                 onPointerCancel={onPressUp}
                 aria-label="Capture: tap for photo, hold for video"
-                className="absolute inset-2 flex items-center justify-center rounded-full border-4 border-white/95 bg-white/10 backdrop-blur-sm transition active:scale-95"
+                className="shutter-btn absolute inset-2 flex items-center justify-center rounded-full border-4 border-white/95 bg-white/10 backdrop-blur-sm"
                 style={{ touchAction: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
               >
                 <span
