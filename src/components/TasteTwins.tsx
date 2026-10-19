@@ -12,20 +12,36 @@ export default function TasteTwins({ myId }: { myId: string }) {
   useEffect(() => {
     let live = true
     const load = async () => {
-      const [{ data: verdicts }, { data: drops }, { data: profiles }] = await Promise.all([
-        supabase.from('verdicts').select('*').eq('verdict', 'W').limit(3000),
-        supabase.from('drops').select('id,title').limit(3000),
-        supabase.from('profiles').select('*').limit(500),
-      ])
+      // Step 1: my own W verdicts (user-scoped, exact). Everything else is
+      // derived from these drop ids — no global verdicts scan.
+      const { data: myWinRows } = await supabase
+        .from('verdicts')
+        .select('drop_id')
+        .eq('user_id', myId)
+        .eq('verdict', 'W')
       if (!live) return
-      const vs = (verdicts ?? []) as Verdict[]
-      const myWins = new Set(vs.filter((v) => v.user_id === myId).map((v) => v.drop_id))
+      const myWins = new Set(((myWinRows ?? []) as Array<{ drop_id: string }>).map((v) => v.drop_id))
       if (myWins.size === 0) {
         setTwins([])
         return
       }
-      const dropById = new Map(((drops ?? []) as Drop[]).map((d) => [d.id, d]))
-      const profById = new Map(((profiles ?? []) as Profile[]).map((p) => [p.id, p]))
+      const winIds = [...myWins]
+      // Step 2: everyone else's W verdicts on exactly those drops, plus the
+      // drop titles — scoped and exact, no row limit.
+      const [{ data: otherWins }, { data: dropRows }] = await Promise.all([
+        supabase.from('verdicts').select('user_id,drop_id').eq('verdict', 'W').neq('user_id', myId).in('drop_id', winIds),
+        supabase.from('drops').select('id,title').in('id', winIds),
+      ])
+      if (!live) return
+      // Step 3: only the profiles that actually share a W with me.
+      const voterIds = [...new Set(((otherWins ?? []) as Array<{ user_id: string }>).map((v) => v.user_id))]
+      const { data: profRows } = voterIds.length > 0
+        ? await supabase.from('profiles').select('*').in('id', voterIds)
+        : { data: [] as Profile[] }
+      if (!live) return
+      const vs = (otherWins ?? []) as Verdict[]
+      const dropById = new Map(((dropRows ?? []) as Drop[]).map((d) => [d.id, d]))
+      const profById = new Map(((profRows ?? []) as Profile[]).map((p) => [p.id, p]))
       setTwins(tasteTwins(myId, myWins, vs, dropById, profById))
     }
     load()

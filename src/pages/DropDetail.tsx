@@ -15,7 +15,7 @@ import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import TallyIcon from '../components/TallyIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
-import { winRateFor } from '../lib/stats'
+import { WIN_RATE_MINIMUM } from '../lib/stats'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile } = useAuth()
@@ -74,20 +74,28 @@ export default function DropDetail({ id }: { id: string }) {
         setSaved(!!mySave)
       }
 
-      // author's live win rate for the payoff banner
-      const { data: authorDrops } = await supabase.from('drops').select('id').eq('author_id', d.author_id).limit(2000)
-      const aIds = ((authorDrops ?? []) as Array<{ id: string }>).map((x) => x.id)
-      if (aIds.length > 0) {
-        const { data: aVerdicts } = await supabase
+      // Author's win rate for the payoff banner — exact DB counts via the
+      // drop join (verified pattern: select … drop:drops!inner + head count),
+      // so it stays correct past any client-side row cap. Same rule as
+      // before: rate is null below WIN_RATE_MINIMUM verdicts.
+      const [{ count: aWins }, { count: aLosses }] = await Promise.all([
+        supabase
           .from('verdicts')
-          .select('verdict')
-          .in('drop_id', aIds)
-          .limit(5000)
-        const hr = winRateFor((aVerdicts ?? []) as Verdict[])
-        setAuthorRate(
-          hr.rate == null ? null : `${Math.round(hr.rate * 100)}% win rate · ${hr.total} verdicts`
-        )
-      }
+          .select('id, drop:drops!inner(author_id)', { count: 'exact', head: true })
+          .eq('verdict', 'W')
+          .eq('drop.author_id', d.author_id),
+        supabase
+          .from('verdicts')
+          .select('id, drop:drops!inner(author_id)', { count: 'exact', head: true })
+          .eq('verdict', 'L')
+          .eq('drop.author_id', d.author_id),
+      ])
+      const aTotal = (aWins ?? 0) + (aLosses ?? 0)
+      setAuthorRate(
+        aTotal >= WIN_RATE_MINIMUM
+          ? `${Math.round(((aWins ?? 0) / aTotal) * 100)}% win rate · ${aTotal} verdicts`
+          : null
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load this drop.')
     } finally {

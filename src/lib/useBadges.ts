@@ -14,24 +14,44 @@ export function useBadges(profileId: string | null | undefined): Badge[] | null 
     }
     let live = true
     const load = async () => {
-      const [{ data: myDrops }, { data: allDrops }, { data: verdicts }, { data: saves }] = await Promise.all([
-        supabase.from('drops').select('*').eq('author_id', profileId),
-        supabase.from('drops').select('id,author_id,title,city,created_at').limit(5000),
-        supabase.from('verdicts').select('*, drop:drops!inner(id,neighborhood)').limit(5000),
-        supabase.from('saves').select('drop_id').limit(5000),
-      ])
+      // The author's own drops are the scope key: verdicts and saves are
+      // fetched by drop id, so the badge numbers are exact no matter how
+      // big the global verdicts/saves tables get.
+      const { data: myDropsRows } = await supabase.from('drops').select('*').eq('author_id', profileId)
       if (!live) return
-      const mine = new Set(((myDrops ?? []) as Drop[]).map((d) => d.id))
-      const received = ((verdicts ?? []) as Array<Verdict & { drop: Drop }>).filter((v) =>
-        mine.has(v.drop_id)
-      )
+      const myDrops = (myDropsRows ?? []) as Drop[]
+      const ids = myDrops.map((d) => d.id)
+
+      let verdicts: Array<Verdict & { drop: Drop }> = []
+      let saves: Array<{ drop_id: string }> = []
+      if (ids.length > 0) {
+        const [vRes, sRes] = await Promise.all([
+          supabase.from('verdicts').select('*, drop:drops!inner(id,neighborhood)').in('drop_id', ids),
+          supabase.from('saves').select('drop_id').in('drop_id', ids),
+        ])
+        if (!live) return
+        verdicts = (vRes.data ?? []) as Array<Verdict & { drop: Drop }>
+        saves = (sRes.data ?? []) as Array<{ drop_id: string }>
+      }
+
+      // "First to drop it" is inherently global: it needs the earliest drop
+      // for every (title, city) pair. Scoped EXPLICITLY to the 5000 most
+      // recent drops — past that scale the badge silently undercounts. The
+      // exact server-side replacement is proposed (not applied) in
+      // tally-audit/proposed-migrations/round2/first_drop_count.sql.
+      const { data: recentDrops } = await supabase
+        .from('drops')
+        .select('id,author_id,title,city,created_at')
+        .order('created_at', { ascending: false })
+        .limit(5000)
+      if (!live) return
+
       const savesPerDrop = new Map<string, number>()
-      for (const s of (saves ?? []) as Array<{ drop_id: string }>) {
-        if (!mine.has(s.drop_id)) continue
+      for (const s of saves) {
         savesPerDrop.set(s.drop_id, (savesPerDrop.get(s.drop_id) ?? 0) + 1)
       }
-      const first = firstDropCount(profileId, (allDrops ?? []) as Drop[])
-      setBadges(badgesFor((myDrops ?? []) as Drop[], received, savesPerDrop, first))
+      const first = firstDropCount(profileId, (recentDrops ?? []) as Drop[])
+      setBadges(badgesFor(myDrops, verdicts, savesPerDrop, first))
     }
     load()
     return () => {

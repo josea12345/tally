@@ -131,13 +131,21 @@ export default function Discover() {
         }
 
         // Tastemaker rail: authors with a real win rate, top 10.
-        const { data: allVerdicts } = await supabase
+        //
+        // Scoped EXPLICITLY to verdicts from the last 90 days. An exact
+        // all-time per-author win rate can't be computed client-side past
+        // table scale (it would need every verdict row ever), so the rail
+        // ranks on a fixed recent window instead of pretending to cover all
+        // time. The exact all-time source is proposed (not applied) in
+        // tally-audit/proposed-migrations/round2/author_win_rates.sql.
+        const railSince = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString()
+        const { data: railVerdicts } = await supabase
           .from('verdicts')
           .select('verdict, drop:drops!inner(author_id)')
-          .limit(3000)
+          .gte('created_at', railSince)
         if (!live) return
         const perAuthor = new Map<string, Verdict[]>()
-        for (const v of (allVerdicts ?? []) as Array<Verdict & { drop: { author_id: string } }>) {
+        for (const v of (railVerdicts ?? []) as Array<Verdict & { drop: { author_id: string } }>) {
           const a = v.drop.author_id
           if (!perAuthor.has(a)) perAuthor.set(a, [])
           perAuthor.get(a)!.push(v)
