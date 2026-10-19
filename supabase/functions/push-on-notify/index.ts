@@ -15,7 +15,23 @@ webpush.setVapidDetails(
   Deno.env.get('VAPID_PRIVATE_KEY')!,
 )
 
+function missingEnv(): string[] {
+  return [
+    !Deno.env.get('VAPID_PUBLIC_KEY') && 'VAPID_PUBLIC_KEY',
+    !Deno.env.get('VAPID_PRIVATE_KEY') && 'VAPID_PRIVATE_KEY',
+    !Deno.env.get('SUPABASE_URL') && 'SUPABASE_URL',
+    !Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') && 'SUPABASE_SERVICE_ROLE_KEY',
+  ].filter(Boolean) as string[]
+}
+
 serve(async (req) => {
+  const missing = missingEnv()
+  if (missing.length > 0) {
+    return new Response(JSON.stringify({ error: 'missing secrets', missing }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
   let payload: any
   try {
     payload = await req.json()
@@ -72,6 +88,8 @@ serve(async (req) => {
           // Prune dead subscriptions so we don't keep pushing to ghosts.
           if (err?.statusCode === 410 || err?.statusCode === 404) {
             await supabase.from('push_subscriptions').delete().eq('endpoint', s.endpoint)
+          } else {
+            console.error('push send failed', err?.statusCode, err?.message)
           }
         }),
     ),
