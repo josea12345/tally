@@ -57,6 +57,73 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onVote(v)
   }
 
+  // TikTok-style vertical action rail overlaid on the media's right edge.
+  const rail = (
+    <div
+      className="absolute right-2.5 top-1/2 flex -translate-y-1/2 flex-col items-center gap-4"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex flex-col items-center gap-1">
+        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[26px] font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
+        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
+      </button>
+      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex flex-col items-center gap-1">
+        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[26px] font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
+        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
+      </button>
+      <button onClick={toggleComments} aria-label="Comments" className="press flex flex-col items-center gap-1">
+        <ChatIcon className="h-7 w-7 text-white drop-shadow-lg" />
+        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
+      </button>
+      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex flex-col items-center gap-1">
+        <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
+          <TallyIcon saved={saved} className="h-7 w-7" />
+        </span>
+        <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
+      </button>
+    </div>
+  )
+
+  // Text-only drops: horizontal action row under the caption.
+  const textActions = (
+    <div className="flex items-center gap-5 px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={(e) => castVote(e, 'W')}
+        aria-label="Vote W"
+        className="press flex items-center gap-1.5"
+      >
+        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-lime' : 'text-fog'}`}>W</span>
+        <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
+      </button>
+      <button
+        onClick={(e) => castVote(e, 'L')}
+        aria-label="Vote L"
+        className="press flex items-center gap-1.5"
+      >
+        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'L' ? 'text-miss' : 'text-fog'}`}>L</span>
+        <span className="text-sm font-bold text-mute">{formatCount(stats.losses)}</span>
+      </button>
+      <button
+        onClick={toggleComments}
+        aria-label="Comments"
+        className="press flex items-center gap-1.5"
+      >
+        <ChatIcon className="h-[22px] w-[22px] text-fog" />
+        <span className="text-sm font-bold text-mute">{formatCount(commentCount)}</span>
+      </button>
+      <button
+        onClick={toggleSave}
+        aria-label={saved ? 'Untally' : 'Tally'}
+        className="press ml-auto flex items-center gap-1.5"
+      >
+        <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-lime' : 'text-fog'}`}>
+          <TallyIcon saved={saved} className="h-6 w-6" />
+        </span>
+        <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
+      </button>
+    </div>
+  )
+
   return (
     <Reveal delay={revealDelay}>
       <article onClick={open} className="cursor-pointer pb-8">
@@ -114,11 +181,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           </span>
         </div>
 
-        {/* full-bleed media */}
+        {/* full-bleed media with TikTok-style action rail */}
         {items.length > 0 && (
           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             <MediaCarousel
               flush
+              overlay={rail}
               items={items}
               renderItem={(it) =>
                 it.type === 'video' ? (
@@ -131,46 +199,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           </div>
         )}
 
-        {/* action row */}
-        <div className="flex items-center gap-5 px-4 pt-3" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={(e) => castVote(e, 'W')}
-            aria-label="Vote W"
-            className="press flex items-center gap-1.5"
-          >
-            <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-lime' : 'text-fog'}`}>W</span>
-            <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
-          </button>
-          <button
-            onClick={(e) => castVote(e, 'L')}
-            aria-label="Vote L"
-            className="press flex items-center gap-1.5"
-          >
-            <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'L' ? 'text-miss' : 'text-fog'}`}>L</span>
-            <span className="text-sm font-bold text-mute">{formatCount(stats.losses)}</span>
-          </button>
-          <button
-            onClick={toggleComments}
-            aria-label="Comments"
-            className="press flex items-center gap-1.5"
-          >
-            <ChatIcon className="h-[22px] w-[22px] text-fog" />
-            <span className="text-sm font-bold text-mute">{formatCount(commentCount)}</span>
-          </button>
-          <button
-            onClick={toggleSave}
-            aria-label={saved ? 'Untally' : 'Tally'}
-            className="press ml-auto flex items-center gap-1.5"
-          >
-            <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-lime' : 'text-fog'}`}>
-              <TallyIcon saved={saved} className="h-6 w-6" />
-            </span>
-            <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
-          </button>
-        </div>
-
         {/* caption */}
-        <div className="px-4 pt-2">
+        <div className="px-4 pt-3">
           <p className="text-[15px] leading-snug">
             <span className="font-bold">{drop.title}</span>
             {drop.description ? (
@@ -186,6 +216,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             </p>
           )}
         </div>
+
+        {items.length === 0 && textActions}
 
         <div className="px-4 pt-2">
           <LinkChips drop={drop} />
