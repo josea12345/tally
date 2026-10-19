@@ -76,7 +76,20 @@ export default function Onboarding() {
       await refreshProfile()
       navigate('/')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
+      // Race guard: the availability check above can go stale between two
+      // signups — the DB's unique(username) constraint is the real authority.
+      const msg = e instanceof Error ? e.message : ''
+      const taken =
+        msg.includes('duplicate key') ||
+        msg.includes('23505') ||
+        (e as { code?: string } | null)?.code === '23505'
+      setError(
+        taken
+          ? 'Someone just claimed that username — try another.'
+          : e instanceof Error
+            ? e.message
+            : 'Something went wrong.',
+      )
     } finally {
       setBusy(false)
     }
