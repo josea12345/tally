@@ -3,7 +3,7 @@ import { dropMedia } from '../lib/types'
 import { navigate } from '../App'
 
 /** Instagram-style 3-column grid of drop covers. Tapping a tile opens the drop. */
-export default function DropGrid({ drops }: { drops: Drop[] }) {
+export default function DropGrid({ drops, showScores = false }: { drops: Drop[]; showScores?: boolean }) {
   return (
     <div className="grid grid-cols-3 gap-[2px]">
       {drops.map((d) => {
@@ -32,6 +32,11 @@ export default function DropGrid({ drops }: { drops: Drop[] }) {
                   {d.title}
                 </span>
               </div>
+            )}
+            {showScores && d.score != null && (
+              <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-black text-sig backdrop-blur-sm">
+                {d.score}/10
+              </span>
             )}
             {items.length > 1 && (
               <span className="absolute right-1.5 top-1.5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
