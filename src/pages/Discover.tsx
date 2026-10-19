@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useFeedVotes } from '../lib/feedVotes'
@@ -49,6 +49,12 @@ export default function Discover() {
   }
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus()
+    else setQuery('')
+  }, [searchOpen])
   const [drops, setDrops] = useState<Drop[]>([])
   const [stats, setStats] = useState<Map<string, DropStats>>(new Map())
   const [mySaves, setMySaves] = useState<Set<string>>(new Set())
@@ -221,14 +227,28 @@ export default function Discover() {
 
   return (
     <div>
-      <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-2 pt-3 backdrop-blur">
-        <div className="mb-2 flex items-center justify-between">
+      <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-1.5 pt-2.5 backdrop-blur">
+        <div className="mb-1.5 flex items-center justify-between">
           <div className="font-display text-lg font-bold tracking-tight">
             TALLY<span className="text-lime">.</span>
           </div>
-          <AlertsBell />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen((o) => !o)}
+              aria-label="Search put-ons"
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
+                searchOpen || query ? 'border-lime text-lime' : 'border-line text-fog hover:border-lime hover:text-lime'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-5 w-5">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </button>
+            <AlertsBell />
+          </div>
         </div>
-        <div className="mb-2 flex gap-1 rounded-full bg-ink-3 p-1">
+        <div className="mb-1.5 flex gap-1 rounded-full bg-ink-3 p-1">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -241,14 +261,17 @@ export default function Discover() {
             </button>
           ))}
         </div>
-        <div className="mb-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a put-on…"
-            className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
-          />
-        </div>
+        {searchOpen && (
+          <div className="mb-1.5">
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a put-on…"
+              className="w-full rounded-full border border-line bg-ink-2 px-4 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+            />
+          </div>
+        )}
         <CategoryTabs group={group} sub={sub} onGroup={pickGroup} onSub={setSub} />
         {locState.status !== 'on' && (
           <div className="mt-3">
