@@ -73,8 +73,7 @@ export function SearchIcon({ className = '' }: { className?: string }) {
   )
 }
 
-export function ScoreIcon({ className = '' }: { className?: string }) {
-  return (
+export function ScoreIcon({ className = '' }: { className?: string }) {  return (
     <svg {...base(className)}>
       <circle cx="12" cy="12" r="8.5" />
       <text
@@ -89,6 +88,32 @@ export function ScoreIcon({ className = '' }: { className?: string }) {
       >
         10
       </text>
+    </svg>
+  )
+}
+
+export function GearIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg {...base(className)}>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1" />
+    </svg>
+  )
+}
+
+export function SparkIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg {...base(className)} fill="currentColor" stroke="none" viewBox="0 0 24 24">
+      <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+    </svg>
+  )
+}
+
+export function CameraIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg {...base(className)}>
+      <path d="M8.5 7l1.2-2h4.6L15.5 7M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" />
+      <circle cx="12" cy="13.5" r="3.4" />
     </svg>
   )
 }

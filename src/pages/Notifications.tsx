@@ -5,6 +5,31 @@ import type { Notification } from '../lib/notify'
 import { Avatar, navigate } from '../App'
 import { timeAgo } from '../lib/format'
 import EmptyState from '../components/EmptyState'
+import ChatIcon from '../components/ChatIcon'
+
+/** Playful accent chip per notification kind — original sticker language, no emoji. */
+function KindChip({ kind }: { kind: Notification['kind'] }) {
+  const base =
+    'flex h-9 w-9 shrink-0 -rotate-3 items-center justify-center rounded-xl border-2 border-[#191725] text-sm font-black shadow-[2px_2px_0_rgba(0,0,0,0.3)]'
+  switch (kind) {
+    case 'W':
+      return <span className={`${base} bg-win text-[#191725]`} aria-hidden>W</span>
+    case 'L':
+      return <span className={`${base} bg-miss text-white`} aria-hidden>L</span>
+    case 'follow':
+      return <span className={`${base} bg-lime text-[#191725]`} aria-hidden>+</span>
+    case 'approved':
+      return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>✓</span>
+    case 'requested':
+      return <span className={`${base} bg-butter text-[#191725]`} aria-hidden>?</span>
+    case 'comment':
+      return (
+        <span className={`${base} bg-sky text-[#191725]`} aria-hidden>
+          <ChatIcon className="h-5 w-5" />
+        </span>
+      )
+  }
+}
 
 function textFor(n: Notification): string {
   const name = n.actor?.display_name || `@${n.actor?.username ?? 'someone'}`
@@ -83,12 +108,13 @@ export default function Notifications() {
       </div>
       {items.length === 0 ? (
         <EmptyState
-          title="All quiet"
+          title="No tea right now"
           body="Votes, follows, and comments on your drops will land here."
+          mood="happy"
           action={
             <button
               onClick={() => navigate('/')}
-              className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink"
+              className="btn-pop press px-6 py-2.5 text-sm"
             >
               Back to Discover
             </button>
@@ -109,10 +135,8 @@ export default function Notifications() {
                   </span>
                   <span className="mt-0.5 block text-xs text-mute">{timeAgo(n.created_at)}</span>
                 </span>
-                {!n.read_at && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-lime" />}
-                <span className="shrink-0 text-lg" aria-hidden>
-                  {n.kind === 'W' ? '✅' : n.kind === 'L' ? '❌' : n.kind === 'follow' ? '➕' : n.kind === 'approved' ? '🤝' : n.kind === 'requested' ? '🙋' : '💬'}
-                </span>
+                {!n.read_at && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-lime" aria-label="Unread" />}
+                <KindChip kind={n.kind} />
               </button>
             </li>
           ))}

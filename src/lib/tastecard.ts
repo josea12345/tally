@@ -46,7 +46,7 @@ export async function renderTasteCard(
   const ctx = canvas.getContext('2d')!
 
   // Background
-  ctx.fillStyle = '#0a0a0b'
+  ctx.fillStyle = '#191725'
   ctx.fillRect(0, 0, W, H)
 
   // Photo or typographic cover (top ~55%) — carousel cover = item 1
@@ -65,9 +65,9 @@ export async function renderTasteCard(
   }
   if (!drewPhoto) {
     // typographic cover: giant lime tally marks
-    ctx.fillStyle = '#121214'
+    ctx.fillStyle = '#191725'
     ctx.fillRect(0, 0, W, coverH)
-    ctx.strokeStyle = '#c8f31d'
+    ctx.strokeStyle = '#ff3fa4'
     ctx.lineWidth = 26
     ctx.lineCap = 'round'
     const cx = W / 2
@@ -86,7 +86,7 @@ export async function renderTasteCard(
   // fade into body
   const grad = ctx.createLinearGradient(0, coverH - 220, 0, coverH + 40)
   grad.addColorStop(0, 'rgba(10,10,11,0)')
-  grad.addColorStop(1, '#0a0a0b')
+  grad.addColorStop(1, '#191725')
   ctx.fillStyle = grad
   ctx.fillRect(0, coverH - 220, W, 260)
 
@@ -94,18 +94,18 @@ export async function renderTasteCard(
   const pad = 90
 
   // wordmark
-  ctx.fillStyle = '#f4f4f2'
+  ctx.fillStyle = '#fffcf7'
   ctx.font = '900 64px Inter, sans-serif'
   ctx.fillText('TALLY.', pad, y)
   const wm = ctx.measureText('TALLY.').width
-  ctx.fillStyle = '#c8f31d'
+  ctx.fillStyle = '#ff3fa4'
   ctx.beginPath()
   ctx.arc(pad + wm + 24, y - 14, 12, 0, Math.PI * 2)
   ctx.fill()
   y += 90
 
   // place name
-  ctx.fillStyle = '#f4f4f2'
+  ctx.fillStyle = '#fffcf7'
   ctx.font = '800 76px Inter, sans-serif'
   for (const line of wrapText(ctx, drop.title, W - pad * 2).slice(0, 2)) {
     ctx.fillText(line, pad, y)
@@ -114,11 +114,11 @@ export async function renderTasteCard(
   y += 10
 
   // HEAR ME OUT line
-  ctx.fillStyle = '#c8f31d'
+  ctx.fillStyle = '#ff3fa4'
   ctx.font = '700 34px Inter, sans-serif'
   ctx.fillText('HEAR ME OUT', pad, y)
   y += 56
-  ctx.fillStyle = '#f4f4f2'
+  ctx.fillStyle = '#fffcf7'
   ctx.font = '400 40px Inter, sans-serif'
   for (const line of wrapText(ctx, `“${drop.description}”`, W - pad * 2).slice(0, 4)) {
     ctx.fillText(line, pad, y)
@@ -127,7 +127,7 @@ export async function renderTasteCard(
   y += 40
 
   // author
-  ctx.fillStyle = '#9a9aa0'
+  ctx.fillStyle = '#a49dbb'
   ctx.font = '600 36px Inter, sans-serif'
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
@@ -142,20 +142,20 @@ export async function renderTasteCard(
   const px = pad
   const py = y
   const ph = 84
-  ctx.fillStyle = '#c8f31d'
+  ctx.fillStyle = '#ff3fa4'
   ctx.beginPath()
   ctx.roundRect(px, py, tw + 80, ph, 42)
   ctx.fill()
-  ctx.fillStyle = '#0a0a0b'
+  ctx.fillStyle = '#191725'
   ctx.fillText(pillText, px + 40, py + 55)
   if (callText) {
-    ctx.fillStyle = '#9a9aa0'
+    ctx.fillStyle = '#a49dbb'
     ctx.fillText(callText, px, py + ph + 58)
     y += 60
   }
 
   // footer
-  ctx.fillStyle = '#9a9aa0'
+  ctx.fillStyle = '#a49dbb'
   ctx.font = '500 30px Inter, sans-serif'
   ctx.fillText('Good taste deserves a track record.', pad, H - 90)
 

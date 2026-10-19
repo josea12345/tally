@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate, Avatar } from '../App'
+import Mascot from '../components/Mascot'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
@@ -108,11 +109,16 @@ export default function Onboarding() {
 
   return (
     <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
-      <div className="mb-2 text-4xl font-black tracking-tight">
+      <div className="wordmark mb-6 text-4xl">
         TALLY<span className="text-lime">.</span>
       </div>
-      <h1 className="mb-2 text-3xl font-black tracking-tight">Let me put you on…</h1>
-      <p className="mb-8 text-mute">Set up your profile. Short and sweet — your taste does the talking.</p>
+      <div className="mb-6 flex items-center gap-4">
+        <Mascot mood="happy" className="pop-in h-20 w-20 shrink-0 -rotate-6" />
+        <div>
+          <h1 className="wordmark text-3xl">You're in. Let's make it official.</h1>
+          <p className="mt-1 text-sm text-mute">Short and sweet — your taste does the talking.</p>
+        </div>
+      </div>
 
       <div className="mb-6 flex items-center gap-4">
         <Avatar url={avatarUrl.trim() || null} name={displayName || username || '?'} size={72} />
@@ -122,7 +128,7 @@ export default function Onboarding() {
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}
             placeholder="https://…"
-            className="w-full rounded-xl border border-line bg-ink-2 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-xl border-2 border-line bg-ink-2 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
       </div>
@@ -130,7 +136,7 @@ export default function Onboarding() {
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-xs font-bold text-mute">Username *</label>
-          <div className="flex items-center rounded-2xl border border-line bg-ink-2 px-4 focus-within:border-lime">
+          <div className="flex items-center rounded-2xl border-2 border-line bg-ink-2 px-4 focus-within:border-lime">
             <span className="text-mute">@</span>
             <input
               value={username}
@@ -153,7 +159,7 @@ export default function Onboarding() {
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Your Name"
             maxLength={60}
-            className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
         <div>
@@ -164,7 +170,7 @@ export default function Onboarding() {
             placeholder="What are you the plug for?"
             rows={2}
             maxLength={160}
-            className="w-full resize-none rounded-2xl border border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full resize-none rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
         <div>
@@ -174,16 +180,16 @@ export default function Onboarding() {
             onChange={(e) => setCity(e.target.value)}
             placeholder="Miami"
             maxLength={60}
-            className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
+            className="w-full rounded-2xl border-2 border-line bg-ink-2 px-4 py-3 outline-none placeholder:text-mute/60 focus:border-lime"
           />
         </div>
         {error && <p className="text-sm font-bold text-miss">{error}</p>}
         <button
           onClick={submit}
           disabled={busy || avail === 'taken' || avail === 'checking'}
-          className="w-full rounded-full bg-lime py-3.5 font-black text-ink transition hover:bg-lime-dim disabled:opacity-50"
+          className="btn-pop press w-full py-3.5"
         >
-          {busy ? 'Setting you up…' : 'Start dropping'}
+          {busy ? 'Cooking something up…' : 'Start dropping'}
         </button>
       </div>
     </div>

@@ -28,7 +28,7 @@ export function applyTheme(t: ResolvedTheme) {
   document.documentElement.dataset.theme = t
   document.documentElement.style.colorScheme = t
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute('content', t === 'light' ? '#f7f7f4' : '#0a0a0b')
+  if (meta) meta.setAttribute('content', t === 'light' ? '#fffcf7' : '#191725')
 }
 
 /** Persist the choice and apply it immediately. */

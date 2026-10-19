@@ -5,16 +5,18 @@ import Reveal from '../components/Reveal'
 import TallyMarks from '../components/TallyMarks'
 import AlertIcon from '../components/AlertIcon'
 import TallyIcon from '../components/TallyIcon'
-import { PinIcon, ChartIcon, VideoIcon, CardsIcon, ChainIcon, SearchIcon, ScoreIcon } from '../components/icons'
+import Mascot from '../components/Mascot'
+import { PinIcon, ChartIcon, VideoIcon, CardsIcon, ChainIcon, SearchIcon, ScoreIcon, SparkIcon } from '../components/icons'
 import { tasteScoreFor } from '../lib/stats'
 
 const PHRASES = ['Hear me out', 'Let me put you on', 'Trust me on this one', "Don't sleep on this"]
+const SEPARATOR_COLORS = ['text-lime', 'text-lilac', 'text-butter', 'text-sky']
 
 export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
   if (mode === 'auth') {
     return (
       <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
-        <button onClick={() => navigate('/')} className="mb-8 font-display text-4xl font-bold tracking-tight">
+        <button onClick={() => navigate('/')} className="wordmark mb-8 text-4xl">
           TALLY<span className="text-lime">.</span>
         </button>
         <AuthForm />
@@ -29,12 +31,12 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
     <div className="overflow-x-clip">
       {/* top bar */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <div className="font-display text-3xl font-bold tracking-tight">
+        <div className="wordmark text-3xl">
           TALLY<span className="text-lime">.</span>
         </div>
         <button
           onClick={() => navigate('/auth')}
-          className="rounded-full border border-line px-5 py-2 text-sm font-black text-fog transition hover:border-lime hover:text-lime"
+          className="press rounded-full border-2 border-line px-5 py-2 text-sm font-black text-fog transition hover:border-lime hover:text-lime"
         >
           Log in
         </button>
@@ -46,36 +48,42 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              'radial-gradient(600px 300px at 20% 10%, rgba(200,243,29,0.08), transparent 60%), radial-gradient(500px 260px at 85% 30%, rgba(200,243,29,0.05), transparent 60%)',
+              'radial-gradient(600px 300px at 20% 10%, rgba(255,63,164,0.10), transparent 60%), radial-gradient(500px 260px at 85% 30%, rgba(185,163,255,0.08), transparent 60%)',
           }}
         />
+        {/* sticker decorations */}
+        <SparkIcon className="wiggle pointer-events-none absolute left-[8%] top-24 h-8 w-8 text-butter" />
+        <SparkIcon className="wiggle-slow pointer-events-none absolute right-[12%] top-40 h-6 w-6 text-sky" />
+        <span className="doodle pointer-events-none absolute right-[6%] top-24 hidden rotate-6 text-2xl text-lilac md:block">
+          100% real humans ↓
+        </span>
         <Reveal>
-          <p className="mb-4 text-xs font-black uppercase tracking-[0.3em] text-lime">The taste network</p>
-          <h1 className="max-w-3xl font-display text-6xl font-bold leading-[0.98] tracking-tight md:text-8xl">
+          <p className="mb-4 inline-block -rotate-2 rounded-full bg-lime px-4 py-1 text-xs font-black uppercase tracking-[0.25em] text-[#191725]">
+            The taste network
+          </p>
+          <h1 className="wordmark max-w-3xl text-6xl leading-[0.95] md:text-8xl">
             Good taste deserves a <span className="text-lime">track&nbsp;record.</span>
           </h1>
         </Reveal>
         <Reveal delay={120}>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-mute">
             Drop the places, movies, and music you love. Your friends try them, call{' '}
-            <b className="text-lime">W</b> or <b className="text-miss">L</b> — and your win rate becomes your
+            <b className="text-win">W</b> or <b className="text-miss">L</b> — and your win rate becomes your
             reputation.
           </p>
         </Reveal>
         <Reveal delay={200}>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#get-started"
-              className="rounded-full bg-lime px-8 py-3.5 text-base font-black text-ink transition hover:bg-lime-dim"
-            >
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#get-started" className="btn-pop press px-8 py-3.5 text-base">
               Start putting on
             </a>
             <a
               href="#how"
-              className="rounded-full border border-line px-8 py-3.5 text-base font-black text-fog transition hover:border-lime hover:text-lime"
+              className="press rounded-full border-2 border-line px-8 py-3.5 text-base font-black text-fog transition hover:border-lime hover:text-lime"
             >
               See how it works
             </a>
+            <Mascot mood="happy" className="pop-in hidden h-16 w-16 -rotate-6 sm:block" />
           </div>
         </Reveal>
 
@@ -91,11 +99,11 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       </section>
 
       {/* marquee */}
-      <div className="overflow-hidden border-y border-line bg-ink-2 py-4">
+      <div className="overflow-hidden border-y-2 border-line bg-ink-2 py-4">
         <div className="animate-marquee flex w-max gap-8 whitespace-nowrap">
           {[...PHRASES, ...PHRASES, ...PHRASES, ...PHRASES].map((p, i) => (
             <span key={i} className="flex items-center gap-8 text-lg font-black tracking-tight text-fog/80">
-              “{p}” <span className="text-lime">✦</span>
+              “{p}” <SparkIcon className={`h-5 w-5 ${SEPARATOR_COLORS[i % SEPARATOR_COLORS.length]}`} />
             </span>
           ))}
         </div>
@@ -114,24 +122,27 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               Icon: PinIcon,
               title: 'Drop it',
               body: 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.',
+              accent: 'bg-lime',
             },
             {
               Icon: ({ className }: { className?: string }) => <TallyIcon saved className={className} />,
               title: 'They try it',
               body: 'Friends tally your drop, go try it for real, and vote.',
+              accent: 'bg-lilac',
             },
             {
               Icon: ChartIcon,
               title: 'You get the record',
               body: 'Every W and L feeds your public Taste Score. Missing verdicts never count as wins.',
+              accent: 'bg-butter',
             },
-          ].map(({ Icon, title, body }, i) => (
+          ].map(({ Icon, title, body, accent }, i) => (
             <Reveal key={title} delay={i * 100}>
-              <div className="h-full rounded-3xl border border-line bg-ink-2 p-6">
-                <div className="mb-4 text-lime">
-                  <Icon className="h-10 w-10" />
+              <div className="sticker-sm h-full rounded-3xl bg-ink-2 p-6">
+                <div className={`mb-4 inline-flex rounded-2xl ${accent} p-2.5 text-[#191725]`}>
+                  <Icon className="h-9 w-9" />
                 </div>
-                <h3 className="mb-2 font-display text-2xl font-bold">{title}</h3>
+                <h3 className="wordmark mb-2 text-2xl">{title}</h3>
                 <p className="leading-relaxed text-mute">{body}</p>
               </div>
             </Reveal>
@@ -153,10 +164,10 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             </p>
           </Reveal>
           <Reveal delay={120}>
-            <div className="mt-8 max-w-xl rounded-3xl border border-lime/40 bg-ink p-6">
+            <div className="sticker mt-8 max-w-xl rounded-3xl bg-ink p-6">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-sm font-black uppercase tracking-widest text-mute">@you · taste score</span>
-                <span className="font-display text-4xl font-black text-lime">81</span>
+                <span className="wordmark text-5xl text-lime">81</span>
               </div>
               <TallyMarks wins={11} losses={1} />
               <p className="mt-3 text-xs text-mute">11 W · 1 L across 12 verdicts — saves don't count as visits.</p>
@@ -178,39 +189,45 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               Icon: VideoIcon,
               title: '60-second reviews',
               body: 'Real reviews need more than a clip. Shoot up to a minute, right in the app.',
+              accent: 'text-lime',
             },
             {
               Icon: CardsIcon,
               title: 'Taste cards',
               body: 'Turn any drop into a story-sized card and put your whole following on.',
+              accent: 'text-lilac',
             },
             {
               Icon: ChainIcon,
               title: 'Put-on chains',
               body: 'See who tallied what from whom. Taste travels — now you can watch it.',
+              accent: 'text-sky',
             },
             {
               Icon: AlertIcon,
               title: 'Alerts',
               body: 'Know the second someone calls W on your drop.',
+              accent: 'text-butter',
             },
             {
               Icon: SearchIcon,
               title: 'Search',
               body: 'Find people with proven taste and drops worth trying.',
+              accent: 'text-win',
             },
             {
               Icon: ScoreIcon,
               title: 'Your call, 1–10',
               body: 'Score every drop. The crowd decides W or L.',
+              accent: 'text-miss',
             },
-          ].map(({ Icon, title, body }, i) => (
+          ].map(({ Icon, title, body, accent }, i) => (
             <Reveal key={title} delay={(i % 3) * 100}>
-              <div className="h-full rounded-3xl border border-line bg-ink-2 p-6 transition hover:border-lime/50">
-                <div className="mb-3 text-lime">
+              <div className="h-full rounded-3xl border-2 border-line bg-ink-2 p-6 transition hover:-translate-y-1 hover:border-lime/60">
+                <div className={`mb-3 ${accent}`}>
                   <Icon className="h-9 w-9" />
                 </div>
-                <h3 className="mb-1.5 text-lg font-black">{title}</h3>
+                <h3 className="wordmark mb-1.5 text-xl">{title}</h3>
                 <p className="text-sm leading-relaxed text-mute">{body}</p>
               </div>
             </Reveal>
@@ -219,14 +236,19 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       </section>
 
       {/* final CTA */}
-      <section id="get-started" className="scroll-mt-20 border-t border-line bg-ink-2">
+      <section id="get-started" className="relative scroll-mt-20 overflow-clip border-t-2 border-line bg-ink-2">
+        <SparkIcon className="wiggle pointer-events-none absolute left-[10%] top-10 h-7 w-7 text-lilac" />
+        <SparkIcon className="wiggle-slow pointer-events-none absolute bottom-16 right-[8%] h-9 w-9 text-butter" />
         <div className="mx-auto max-w-lg px-5 py-20">
           <Reveal>
-            <h2 className="text-center font-display text-4xl font-bold tracking-tight md:text-5xl">
+            <div className="mb-4 flex justify-center">
+              <Mascot mood="star" className="pop-in h-20 w-20" />
+            </div>
+            <h2 className="wordmark text-center text-4xl md:text-5xl">
               Put someone <span className="text-lime">on.</span>
             </h2>
             <p className="mb-8 mt-3 text-center text-mute">
-              Free. No fake activity — the community starts with real people, starting with you.
+              Free forever. No fake activity — the club starts with real people, starting with you.
             </p>
           </Reveal>
           <Reveal delay={100}>
@@ -236,7 +258,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       </section>
 
       <footer className="border-t border-line px-5 py-8 text-center text-xs text-mute">
-        <div className="mb-2 font-display text-xl font-bold text-fog">
+        <div className="wordmark mb-2 text-xl text-fog">
           TALLY<span className="text-lime">.</span>
         </div>
         Good taste deserves a track record. © 2026
@@ -268,7 +290,7 @@ function DemoCard() {
 
   return (
     <div
-      className="animate-floaty overflow-hidden rounded-3xl border border-line bg-ink-2 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+      className="animate-floaty sticker-sm overflow-hidden rounded-3xl bg-ink-2 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
       style={{ '--float-rot': '-1.5deg' } as React.CSSProperties}
     >
       <div className="flex items-center gap-3 px-4 pt-4">
@@ -299,7 +321,7 @@ function DemoCard() {
       <div className="px-4 py-4">
         <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-ink-3">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-lime to-lime-dim transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-win to-lime transition-all duration-500"
             style={{ width: `${score}%` }}
           />
         </div>
@@ -311,7 +333,7 @@ function DemoCard() {
               className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-lg font-black transition active:scale-95 ${
                 mine === v
                   ? v === 'W'
-                    ? 'bg-lime text-ink'
+                    ? 'bg-win text-ink'
                     : 'bg-miss text-white'
                   : 'border border-line bg-ink-3 text-fog hover:border-lime/60'
               } ${slam === v ? 'verdict-slam' : ''}`}
@@ -370,9 +392,9 @@ function AuthForm() {
 
   if (checkEmail) {
     return (
-      <div className="rounded-3xl border border-lime/50 bg-ink-2 p-6 text-center">
-        <div className="mb-2 text-2xl">✉️</div>
-        <h2 className="mb-2 text-xl font-black">Check your inbox</h2>
+      <div className="sticker-sm rounded-3xl bg-ink-2 p-6 text-center">
+        <Mascot mood="happy" className="pop-in mx-auto mb-3 h-20 w-20" />
+        <h2 className="wordmark mb-2 text-2xl">Check your inbox</h2>
         <p className="text-sm text-mute">
           We sent a confirmation link to <b className="text-fog">{email}</b>. Tap it, then come back and log in — your
           put-ons await.
@@ -382,7 +404,7 @@ function AuthForm() {
             setCheckEmail(false)
             setTab('in')
           }}
-          className="mt-4 rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink"
+          className="btn-pop press mt-4 px-6 py-2.5 text-sm"
         >
           I've confirmed — log me in
         </button>
@@ -391,7 +413,7 @@ function AuthForm() {
   }
 
   return (
-    <div className="rounded-3xl border border-line bg-ink-2 p-6">
+    <div className="sticker-sm rounded-3xl bg-ink-2 p-6">
       <div className="mb-5 grid grid-cols-2 rounded-full bg-ink-3 p-1">
         {(['in', 'up'] as const).map((t) => (
           <button
@@ -400,7 +422,7 @@ function AuthForm() {
               setTab(t)
               setError(null)
             }}
-            className={`rounded-full py-2 text-sm font-black transition ${tab === t ? 'bg-lime text-ink' : 'text-mute'}`}
+            className={`rounded-full py-2 text-sm font-black transition ${tab === t ? 'bg-lime text-[#191725]' : 'text-mute'}`}
           >
             {t === 'in' ? 'Log in' : 'Sign up'}
           </button>
@@ -413,7 +435,7 @@ function AuthForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           autoComplete="email"
-          className="w-full rounded-2xl border border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
         />
         <input
           type="password"
@@ -421,19 +443,19 @@ function AuthForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password (6+ characters)"
           autoComplete={tab === 'in' ? 'current-password' : 'new-password'}
-          className="w-full rounded-2xl border border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
+          className="w-full rounded-2xl border-2 border-line bg-ink-3 px-4 py-3 text-[15px] outline-none placeholder:text-mute/60 focus:border-lime"
         />
         {error && <p className="text-sm font-bold text-miss">{error}</p>}
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-lime py-3.5 text-base font-black text-ink transition hover:bg-lime-dim disabled:opacity-50"
+          className="btn-pop press w-full py-3.5 text-base"
         >
-          {busy ? 'One sec…' : tab === 'in' ? 'Log in' : 'Let me put you on — sign up'}
+          {busy ? 'Cooking something up…' : tab === 'in' ? 'Log in' : 'Let me put you on — sign up'}
         </button>
       </form>
-      <p className="mt-4 text-center text-xs text-mute">
-        No fake activity here — the community starts with real people, starting with you.
+      <p className="doodle mt-4 text-center text-xl text-mute">
+        no fake activity here — real people only
       </p>
     </div>
   )

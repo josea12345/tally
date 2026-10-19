@@ -369,7 +369,7 @@ export default function Camera() {
                     cy="48"
                     r={RING_R}
                     fill="none"
-                    stroke={recording ? '#ff5d5d' : '#c8f31d'}
+                    stroke={recording ? '#ff5d6e' : '#ff3fa4'}
                     strokeWidth="5"
                     strokeDasharray={RING_CIRC}
                     strokeDashoffset={RING_CIRC * (1 - progress)}
@@ -398,7 +398,7 @@ export default function Camera() {
                 <button
                   onClick={finishVideo}
                   aria-label="Done recording"
-                  className="flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)]"
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(255,63,164,0.4)]"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-7 w-7">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

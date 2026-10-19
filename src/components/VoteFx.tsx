@@ -12,13 +12,13 @@ export function VerdictBurst({ v, onDone }: { v: 'W' | 'L'; onDone: () => void }
     <div className="pointer-events-none fixed inset-0 z-[200] flex items-center justify-center">
       <div className="verdict-burst-bg absolute inset-0 bg-black/35" />
       <span
-        className={`verdict-burst relative font-black leading-none ${v === 'W' ? 'text-lime' : 'text-miss'}`}
+        className={`verdict-burst relative font-black leading-none ${v === 'W' ? 'text-win' : 'text-miss'}`}
         style={{
           fontSize: 'min(44vw, 26rem)',
           filter:
             v === 'W'
-              ? 'drop-shadow(0 0 60px rgba(200,243,29,0.45))'
-              : 'drop-shadow(0 0 60px rgba(255,93,93,0.45))',
+              ? 'drop-shadow(0 0 60px rgba(105,231,207,0.45))'
+              : 'drop-shadow(0 0 60px rgba(255,93,110,0.45))',
         }}
       >
         {v}

@@ -52,8 +52,8 @@ function Tab({ active, onClick, label }: { active: boolean; onClick: () => void;
   return (
     <button
       onClick={onClick}
-      className={`min-w-0 truncate rounded-full px-2 py-1.5 text-[11px] font-bold tracking-tight transition ${
-        active ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+      className={`press min-w-0 truncate rounded-full px-2 py-1.5 text-[11px] font-bold tracking-tight transition ${
+        active ? 'bg-lime text-[#191725]' : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
       {label}
@@ -65,8 +65,8 @@ function SubTab({ active, onClick, label }: { active: boolean; onClick: () => vo
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
-        active ? 'bg-lime text-ink' : 'border border-line bg-ink-2 text-mute hover:text-fog'
+      className={`press shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
+        active ? 'bg-lime text-[#191725]' : 'border border-line bg-ink-2 text-mute hover:text-fog'
       }`}
     >
       {label}

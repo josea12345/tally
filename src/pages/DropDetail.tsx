@@ -189,7 +189,7 @@ export default function DropDetail({ id }: { id: string }) {
 
   if (error || !drop) {
     return <EmptyState title="Drop not found" body={error ?? 'This drop does not exist.'} action={
-      <button onClick={() => navigate('/')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+      <button onClick={() => navigate('/')} className="btn-pop press px-6 py-2.5 text-sm">
         Back to Discover
       </button>
     } />

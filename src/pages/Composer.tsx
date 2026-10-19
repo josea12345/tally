@@ -285,8 +285,8 @@ export default function Composer({ editId }: { editId?: string }) {
   }
 
   if (!user) {
-    return <EmptyState title="Log in to drop" body="You need an account to put people on." action={
-      <button onClick={() => navigate('/auth')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+    return <EmptyState title="Log in to drop" body="You need an account to put people on." mood="happy" action={
+      <button onClick={() => navigate('/auth')} className="btn-pop press px-6 py-2.5 text-sm">
         Log in
       </button>
     } />
@@ -302,8 +302,8 @@ export default function Composer({ editId }: { editId?: string }) {
 
   return (
     <div className="mx-auto max-w-xl px-4 pb-10 pt-5">
-      <h1 className="mb-1 text-3xl font-black tracking-tight">Let me put you on</h1>
-      <p className="mb-5 text-sm text-mute">Drop something worth knowing. Keep it real — your record is on the line.</p>
+      <h1 className="wordmark mb-1 text-4xl">Drop a put-on</h1>
+      <p className="mb-5 text-sm text-mute">Something worth knowing. Keep it real — <span className="doodle text-xl text-lime">your record's on the line</span></p>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {ALL_CATEGORIES.map((c) => (
@@ -344,7 +344,7 @@ export default function Composer({ editId }: { editId?: string }) {
 
       {category === 'recipes' && (
         <>
-          <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+          <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
             <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
               Ingredients <span className="text-mute/60">— one per line</span>
             </label>
@@ -356,7 +356,7 @@ export default function Composer({ editId }: { editId?: string }) {
               className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-mute/60"
             />
           </div>
-          <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+          <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
             <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">
               Steps <span className="text-mute/60">— one per line</span>
             </label>
@@ -371,7 +371,7 @@ export default function Composer({ editId }: { editId?: string }) {
         </>
       )}
 
-      <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+      <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
         <label className="mb-1 block text-xs font-black uppercase tracking-widest text-lime">Hear me out —</label>
         <textarea
           value={description}
@@ -384,7 +384,7 @@ export default function Composer({ editId }: { editId?: string }) {
         <div className="text-right text-[11px] text-mute">{description.length}/600</div>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">
+      <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
         <div className="mb-1 flex items-baseline justify-between">
           <label className="text-xs font-black uppercase tracking-widest text-mute">
             Your call <span className="text-mute/60">(optional)</span>
@@ -442,7 +442,7 @@ export default function Composer({ editId }: { editId?: string }) {
       </button>
 
       {detailsOpen && (
-        <div className="rise-in space-y-3 rounded-2xl border border-line bg-ink-2 p-4">
+        <div className="rise-in space-y-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
           <div>
             <label className="mb-1 block text-xs font-bold text-mute">Trust me: <span className="font-normal">(tip — what to order, when to go)</span></label>
             <input
@@ -535,9 +535,9 @@ export default function Composer({ editId }: { editId?: string }) {
       <button
         onClick={submit}
         disabled={!canPost}
-        className="mt-5 w-full rounded-full bg-lime py-4 text-base font-black text-ink transition hover:bg-lime-dim disabled:opacity-40"
+        className="btn-pop press mt-5 w-full py-4 text-lg"
       >
-        {busy ? 'Posting…' : editId ? 'Save changes' : 'Post — put everyone on'}
+        {busy ? 'Dropping it…' : editId ? 'Save changes' : 'Post — put everyone on'}
       </button>
       {!canPost && (
         <p className="mt-2 text-center text-xs text-mute">Add a {isPlace ? 'place name' : 'title'} and one line on why it's worth it.</p>

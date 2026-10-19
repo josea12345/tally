@@ -101,7 +101,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const scoreBadge =
     drop.score != null ? (
       <div
-        className="flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
+        className="sticker-flat flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
         title="Author's call"
       >
         <span className="text-lg font-black leading-none text-lime">{drop.score}</span>
@@ -126,7 +126,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const headerScore =
     drop.score != null ? (
       <div
-        className="flex shrink-0 items-baseline gap-1 rounded-full border border-lime/40 bg-lime/10 px-3 py-1.5"
+        className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-lime/50 bg-lime/10 px-3 py-1.5"
         title="Author's call"
       >
         <span className="text-xl font-black leading-none text-lime">{drop.score}</span>
@@ -187,7 +187,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
       </button>
       <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex items-center gap-1.5">
-        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
+        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-win' : 'text-white'}`}>W</span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
       </button>
       <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex items-center gap-1.5">
@@ -209,7 +209,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         aria-label="Vote W"
         className="press flex items-center gap-1.5"
       >
-        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-lime' : 'text-fog'}`}>W</span>
+        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-win' : 'text-fog'}`}>W</span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
       </button>
       <button

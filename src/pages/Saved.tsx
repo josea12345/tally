@@ -45,16 +45,17 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     <div>
       {!bare && (
         <div className="border-b border-line px-4 pb-3 pt-5">
-          <h1 className="text-2xl font-black tracking-tight">Tallies</h1>
+          <h1 className="wordmark text-3xl">Tallies</h1>
           <p className="text-sm text-mute">Everything people put you on to.</p>
         </div>
       )}
       {drops.length === 0 ? (
         <EmptyState
-          title="No tallies yet"
+          title="Nothing in the vault yet"
           body="When someone puts you on to something, tally it here — your shortlist of things worth trying."
+          mood="happy"
           action={
-            <button onClick={() => navigate('/')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+            <button onClick={() => navigate('/')} className="btn-pop press px-6 py-2.5 text-sm">
               Find a put-on
             </button>
           }

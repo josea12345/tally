@@ -101,7 +101,7 @@ function MobileNav({ route }: { route: Route }) {
           <button
             onClick={() => navigate('/camera')}
             aria-label="Open camera"
-            className="-mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(200,243,29,0.35)] transition active:scale-95"
+            className="-mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-lime text-ink shadow-[0_4px_20px_rgba(255,63,164,0.4)] transition active:scale-95"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
               <path
@@ -132,7 +132,7 @@ function DesktopRail() {
   ]
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-line p-6 md:flex">
-      <button onClick={() => navigate('/')} className="mb-8 text-left text-3xl font-black tracking-tight">
+      <button onClick={() => navigate('/')} className="wordmark mb-8 text-left text-4xl">
         TALLY<span className="text-lime">.</span>
       </button>
       {items.map((i) => (
@@ -149,7 +149,7 @@ function DesktopRail() {
       ))}
       <button
         onClick={() => navigate('/create')}
-        className="mt-4 rounded-full bg-lime px-5 py-3 text-lg font-black text-ink transition hover:bg-lime-dim"
+        className="btn-pop press mt-4 px-5 py-3 text-lg"
       >
         Put someone on
       </button>
@@ -234,7 +234,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink">
-        <div className="text-4xl font-black tracking-tight">
+        <div className="wordmark text-5xl">
           TALLY<span className="text-lime">.</span>
         </div>
       </div>

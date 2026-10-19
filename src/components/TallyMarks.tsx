@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 
 /**
  * The TALLY signature: wins and losses drawn as classic tally-mark groups
- * (four verticals crossed by a diagonal). Wins in lime, losses in red.
+ * (four verticals crossed by a diagonal). Wins in mint, losses in red.
  */
 export default function TallyMarks({
   wins,
@@ -34,7 +34,7 @@ export default function TallyMarks({
             si < 4 ? (
               <span
                 key={si}
-                className={`tally-stroke w-[3px] rounded-full ${m === 'w' ? 'bg-lime' : 'bg-miss'}`}
+                className={`tally-stroke w-[3px] rounded-full ${m === 'w' ? 'bg-win' : 'bg-miss'}`}
                 style={{ '--tally-delay': `${gi * 130 + si * 70}ms` } as CSSProperties}
               />
             ) : (
@@ -44,7 +44,7 @@ export default function TallyMarks({
                 style={{ transform: 'rotate(-24deg)' }}
               >
                 <span
-                  className={`tally-stroke block h-[3px] rounded-full ${m === 'w' ? 'bg-lime' : 'bg-miss'}`}
+                  className={`tally-stroke block h-[3px] rounded-full ${m === 'w' ? 'bg-win' : 'bg-miss'}`}
                   style={{ '--tally-delay': `${gi * 130 + si * 70}ms` } as CSSProperties}
                 />
               </span>

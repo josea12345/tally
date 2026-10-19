@@ -1,18 +1,24 @@
+import Mascot from './Mascot'
+
 export default function EmptyState({
   title,
   body,
   action,
+  mood = 'sleepy',
+  hideMascot = false,
 }: {
   title: string
   body: string
   action?: React.ReactNode
+  mood?: 'happy' | 'sleepy' | 'star'
+  hideMascot?: boolean
 }) {
   return (
     <div className="rise-in mx-auto max-w-sm px-6 py-16 text-center">
-      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-ink-3 text-3xl font-black text-lime">
-        T
-      </div>
-      <h3 className="mb-2 text-xl font-black">{title}</h3>
+      {!hideMascot && (
+        <Mascot mood={mood} className="pop-in mx-auto mb-5 h-24 w-24" />
+      )}
+      <h3 className="wordmark mb-2 text-2xl">{title}</h3>
       <p className="mb-6 text-sm leading-relaxed text-mute">{body}</p>
       {action}
     </div>

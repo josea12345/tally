@@ -8,6 +8,8 @@ import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import BadgeList from '../components/BadgeList'
+import Mascot from '../components/Mascot'
+import { GearIcon, CameraIcon } from '../components/icons'
 import TallyMarks from '../components/TallyMarks'
 import CountUp from '../components/CountUp'
 import Saved from './Saved'
@@ -233,7 +235,7 @@ export default function Profile({ id }: { id?: string }) {
         <div className="flex items-start gap-4">
           <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={84} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-3xl font-bold tracking-tight">
+            <h1 className="wordmark truncate text-3xl">
               {profile.display_name || `@${profile.username}`}
             </h1>
             <p className="text-sm text-mute">@{profile.username}{profile.city ? ` · ${profile.city}` : ''}</p>
@@ -243,9 +245,9 @@ export default function Profile({ id }: { id?: string }) {
               <button
                 onClick={() => navigate('/settings')}
                 aria-label="Settings"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-lg text-fog transition hover:border-lime hover:text-lime"
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-line text-fog transition hover:border-lime hover:text-lime"
               >
-                ⚙️
+                <GearIcon className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setEditing((e) => !e)}
@@ -270,8 +272,8 @@ export default function Profile({ id }: { id?: string }) {
                 aria-label="Upload profile photo"
               >
                 <Avatar url={form.avatar_url || null} name={form.display_name || profile.username} size={64} />
-                <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-lime text-sm text-ink shadow">
-                  📷
+                <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#191725] bg-lime text-[#191725] shadow">
+                  <CameraIcon className="h-4 w-4" />
                 </span>
               </button>
               <div className="min-w-0">
@@ -332,7 +334,7 @@ export default function Profile({ id }: { id?: string }) {
                   strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 44}
                   strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
-                  style={{ stroke: 'var(--color-lime)', filter: 'drop-shadow(0 0 8px rgba(200,243,29,0.5))' }}
+                  style={{ stroke: 'var(--color-lime)', filter: 'drop-shadow(0 0 8px rgba(255,63,164,0.55))' }}
                 />
               )}
             </svg>
@@ -407,10 +409,10 @@ export default function Profile({ id }: { id?: string }) {
 
       {profile.is_private && !isOwn && !isFollowing ? (
         <div className="px-4 py-14 text-center">
-          <div className="mb-3 text-5xl">🔒</div>
-          <h2 className="text-xl font-black">This account is private</h2>
+          <Mascot mood="sleepy" className="pop-in mx-auto mb-4 h-24 w-24" />
+          <h2 className="wordmark text-2xl">This account is private</h2>
           <p className="mx-auto mt-1 max-w-xs text-sm text-mute">
-            Request to follow @{profile.username} to see their drops.
+            It's a little too quiet in here — request to follow @{profile.username} to see their drops.
           </p>
         </div>
       ) : (

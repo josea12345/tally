@@ -106,14 +106,14 @@ export default function FollowList({ profileId, kind }: { profileId: string; kin
           <p className="py-8 text-center text-sm text-mute">Loading…</p>
         ) : locked ? (
           <div className="py-14 text-center">
-            <div className="mb-3 text-4xl">🔒</div>
             <p className="text-sm font-bold">This account is private.</p>
             <p className="mt-1 text-xs text-mute">Follow @{owner?.username} to see their {tab}.</p>
           </div>
         ) : rows.length === 0 ? (
           <EmptyState
+            mood="happy"
             title={tab === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
-            body={tab === 'followers' ? 'When people follow, they show up here.' : 'Accounts followed show up here.'}
+            body={tab === 'followers' ? 'When people follow, they show up here.' : 'Accounts you follow show up here.'}
           />
         ) : (
           <ul className="divide-y divide-line">

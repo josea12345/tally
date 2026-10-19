@@ -304,7 +304,10 @@ export default function Discover() {
 
       {tastemakers.length > 0 && tab === 'putons' && (
         <div className="border-b border-line px-4 py-3">
-          <div className="mb-2 text-xs font-black uppercase tracking-widest text-mute">Proven taste</div>
+          <div className="mb-2 flex items-baseline gap-2">
+            <span className="text-xs font-black uppercase tracking-widest text-mute">Proven taste</span>
+            <span className="doodle text-lg leading-none text-lilac">the ones getting it right</span>
+          </div>
           <div className="rail-scroll flex gap-4 overflow-x-auto pb-1">
             {tastemakers.map((p) => (
               <button key={p.id} onClick={() => navigate(`/profile/${p.id}`)} className="flex w-16 shrink-0 flex-col items-center gap-1">
@@ -334,21 +337,22 @@ export default function Discover() {
           ))}
         </div>
       ) : error ? (
-        <EmptyState title="Couldn't load drops" body={error} action={
-          <button onClick={() => window.location.reload()} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+        <EmptyState title="Couldn't load drops" body={error} mood="sleepy" action={
+          <button onClick={() => window.location.reload()} className="btn-pop press px-6 py-2.5 text-sm">
             Try again
           </button>
         } />
       ) : visible.length === 0 ? (
         <EmptyState
+          mood={debounced ? 'sleepy' : 'happy'}
           title={
             debounced
               ? 'No put-ons match that search'
               : tab === 'following'
-                ? "Nobody's put you on to anything yet"
+                ? "It's a little too quiet in here"
                 : tab === 'near'
                   ? 'Nothing near you yet'
-                  : "Nobody's put you on to this one yet"
+                  : "It's a little too quiet in here"
           }
           body={
             debounced
@@ -360,7 +364,7 @@ export default function Discover() {
                   : 'Be the first — drop something worth knowing.'
           }
           action={
-            <button onClick={() => navigate('/create')} className="rounded-full bg-lime px-6 py-2.5 text-sm font-black text-ink">
+            <button onClick={() => navigate('/create')} className="btn-pop press px-6 py-2.5 text-sm">
               Put someone on
             </button>
           }

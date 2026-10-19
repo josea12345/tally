@@ -101,7 +101,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       {/* poll-style split bar */}
       <div className="mb-4 flex h-3.5 overflow-hidden rounded-full bg-ink-3">
         <div
-          className={`poll-fill ${winPct >= 50 ? 'glow-win' : ''} bg-lime`}
+          className={`poll-fill ${winPct >= 50 ? 'glow-win' : ''} bg-win`}
           style={{ width: `${winPct}%`, transition: 'width 0.7s cubic-bezier(0.22,1,0.36,1)' }}
         />
         <div
@@ -110,12 +110,12 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
         />
       </div>
       <div className="mb-4 flex justify-between text-xs font-bold">
-        <span className="text-lime">W · {stats.wins}</span>
+        <span className="text-win">W · {stats.wins}</span>
         <span className="text-miss">L · {stats.losses}</span>
       </div>
 
       {justVoted && (
-        <div className="banner-pop mb-4 rounded-xl bg-lime px-4 py-3 text-sm font-black text-ink">
+        <div className="pop-in sticker-sm mb-4 rounded-2xl bg-lime px-4 py-3 text-sm font-black text-[#191725]">
           {justVoted === 'W' ? 'Called it: W. They put you on.' : 'Called it: L. Honest — that’s the game.'}
         </div>
       )}
@@ -140,7 +140,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
                 onClick={() => vote('W')}
                 disabled={busy}
                 className={`press rounded-full px-4 py-3 text-sm font-black transition disabled:opacity-50 ${
-                  myVerdict?.verdict === 'W' ? 'verdict-slam bg-lime text-ink' : 'border border-line bg-ink-3 text-lime hover:border-lime'
+                  myVerdict?.verdict === 'W' ? 'verdict-slam bg-win text-ink' : 'border border-line bg-ink-3 text-win hover:border-win'
                 }`}
               >
                 W{myVerdict?.verdict === 'W' ? ' ✓' : ''}
