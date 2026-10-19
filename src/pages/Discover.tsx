@@ -25,11 +25,11 @@ function AlertsBell() {
     <button
       onClick={() => navigate('/notifications')}
       aria-label="Notifications"
-      className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line text-fog transition hover:border-lime hover:text-lime"
+      className="relative flex h-9 w-9 items-center justify-center text-fog transition hover:text-lime"
     >
-      <AlertIcon className="h-5 w-5" />
+      <AlertIcon className="h-6 w-6" />
       {unread > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
           {unread > 9 ? '9+' : unread}
         </span>
       )}
@@ -228,38 +228,37 @@ export default function Discover() {
   return (
     <div>
       <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-1.5 pt-2.5 backdrop-blur">
-        <div className="mb-1.5 flex items-center justify-between">
-          <div className="font-display text-lg font-bold tracking-tight">
-            TALLY<span className="text-lime">.</span>
+        {/* TikTok-style top bar: bell | text tabs | search */}
+        <div className="mb-1 flex items-center justify-between">
+          <AlertsBell />
+          <div className="flex items-center gap-5">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`relative px-1 py-1 text-[16px] transition ${
+                  tab === t.id ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
+                }`}
+              >
+                {t.label}
+                {tab === t.id && (
+                  <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-lime" />
+                )}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSearchOpen((o) => !o)}
-              aria-label="Search put-ons"
-              className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
-                searchOpen || query ? 'border-lime text-lime' : 'border-line text-fog hover:border-lime hover:text-lime'
-              }`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-5 w-5">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
-            </button>
-            <AlertsBell />
-          </div>
-        </div>
-        <div className="mb-1.5 flex gap-1 rounded-full bg-ink-3 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-1.5 text-sm font-black transition ${
-                tab === t.id ? 'bg-lime text-ink' : 'text-mute hover:text-fog'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          <button
+            onClick={() => setSearchOpen((o) => !o)}
+            aria-label="Search put-ons"
+            className={`flex h-9 w-9 items-center justify-center transition ${
+              searchOpen || query ? 'text-lime' : 'text-fog hover:text-lime'
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-6 w-6">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+          </button>
         </div>
         {searchOpen && (
           <div className="mb-1.5">
