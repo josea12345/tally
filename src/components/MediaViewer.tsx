@@ -37,11 +37,24 @@ export default function MediaViewer({
   const touchRef = useRef<{ y0: number; dy: number; id: number } | null>(null)
   const swipeAt = useRef(0)
   const closeTimer = useRef<number | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
   const [dragY, setDragY] = useState(0)
   const [dragOn, setDragOn] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [seeking, setSeeking] = useState(false)
 
   const justSwiped = () => Date.now() - swipeAt.current < 500
+
+  // Scrubber: drag the knob (or tap the bar) to seek.
+  const seekToClientX = (clientX: number) => {
+    const bar = barRef.current
+    const vid = vidRef.current
+    if (!bar || !vid || !vid.duration) return
+    const r = bar.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
+    vid.currentTime = ratio * vid.duration
+    setProgress(ratio)
+  }
 
   const onTouchStart = (e: TouchEvent) => {
     const t = e.touches[0]
@@ -256,10 +269,43 @@ export default function MediaViewer({
         )}
       </div>
 
-      {/* slim progress bar */}
+      {/* seekable progress bar: drag the knob or tap the bar to scrub */}
       {isVideo && (
-        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/15 pb-[env(safe-area-inset-bottom)]">
-          <div className="h-[3px] bg-sig transition-[width]" style={{ width: `${progress * 100}%` }} />
+        <div
+          className="absolute inset-x-0 bottom-0 pb-[env(safe-area-inset-bottom)]"
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <div
+            ref={barRef}
+            className="flex h-8 cursor-pointer items-center px-4"
+            style={{ touchAction: 'none' }}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              e.currentTarget.setPointerCapture(e.pointerId)
+              setSeeking(true)
+              seekToClientX(e.clientX)
+            }}
+            onPointerMove={(e) => {
+              if (seeking) seekToClientX(e.clientX)
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation()
+              setSeeking(false)
+            }}
+            onPointerCancel={() => setSeeking(false)}
+          >
+            <div className="relative h-[3px] w-full rounded-full bg-white/15">
+              <div
+                className="absolute left-0 top-0 h-full rounded-full bg-sig"
+                style={{ width: `${progress * 100}%` }}
+              />
+              <div
+                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sig shadow-[0_1px_6px_rgba(0,0,0,0.6)] transition-[width,height] ${seeking ? 'h-4 w-4' : 'h-3 w-3'}`}
+                style={{ left: `${progress * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>,

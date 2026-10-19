@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
+import { SoundOffIcon, SoundOnIcon } from '../components/MediaViewer'
 import { takePendingRawMedia, setPendingUpload } from '../lib/pendingMedia'
 import {
   CLIP_MAX_SECONDS,
@@ -232,9 +233,9 @@ export default function VideoReview() {
           <button
             onClick={toggleMute}
             aria-label={muted ? 'Unmute' : 'Mute'}
-            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-base"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white"
           >
-            {muted ? '🔇' : '🔊'}
+            {muted ? <SoundOffIcon /> : <SoundOnIcon />}
           </button>
         </div>
       </div>
