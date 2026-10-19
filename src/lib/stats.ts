@@ -40,6 +40,63 @@ export function winRateFor(verdicts: Verdict[]): WinRate {
   return { wins, losses, total, rate: total >= WIN_RATE_MINIMUM ? wins / total : null, score: tasteScoreFor(wins, losses) }
 }
 
+export interface TrustBreakdown {
+  /** 0–100, or null when there isn't enough rating data yet. */
+  score: number | null
+  qualifyingDrops: number
+  /** Mean |author score − community mean| across qualifying drops. */
+  meanDiff: number | null
+  accuracy: number | null
+  engagement: number
+  interactions: number
+}
+
+/** Trust needs at least this many drops with an author score + community ratings. */
+export const TRUST_MIN_DROPS = 2
+
+/**
+ * Trust Score: do your ratings hold up?
+ *
+ * 70% rating accuracy — across your drops that have your own score plus at
+ * least 2 community (non-author) comment ratings, how close is your score to
+ * the community's mean? A 1-point miss on the 1–10 scale costs ~11 points of
+ * accuracy. 30% engagement — log-scaled interactions (verdicts + comments +
+ * saves) on your drops, maxing out at ~100. Both halves are earned, never
+ * given: no community ratings, no score.
+ */
+export function trustScoreFor(
+  drops: Array<{ score: number | null; community: number[] }>,
+  totalInteractions: number
+): TrustBreakdown {
+  const diffs: number[] = []
+  for (const d of drops) {
+    if (d.score == null || d.community.length < 2) continue
+    const mean = d.community.reduce((a, b) => a + b, 0) / d.community.length
+    diffs.push(Math.abs(d.score - mean))
+  }
+  const engagement = Math.min(1, Math.log10(1 + totalInteractions) / 2)
+  if (diffs.length < TRUST_MIN_DROPS) {
+    return {
+      score: null,
+      qualifyingDrops: diffs.length,
+      meanDiff: null,
+      accuracy: null,
+      engagement,
+      interactions: totalInteractions,
+    }
+  }
+  const meanDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length
+  const accuracy = Math.max(0, 1 - meanDiff / 9)
+  return {
+    score: Math.round(100 * (0.7 * accuracy + 0.3 * engagement)),
+    qualifyingDrops: diffs.length,
+    meanDiff,
+    accuracy,
+    engagement,
+    interactions: totalInteractions,
+  }
+}
+
 export interface Badge {
   id: string
   title: string

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, Profile, Verdict } from '../lib/types'
-import { winRateFor, WIN_RATE_MINIMUM } from '../lib/stats'
+import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
@@ -62,6 +62,8 @@ export default function Profile({ id }: { id?: string }) {
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
   const [showFormula, setShowFormula] = useState(false)
+  const [trust, setTrust] = useState<TrustBreakdown | null>(null)
+  const [showTrustInfo, setShowTrustInfo] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>([])
 
@@ -136,13 +138,25 @@ export default function Profile({ id }: { id?: string }) {
       const ids = list.map((d) => d.id)
       let savedByOthers = 0
       let verdictsReceived: Verdict[] = []
+      let commentCount = 0
+      let communityByDrop = new Map<string, number[]>()
       if (ids.length > 0) {
-        const [{ data: saves }, { data: vts }] = await Promise.all([
+        const [{ data: saves }, { data: vts }, { count: cc }, { data: rated }] = await Promise.all([
           supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
           supabase.from('verdicts').select('*').in('drop_id', ids).limit(5000),
+          supabase.from('comments').select('id', { count: 'exact', head: true }).in('drop_id', ids),
+          supabase.from('comments').select('drop_id,user_id,rating').in('drop_id', ids).not('rating', 'is', null).limit(2000),
         ])
         savedByOthers = (saves ?? []).length
         verdictsReceived = (vts ?? []) as Verdict[]
+        commentCount = cc ?? 0
+        for (const rc of (rated ?? []) as Array<{ drop_id: string; user_id: string; rating: number }>) {
+          // The author's own comment ratings don't count — their take is the drop's score.
+          if (rc.user_id === profileId) continue
+          const arr = communityByDrop.get(rc.drop_id) ?? []
+          arr.push(rc.rating)
+          communityByDrop.set(rc.drop_id, arr)
+        }
       }
       if (!live) return
       setStats({
@@ -151,6 +165,14 @@ export default function Profile({ id }: { id?: string }) {
         verdictsReceived: verdictsReceived.filter((v) => v.verdict === 'W' || v.verdict === 'L').length,
         rate: winRateFor(verdictsReceived),
       })
+      if (live) {
+        setTrust(
+          trustScoreFor(
+            list.map((d) => ({ score: d.score, community: communityByDrop.get(d.id) ?? [] })),
+            verdictsReceived.length + commentCount + savedByOthers
+          )
+        )
+      }
 
       setLoading(false)
     }
@@ -382,6 +404,67 @@ export default function Profile({ id }: { id?: string }) {
                 <li>· 5 lucky Ws score 57. 850 Ws out of 1,000 score 83. Volume earns trust.</li>
                 <li>· Only W/L verdicts move it. Saves, views, and missing verdicts never count.</li>
                 <li>· Your score appears after {WIN_RATE_MINIMUM} verdicts.</li>
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* trust score */}
+        <div className="mt-6 flex w-full flex-col items-center border-t border-line pt-6">
+          <div className="relative h-28 w-28">
+            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+              {trust && trust.score != null && (
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 44}
+                  strokeDashoffset={2 * Math.PI * 44 * (1 - trust.score / 100)}
+                  style={{ stroke: 'var(--color-win)', filter: 'drop-shadow(0 0 8px rgba(105, 231, 207, 0.45))' }}
+                />
+              )}
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-4xl font-black tabular-nums text-win">
+                {trust && trust.score != null ? <CountUp value={trust.score} /> : '—'}
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 text-[11px] font-black uppercase tracking-[0.25em] text-mute">
+            Trust
+          </div>
+          {trust && trust.score == null && (
+            <p className="mt-2 max-w-[270px] text-center text-xs leading-relaxed text-mute">
+              Not enough data yet — Trust appears once {TRUST_MIN_DROPS} of your drops have your score
+              plus community ratings.
+            </p>
+          )}
+          {trust && trust.score != null && trust.meanDiff != null && (
+            <p className="mt-2 max-w-[280px] text-center text-xs text-mute">
+              Your scores land within <span className="font-bold text-fog">{trust.meanDiff.toFixed(1)}</span> of
+              the community · {trust.interactions} interactions
+            </p>
+          )}
+          <button
+            onClick={() => setShowTrustInfo((s) => !s)}
+            className="mt-2 text-xs font-bold text-mute transition hover:text-sig"
+          >
+            How it's calculated {showTrustInfo ? '▴' : '▾'}
+          </button>
+          {showTrustInfo && (
+            <div className="mt-2 w-full max-w-[300px] rounded-2xl border border-line bg-ink-2 p-4">
+              <div className="mb-2 text-center text-sm font-black tracking-tight">
+                Do your ratings hold up?
+              </div>
+              <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
+                <li>· 70% rating accuracy — how close your 1–10 score lands to the community's mean rating on your drops.</li>
+                <li>· 30% engagement — verdicts, comments, and tallies on your drops (log-scaled, maxes out around 100).</li>
+                <li>· Only drops with your score + at least 2 community ratings count. Your own comment ratings never count.</li>
+                <li>· Rate other people's drops in the comments to feed their Trust.</li>
               </ul>
             </div>
           )}

@@ -118,6 +118,8 @@ export interface Comment {
   drop_id: string
   user_id: string
   body: string
+  /** Optional 1–10 rating attached via the composer picker (one per user per drop). */
+  rating: number | null
   created_at: string
   updated_at: string
   user?: Profile

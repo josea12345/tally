@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Comment, Profile } from '../lib/types'
@@ -21,6 +21,16 @@ export default function Comments({
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Rating picker for this comment (1–10). Prefilled from the user's existing
+  // rating on this drop, if any — posting with a new one replaces it.
+  const [picked, setPicked] = useState<number | null>(null)
+  const [rateOpen, setRateOpen] = useState(false)
+  const pickedTouched = useRef(false)
+
+  const isAuthor = !!user && !!authorId && user.id === authorId
+  const myRated = comments.find((c) => user && c.user_id === user.id && c.rating != null)
+  const rated = comments.filter((c) => c.rating != null && c.user_id !== authorId)
+  const communityMean = rated.length > 0 ? rated.reduce((a, c) => a + (c.rating ?? 0), 0) / rated.length : null
 
   useEffect(() => {
     let live = true
@@ -42,6 +52,11 @@ export default function Comments({
       if (!live) return
       setComments(list)
       onCountChange?.(list.length)
+      // Prefill the picker from the user's existing rating (once per drop).
+      if (!pickedTouched.current && user) {
+        const mine = list.find((c) => c.user_id === user.id && c.rating != null)
+        if (mine?.rating != null) setPicked(mine.rating)
+      }
     })()
     return () => {
       live = false
@@ -55,9 +70,24 @@ export default function Comments({
     setBusy(true)
     setError(null)
     try {
+      // One rating per user per drop: clear the old rated comment first, then
+      // attach the new rating to this comment.
+      if (picked != null && !isAuthor) {
+        await supabase
+          .from('comments')
+          .update({ rating: null })
+          .eq('drop_id', dropId)
+          .eq('user_id', user.id)
+          .not('rating', 'is', null)
+      }
       const { data, error } = await supabase
         .from('comments')
-        .insert({ drop_id: dropId, user_id: user.id, body: text.slice(0, 500) })
+        .insert({
+          drop_id: dropId,
+          user_id: user.id,
+          body: text.slice(0, 500),
+          rating: picked != null && !isAuthor ? picked : null,
+        })
         .select('*')
         .single()
       if (error) throw error
@@ -96,8 +126,16 @@ export default function Comments({
 
   return (
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
-      <div className="mb-3 text-sm font-black">
-        Comments{comments.length > 0 && <span className="text-mute"> · {comments.length}</span>}
+      <div className="mb-3 flex items-baseline justify-between text-sm font-black">
+        <span>
+          Comments{comments.length > 0 && <span className="text-mute"> · {comments.length}</span>}
+        </span>
+        {communityMean != null && (
+          <span className="text-xs font-bold text-mute">
+            Community <span className="text-sig">★ {communityMean.toFixed(1)}</span>
+            <span className="font-normal"> · {rated.length}</span>
+          </span>
+        )}
       </div>
 
       {comments.length === 0 ? (
@@ -112,6 +150,11 @@ export default function Comments({
                   <span className="truncate text-xs font-black">
                     {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
                   </span>
+                  {c.rating != null && (
+                    <span className="shrink-0 rounded-full bg-sig/15 px-1.5 py-px text-[10px] font-black text-sig">
+                      ★ {c.rating}
+                    </span>
+                  )}
                   <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
                   {user && c.user_id === user.id && (
                     <button
@@ -134,25 +177,85 @@ export default function Comments({
       {error && <p className="mb-2 text-xs font-bold text-miss">{error}</p>}
 
       {user ? (
-        <div className="flex gap-2">
-          <input
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') post()
-            }}
-            placeholder="Add a comment…"
-            maxLength={500}
-            disabled={busy}
-            className="min-w-0 flex-1 rounded-full border border-line bg-ink-3 px-4 py-2.5 text-sm outline-none placeholder:text-mute focus:border-sig"
-          />
-          <button
-            onClick={post}
-            disabled={busy || body.trim().length === 0}
-            className="shrink-0 rounded-full bg-sig px-5 py-2.5 text-sm font-black text-ink disabled:opacity-40"
-          >
-            Post
-          </button>
+        <div>
+          <div className="flex gap-2">
+            {!isAuthor && (
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setRateOpen((o) => !o)}
+                  aria-label="Rate this drop"
+                  className={`flex h-full min-h-[42px] items-center rounded-full border px-3 text-sm font-black transition ${
+                    picked != null
+                      ? 'border-sig/60 bg-sig/15 text-sig'
+                      : 'border-line text-mute hover:border-sig/50 hover:text-sig'
+                  }`}
+                >
+                  {picked != null ? `★ ${picked}` : '★ Rate'}
+                </button>
+                {rateOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setRateOpen(false)} />
+                    <div className="absolute bottom-full left-0 z-20 mb-2 w-[212px] rounded-2xl border border-line bg-ink-3 p-2 shadow-xl">
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => {
+                              pickedTouched.current = true
+                              setPicked(n)
+                              setRateOpen(false)
+                            }}
+                            className={`rounded-xl py-2 text-sm font-black transition ${
+                              picked === n
+                                ? 'bg-sig text-ink'
+                                : 'bg-ink-2 text-fog hover:bg-sig/20 hover:text-sig'
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      {myRated != null && (
+                        <button
+                          onClick={() => {
+                            pickedTouched.current = true
+                            setPicked(null)
+                            setRateOpen(false)
+                          }}
+                          className="mt-1.5 w-full rounded-xl py-1.5 text-xs font-bold text-mute hover:text-miss"
+                        >
+                          Remove my rating
+                        </button>
+                      )}
+                      <p className="mt-1 px-1 pb-1 text-[10px] leading-snug text-mute">
+                        {myRated != null
+                          ? 'Posting with a new rating replaces your old one.'
+                          : 'One rating per drop — it shows next to your comment.'}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <input
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') post()
+              }}
+              placeholder="Add a comment…"
+              maxLength={500}
+              disabled={busy}
+              className="min-w-0 flex-1 rounded-full border border-line bg-ink-3 px-4 py-2.5 text-sm outline-none placeholder:text-mute focus:border-sig"
+            />
+            <button
+              onClick={post}
+              disabled={busy || body.trim().length === 0}
+              className="shrink-0 rounded-full bg-sig px-5 py-2.5 text-sm font-black text-ink disabled:opacity-40"
+            >
+              Post
+            </button>
+          </div>
         </div>
       ) : (
         <button
