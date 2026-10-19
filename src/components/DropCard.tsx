@@ -11,6 +11,7 @@ import { dropMedia } from '../lib/types'
 import TallyIcon from './TallyIcon'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
+import { VerdictBurst, FlyToTally } from './VoteFx'
 
 interface Props {
   drop: Drop
@@ -31,34 +32,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const [slam, setSlam] = useState<'W' | 'L' | null>(null)
   const [showComments, setShowComments] = useState(false)
   const [commentCount, setCommentCount] = useState(stats.comments)
-  const floatId = useRef(0)
-  const [floats, setFloats] = useState<{ id: number; kind: 'W' | 'L' | 'tally' }[]>([])
+  const fxId = useRef(0)
+  const [burst, setBurst] = useState<{ v: 'W' | 'L'; id: number } | null>(null)
+  const [fly, setFly] = useState<{ from: DOMRect; id: number } | null>(null)
   useEffect(() => {
     setCommentCount(stats.comments)
   }, [stats.comments])
-
-  // Floating +1 that rises off the tapped action (retriggered via key).
-  const spawnFloat = (kind: 'W' | 'L' | 'tally') => {
-    const id = ++floatId.current
-    setFloats((f) => [...f, { id, kind }])
-    setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 750)
-  }
-  const renderFloats = (kind: 'W' | 'L' | 'tally', onDark: boolean) => (
-    <>
-      {floats
-        .filter((f) => f.kind === kind)
-        .map((f) => (
-          <span
-            key={f.id}
-            className={`float-up absolute -top-2 left-0 right-0 text-center text-sm font-black ${
-              onDark ? 'text-white drop-shadow-md' : 'text-lime'
-            }`}
-          >
-            +1
-          </span>
-        ))}
-    </>
-  )
 
   const toggleComments = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -70,7 +49,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     if (!saved) {
       setHeartPop(false)
       requestAnimationFrame(() => setHeartPop(true))
-      spawnFloat('tally')
+      // Fly the tally icon into the Tallies nav tab.
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      if (rect.width > 0) setFly({ from: rect, id: ++fxId.current })
     }
     onToggleSave()
   }
@@ -80,7 +61,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     e.stopPropagation()
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
-    if (myVote !== v) spawnFloat(v)
+    if (myVote !== v) setBurst({ v, id: ++fxId.current })
     onVote(v)
   }
 
@@ -90,20 +71,17 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10"
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press relative flex items-center gap-1.5">
-        {renderFloats('tally', true)}
+      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex items-center gap-1.5">
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-lime' : 'text-white'}`}>
           <TallyIcon saved={saved} className="h-6 w-6" />
         </span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
       </button>
-      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press relative flex items-center gap-1.5">
-        {renderFloats('W', true)}
+      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex items-center gap-1.5">
         <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-lime' : 'text-white'}`}>W</span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
       </button>
-      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press relative flex items-center gap-1.5">
-        {renderFloats('L', true)}
+      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex items-center gap-1.5">
         <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
       </button>
@@ -120,18 +98,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       <button
         onClick={(e) => castVote(e, 'W')}
         aria-label="Vote W"
-        className="press relative flex items-center gap-1.5"
+        className="press flex items-center gap-1.5"
       >
-        {renderFloats('W', false)}
         <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-lime' : 'text-fog'}`}>W</span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
       </button>
       <button
         onClick={(e) => castVote(e, 'L')}
         aria-label="Vote L"
-        className="press relative flex items-center gap-1.5"
+        className="press flex items-center gap-1.5"
       >
-        {renderFloats('L', false)}
         <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'L' ? 'text-miss' : 'text-fog'}`}>L</span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.losses)}</span>
       </button>
@@ -146,9 +122,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       <button
         onClick={toggleSave}
         aria-label={saved ? 'Untally' : 'Tally'}
-        className="press relative ml-auto flex items-center gap-1.5"
+        className="press ml-auto flex items-center gap-1.5"
       >
-        {renderFloats('tally', false)}
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-lime' : 'text-fog'}`}>
           <TallyIcon saved={saved} className="h-6 w-6" />
         </span>
@@ -261,6 +236,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             <Comments dropId={drop.id} authorId={drop.author_id} onCountChange={setCommentCount} />
           </div>
         )}
+
+        {/* full-screen FX, portaled to body */}
+        {burst && <VerdictBurst key={burst.id} v={burst.v} onDone={() => setBurst(null)} />}
+        {fly && <FlyToTally key={fly.id} from={fly.from} onDone={() => setFly(null)} />}
       </article>
     </Reveal>
   )

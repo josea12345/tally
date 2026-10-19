@@ -71,6 +71,7 @@ function MobileNav({ route }: { route: Route }) {
   const tab = (n: { name: 'home' | 'saved' | 'search' | 'profile'; label: string; icon: string }) => (
     <button
       key={n.name}
+      data-nav-tab={n.name}
       onClick={() => navigate(`/${n.name === 'home' ? '' : n.name}`)}
       className="flex flex-col items-center gap-0.5 py-2.5"
       aria-label={n.label}
@@ -139,6 +140,7 @@ function DesktopRail() {
       {items.map((i) => (
         <button
           key={i.label}
+          data-nav-tab={i.match}
           onClick={() => navigate(i.path)}
           className={`rounded-full px-5 py-3 text-left text-lg font-bold transition ${
             route.name === i.match ? 'bg-ink-3 text-lime' : 'text-fog hover:bg-ink-2'
