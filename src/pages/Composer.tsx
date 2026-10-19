@@ -13,6 +13,7 @@ import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
+import { topicKeyFor } from '../lib/format'
 import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
 import EmptyState from '../components/EmptyState'
 
@@ -262,6 +263,12 @@ export default function Composer({ editId }: { editId?: string }) {
         external_label: externalLabel,
         imdb_id: imdbId,
         imdb_rating: imdbRating,
+        topic_key: topicKeyFor({
+          category,
+          title: title.trim(),
+          city: city.trim() || null,
+          imdb_id: imdbId,
+        }),
         tip: tip.trim() || null,
         where_to: whereTo.trim() || null,
         score,

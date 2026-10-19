@@ -89,6 +89,8 @@ export interface Drop {
   tip: string | null
   where_to: string | null
   score: number | null
+  /** Shareable topic key (see topicKeyFor): "all posts about this". */
+  topic_key: string | null
   created_at: string
   updated_at: string
   // joined

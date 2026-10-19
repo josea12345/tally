@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, DropStats, Verdict } from '../lib/types'
-import { timeAgo } from '../lib/format'
+import { timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import VerdictBox from '../components/VerdictBox'
 import PutOnChain from '../components/PutOnChain'
@@ -32,6 +32,7 @@ export default function DropDetail({ id }: { id: string }) {
   const [deleting, setDeleting] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [relatedCount, setRelatedCount] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -49,6 +50,15 @@ export default function DropDetail({ id }: { id: string }) {
       }
       const d = data as Drop
       setDrop(d)
+
+      // How many other put-ons share this topic (RLS hides blocked/private).
+      const tkey = d.topic_key ?? topicKeyFor(d)
+      supabase
+        .from('drops')
+        .select('id', { count: 'exact', head: true })
+        .eq('topic_key', tkey)
+        .neq('id', d.id)
+        .then(({ count }) => setRelatedCount(count ?? 0))
 
       const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
         supabase.from('saves').select('id').eq('drop_id', id).limit(5000),
@@ -251,6 +261,19 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight">{drop.title}</h1>
+        {relatedCount != null && relatedCount > 0 && (
+          <button
+            onClick={() =>
+              navigate(`/topic/${encodeURIComponent(drop.topic_key ?? topicKeyFor(drop))}`)
+            }
+            className="press mt-3 inline-flex items-center gap-2 rounded-full border border-sig/40 bg-sig/10 px-4 py-2 text-sm font-black text-sig"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-2M7 8h2m-2 0a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-2" />
+            </svg>
+            {relatedCount} other put-on{relatedCount === 1 ? '' : 's'} about this
+          </button>
+        )}
         {(drop.score != null || drop.imdb_rating != null) && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {drop.score != null && (

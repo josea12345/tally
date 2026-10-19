@@ -34,6 +34,25 @@ export function normKey(title: string, city: string | null | undefined): string 
   return `${title.trim().toLowerCase()}|${(city ?? '').trim().toLowerCase()}`
 }
 
+/** Categories whose topics are city-scoped (a place in Miami ≠ the same name in NYC). */
+const LOCAL_CATEGORIES = new Set(['food_drink', 'shops', 'places'])
+
+/**
+ * A drop's shareable topic: the IMDb id for movies/TV when known (exact),
+ * otherwise the normalized title (+ city for local categories).
+ * Mirrored in SQL by migration 0029's backfill — keep the two in sync.
+ */
+export function topicKeyFor(d: {
+  category: string
+  title: string
+  city?: string | null
+  imdb_id?: string | null
+}): string {
+  if (d.imdb_id) return `imdb:${d.imdb_id}`
+  const cityPart = LOCAL_CATEGORIES.has(d.category) ? d.city ?? '' : ''
+  return `title:${normKey(d.title, cityPart)}`
+}
+
 export function isPlaceholderUsername(username: string): boolean {
   return /^user_[0-9a-f]{8}$/.test(username)
 }

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop } from '../lib/types'
+import { topicKeyFor } from '../lib/format'
+import { navigate } from '../App'
 import ReportDialog from './ReportDialog'
 
 /**
@@ -66,8 +68,18 @@ export default function DropMenu({
             {!confirming ? (
               <>
                 <button
-                  onClick={() => setReporting(true)}
+                  onClick={() => {
+                    const key = drop.topic_key ?? topicKeyFor(drop)
+                    close()
+                    navigate(`/topic/${encodeURIComponent(key)}`)
+                  }}
                   className="block w-full px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
+                >
+                  All posts about this
+                </button>
+                <button
+                  onClick={() => setReporting(true)}
+                  className="block w-full border-t border-line px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
                 >
                   Report drop
                 </button>

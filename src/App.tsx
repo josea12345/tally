@@ -15,6 +15,7 @@ import Search from './pages/Search'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import FollowList from './pages/FollowList'
+import Topic from './pages/Topic'
 import InstallBanner from './components/InstallBanner'
 import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
@@ -22,7 +23,7 @@ import LeaderboardRail from './components/LeaderboardRail'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic'
   param?: string
 }
 
@@ -32,6 +33,7 @@ export function parseHash(): Route {
   if (parts.length === 0) return { name: 'home' }
   const [a, b] = parts
   if (a === 'drop' && b) return { name: 'drop', param: b }
+  if (a === 'topic' && b) return { name: 'topic', param: decodeURIComponent(b) }
   if (a === 'edit' && b) return { name: 'edit', param: b }
   if (a === 'followers' && b) return { name: 'followers', param: b }
   if (a === 'following' && b) return { name: 'following', param: b }
@@ -266,6 +268,8 @@ export default function App() {
         return <Onboarding />
       case 'drop':
         return <DropDetail id={route.param!} />
+      case 'topic':
+        return <Topic topicKey={route.param!} />
       case 'create':
         return <Composer />
       case 'filter':
