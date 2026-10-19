@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { timeAgo, formatCount } from '../lib/format'
 import { Avatar, navigate } from '../App'
-import LinkChips from './LinkChips'
 import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
@@ -242,9 +241,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             {titleLine}
           </div>
           {items.length === 0 && headerScore}
-          <span className="shrink-0 [&_div]:mt-0">
-            <LinkChips drop={drop} compact />
-          </span>
           <span className="shrink-0">
             <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
           </span>
