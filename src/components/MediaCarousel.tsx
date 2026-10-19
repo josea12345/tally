@@ -42,15 +42,15 @@ export default function MediaCarousel({
 
   return (
     <div>
-      <div className={`relative overflow-hidden ${flush ? 'bg-black' : 'rounded-2xl border border-line bg-black'}`}>
+      <div className={`relative overflow-hidden ${flush ? 'mx-auto h-[56svh] aspect-[9/16]' : 'rounded-2xl border border-line bg-black'}`}>
         <div
           ref={trackRef}
           onScroll={onScroll}
-          className="flex snap-x snap-mandatory overflow-x-auto"
+          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto"
           style={{ scrollbarWidth: 'none' }}
         >
           {items.map((it, i) => (
-            <div key={`${it.url}-${i}`} className={`shrink-0 snap-center ${flush ? 'h-[56svh] w-full' : 'w-full'}`}>
+            <div key={`${it.url}-${i}`} className="h-full w-full shrink-0 snap-center">
               {renderItem(it, i)}
             </div>
           ))}
