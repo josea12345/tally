@@ -308,52 +308,70 @@ export default function Profile({ id }: { id?: string }) {
           </div>
         )}
 
-        {/* stat row */}
-        <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-          <div className="rounded-2xl border border-line bg-ink-2 px-2 py-3">
-            <div className="text-xl font-black tabular-nums">{stats?.drops ?? 0}</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Drops</div>
-          </div>
-          <button
-            onClick={() => navigate(`/followers/${profile.id}`)}
-            className="press rounded-2xl border border-line bg-ink-2 px-2 py-3"
-          >
-            <div className="text-xl font-black tabular-nums">{followers}</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Followers</div>
-          </button>
-          <button
-            onClick={() => navigate(`/following/${profile.id}`)}
-            className="press rounded-2xl border border-line bg-ink-2 px-2 py-3"
-          >
-            <div className="text-xl font-black tabular-nums">{following}</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Following</div>
-          </button>
-          <div className="rounded-2xl border border-lime/40 bg-lime/5 px-2 py-3" title="Win rate regressed toward 50 until volume earns it. Starts at 50 — real verdicts move it.">
-            <div className="text-xl font-black tabular-nums text-lime">
-              {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
+        {/* taste score hero */}
+        <div className="mt-6 flex flex-col items-center">
+          <div className="relative h-40 w-40">
+            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+              {r && r.rate != null && (
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="#c8f31d"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 44}
+                  strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(200,243,29,0.5))' }}
+                />
+              )}
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-6xl font-black tabular-nums text-lime">
+                {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
+              </span>
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-mute">Taste Score</div>
           </div>
+          <div className="mt-2 text-[11px] font-black uppercase tracking-[0.25em] text-mute">
+            Taste Score
+          </div>
+          {r && r.rate == null && (
+            <p className="mt-2 max-w-[270px] text-center text-xs leading-relaxed text-mute">
+              Not enough data yet — win rate appears after {WIN_RATE_MINIMUM} verdicts. Missing verdicts never
+              count as wins.
+            </p>
+          )}
+          {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
+            <div className="mt-4 w-full max-w-[300px]">
+              <TallyMarks wins={r.wins} losses={r.losses} />
+              <p className="mt-2 text-center text-xs text-mute">
+                {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
+              </p>
+            </div>
+          )}
+          {r && r.rate != null && (
+            <p className="mt-1 text-center text-[11px] text-mute/70">
+              Starts at 50 — real verdicts move it. Saves don't count.
+            </p>
+          )}
         </div>
-        {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
-          <div className="mt-4 rounded-2xl border border-line bg-ink-2 p-4">
-            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-mute">The record</div>
-            <TallyMarks wins={r.wins} losses={r.losses} />
-          </div>
-        )}
-        {r && r.rate == null && (
-          <p className="mt-2 text-center text-xs text-mute">
-            Not enough data yet — win rate appears after {WIN_RATE_MINIMUM} verdicts. Missing verdicts never count as
-            wins.
-          </p>
-        )}
-        {r && r.rate != null && (
-          <p className="mt-2 text-center text-xs text-mute">
-            {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
-            <br />
-            Taste Score starts at 50 — real verdicts move it. Saves don't count as visits.
-          </p>
-        )}
+
+        {/* demoted stats */}
+        <div className="mt-5 flex items-center justify-center gap-2 text-sm text-mute">
+          <span>
+            <span className="font-bold text-fog">{stats?.drops ?? 0}</span> drops
+          </span>
+          <span className="text-mute/50">·</span>
+          <button onClick={() => navigate(`/followers/${profile.id}`)} className="transition hover:text-lime">
+            <span className="font-bold text-fog">{followers}</span> followers
+          </button>
+          <span className="text-mute/50">·</span>
+          <button onClick={() => navigate(`/following/${profile.id}`)} className="transition hover:text-lime">
+            <span className="font-bold text-fog">{following}</span> following
+          </button>
+        </div>
 
         <div className="mt-5">
           <BadgeList profileId={profile.id} isOwn={isOwn} dismissed={dismissed} onDismiss={dismissBadge} />
