@@ -200,7 +200,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 it.type === 'video' ? (
                   <FeedVideo src={it.url} poster={it.posterUrl} />
                 ) : (
-                  <img src={it.url} alt={drop.title} loading="lazy" className="max-h-[420px] w-full object-cover" />
+                  <img src={it.url} alt={drop.title} loading="lazy" className="h-full w-full object-cover" />
                 )
               }
             />

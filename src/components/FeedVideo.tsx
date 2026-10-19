@@ -90,7 +90,7 @@ export default function FeedVideo({
   if (failed) return null
 
   return (
-    <div ref={wrapRef} className={`feed-video relative ${className}`}>
+    <div ref={wrapRef} className={`feed-video relative h-full ${className}`}>
       <video
         ref={(el) => {
           ref.current = el
@@ -105,7 +105,7 @@ export default function FeedVideo({
         preload="metadata"
         onError={() => setFailed(true)}
         onClick={expand}
-        className="max-h-[220px] w-full bg-black object-cover"
+        className="h-full w-full bg-black object-cover"
       />
       <button
         onClick={toggleSound}
