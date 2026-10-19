@@ -380,7 +380,7 @@ export default function Profile({ id }: { id?: string }) {
                     tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                   }`}
                 >
-                  {t === 'drops' ? `Drops · ${drops.length}` : 'Tallies'}
+                  {t === 'drops' ? 'Drops' : 'Tallies'}
                   {tab === t && (
                     <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-lime" />
                   )}
