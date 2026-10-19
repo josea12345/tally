@@ -48,7 +48,7 @@ export default function MediaCarousel({
           style={{ scrollbarWidth: 'none' }}
         >
           {items.map((it, i) => (
-            <div key={`${it.url}-${i}`} className={`w-full shrink-0 snap-center ${flush ? 'aspect-[9/16]' : ''}`}>
+            <div key={`${it.url}-${i}`} className={`w-full shrink-0 snap-center ${flush ? 'aspect-[9/16] max-h-[56svh]' : ''}`}>
               {renderItem(it, i)}
             </div>
           ))}
