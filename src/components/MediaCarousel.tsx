@@ -11,12 +11,15 @@ export default function MediaCarousel({
   renderItem,
   overlay,
   flush = false,
+  topBadge,
 }: {
   items: CarouselItem[]
   renderItem: (item: CarouselItem, index: number) => React.ReactNode
   overlay?: React.ReactNode
   /** Full-bleed mode: no rounding or border (edge-to-edge feed media). */
   flush?: boolean
+  /** Node pinned to the media's top-left (e.g. the score badge); the counter stacks below it. */
+  topBadge?: React.ReactNode
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
@@ -50,10 +53,15 @@ export default function MediaCarousel({
             </div>
           ))}
         </div>
-        {items.length > 1 && (
-          <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-black tabular-nums text-white backdrop-blur-sm">
-            {index + 1}/{items.length}
-          </span>
+        {(topBadge || items.length > 1) && (
+          <div className="absolute left-2 top-2 flex flex-col items-start gap-1.5">
+            {topBadge}
+            {items.length > 1 && (
+              <span className="rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-black tabular-nums text-white backdrop-blur-sm">
+                {index + 1}/{items.length}
+              </span>
+            )}
+          </div>
         )}
         {overlay}
       </div>

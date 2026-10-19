@@ -65,6 +65,56 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     onVote(v)
   }
 
+  // Score badge: glassy pill overlaid on the media's top-left (text-only drops keep it in the header).
+  const scoreBadge =
+    drop.score != null ? (
+      <div
+        className="flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
+        title="Author's call"
+      >
+        <span className="text-lg font-black leading-none text-lime">{drop.score}</span>
+        <span className="text-[10px] font-bold text-white/80">/10</span>
+        {drop.imdb_rating != null && (
+          <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
+            IMDb {drop.imdb_rating}
+          </span>
+        )}
+      </div>
+    ) : drop.imdb_rating != null ? (
+      <div
+        className="flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
+        title="IMDb rating"
+      >
+        <span className="text-lg font-black leading-none text-white">{drop.imdb_rating}</span>
+        <span className="text-[10px] font-bold text-white/80">IMDb</span>
+      </div>
+    ) : null
+
+  // Compact header score for text-only drops (no media to overlay).
+  const headerScore =
+    drop.score != null ? (
+      <div
+        className="flex shrink-0 items-baseline gap-1 rounded-full border border-lime/40 bg-lime/10 px-3 py-1.5"
+        title="Author's call"
+      >
+        <span className="text-xl font-black leading-none text-lime">{drop.score}</span>
+        <span className="text-[11px] font-bold text-mute">/10</span>
+        {drop.imdb_rating != null && (
+          <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
+            IMDb {drop.imdb_rating}
+          </span>
+        )}
+      </div>
+    ) : drop.imdb_rating != null ? (
+      <div
+        className="flex shrink-0 items-baseline gap-1 rounded-full border border-line bg-ink-2 px-3 py-1.5"
+        title="IMDb rating"
+      >
+        <span className="text-xl font-black leading-none">{drop.imdb_rating}</span>
+        <span className="text-[11px] font-bold text-mute">IMDb</span>
+      </div>
+    ) : null
+
   // Horizontal action bar overlaid on the media's bottom edge.
   const bottomBar = (
     <div
@@ -162,28 +212,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
             </div>
           </div>
-          {drop.score != null ? (
-            <div
-              className="flex shrink-0 items-baseline gap-1 rounded-full border border-lime/40 bg-lime/10 px-3 py-1.5"
-              title="Author's call"
-            >
-              <span className="text-xl font-black leading-none text-lime">{drop.score}</span>
-              <span className="text-[11px] font-bold text-mute">/10</span>
-              {drop.imdb_rating != null && (
-                <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
-                  IMDb {drop.imdb_rating}
-                </span>
-              )}
-            </div>
-          ) : drop.imdb_rating != null ? (
-            <div
-              className="flex shrink-0 items-baseline gap-1 rounded-full border border-line bg-ink-2 px-3 py-1.5"
-              title="IMDb rating"
-            >
-              <span className="text-xl font-black leading-none">{drop.imdb_rating}</span>
-              <span className="text-[11px] font-bold text-mute">IMDb</span>
-            </div>
-          ) : null}
+          {items.length === 0 && headerScore}
+          <span className="shrink-0 [&_div]:mt-0">
+            <LinkChips drop={drop} compact />
+          </span>
           <span className="shrink-0">
             <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
           </span>
@@ -195,6 +227,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             <MediaCarousel
               flush
               overlay={bottomBar}
+              topBadge={scoreBadge}
               items={items}
               renderItem={(it) =>
                 it.type === 'video' ? (
@@ -226,10 +259,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         </div>
 
         {items.length === 0 && textActions}
-
-        <div className="px-4 pt-2">
-          <LinkChips drop={drop} />
-        </div>
 
         {showComments && (
           <div className="px-4 pt-2" onClick={(e) => e.stopPropagation()}>
