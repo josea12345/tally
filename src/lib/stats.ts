@@ -7,21 +7,30 @@ export interface WinRate {
   losses: number
   total: number
   rate: number | null // null when not enough data
-  /** Taste Score (0–100): win rate regressed toward 50 until volume earns it. */
+  /** Taste Score (0–100): the low end of your win rate's 95% confidence interval. Volume earns trust. */
   score: number
 }
 
 export const WIN_RATE_MINIMUM = 5
 
 /**
- * Taste Score: Bayesian win rate with a 50% prior (2 phantom Ws, 2 phantom Ls).
- * 5W/0L scores 78, not 100 — small samples don't prove much. 90W/10L scores 88
- * and outranks it, because volume earned it. New voices start at 50; every real
- * verdict pulls the score toward the truth. Always explainable: the raw W/L
- * stays visible next to it.
+ * Taste Score: Wilson score interval lower bound (95% confidence), scaled 0–100.
+ * Your score is the worst your win rate plausibly is — so 5 lucky Ws (score 57)
+ * can't touch 850 Ws out of 1000 (score 83). At the same win rate, more verdicts
+ * always scores higher: volume earns trust. The raw W/L stays visible next to
+ * it as the audit trail.
  */
 export function tasteScoreFor(wins: number, losses: number): number {
-  return Math.round((100 * (wins + 2)) / (wins + losses + 4))
+  const n = wins + losses
+  if (n === 0) return 0
+  const z = 1.96
+  const z2 = z * z
+  const p = wins / n
+  const denom = 1 + z2 / n
+  const centre = p + z2 / (2 * n)
+  const delta = z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))
+  const score = (100 * (centre - delta)) / denom
+  return Math.max(0, Math.min(100, Math.round(score)))
 }
 
 export function winRateFor(verdicts: Verdict[]): WinRate {

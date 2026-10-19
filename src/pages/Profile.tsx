@@ -354,7 +354,7 @@ export default function Profile({ id }: { id?: string }) {
           )}
           {r && r.rate != null && (
             <p className="mt-1 text-center text-[11px] text-mute/70">
-              Starts at 50 — real verdicts move it. Saves don't count.
+              Only verdicts move it — and more verdicts move it more. Saves don't count.
             </p>
           )}
           <button
@@ -366,12 +366,12 @@ export default function Profile({ id }: { id?: string }) {
           {showFormula && (
             <div className="mt-2 w-full max-w-[300px] rounded-2xl border border-line bg-ink-2 p-4">
               <div className="mb-2 text-center text-sm font-black tracking-tight">
-                Score = 100 × (W + 2) ÷ (W + L + 4)
+                Score = the low end of your win rate's 95% confidence range × 100
               </div>
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
-                <li>· Everyone starts at 50 — the +2/+4 assumes a 2–2 record until real verdicts come in.</li>
+                <li>· Your score is the worst your win rate plausibly is — not the raw percentage.</li>
+                <li>· 5 lucky Ws score 57. 850 Ws out of 1,000 score 83. Volume earns trust.</li>
                 <li>· Only W/L verdicts move it. Saves, views, and missing verdicts never count.</li>
-                <li>· The padding keeps one lucky vote from shooting you to 100 — volume earns the extremes.</li>
                 <li>· Your score appears after {WIN_RATE_MINIMUM} verdicts.</li>
               </ul>
             </div>
