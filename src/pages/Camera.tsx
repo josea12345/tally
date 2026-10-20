@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import { setPendingRawMedia } from '../lib/pendingMedia'
 import { CLIP_MAX_SECONDS, formatDuration } from '../lib/video'
+import PhotoReview from '../components/PhotoReview'
 
 type CamState = 'starting' | 'live' | 'unavailable'
 type Facing = 'environment' | 'user'
@@ -41,6 +42,7 @@ export default function Camera() {
   const [elapsed, setElapsed] = useState(0) // total recorded seconds, incl. live segment
   const [segments, setSegments] = useState<number[]>([]) // banked segment durations
   const [error, setError] = useState<string | null>(null)
+  const [reviewBlob, setReviewBlob] = useState<Blob | null>(null) // photo under review (in-place, no page hop)
   const [flash, setFlash] = useState(false)
   const flashTimer = useRef<number | null>(null)
   // pinch zoom (software — iOS Safari exposes no hardware zoom control)
@@ -326,8 +328,8 @@ export default function Camera() {
           setFlash(true)
           if (flashTimer.current) clearTimeout(flashTimer.current)
           flashTimer.current = window.setTimeout(() => setFlash(false), 240)
-          setPendingRawMedia(b, 'camera.jpg', 'photo')
-          navigate('/filter')
+          // Review in place — same surface, no page hop to /filter.
+          setReviewBlob(b)
         }
       },
       'image/jpeg',
@@ -411,38 +413,36 @@ export default function Camera() {
         </div>
       )}
 
-      {/* top bar */}
-      <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
+      {/* top bar — floating glass controls, no chrome */}
+      <div className="absolute left-0 right-0 top-0 z-10 flex items-start justify-between px-4 pt-[max(env(safe-area-inset-top),16px)]">
         <button
           onClick={() => navigate('/')}
           aria-label="Close camera"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white"
+          className="press flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-5 w-5">
             <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {recording ? (
-          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1.5">
+        {recording && (
+          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 backdrop-blur-sm">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm font-black tabular-nums text-white">{formatDuration(elapsed)}</span>
           </div>
-        ) : (
-          <div className="text-sm font-black tracking-widest text-white/80">TALLY</div>
         )}
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/create')}
             aria-label="Write a text drop instead"
-            className="flex h-10 items-center gap-1.5 rounded-full bg-black/40 px-4 text-sm font-bold text-white"
+            className="press flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
           >
-            <span aria-hidden>✎</span> Write
+            <span className="text-sm font-black">Aa</span>
           </button>
           <button
             onClick={flip}
             aria-label="Flip camera"
             disabled={camState !== 'live' || recording}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-40"
+            className="press flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm disabled:opacity-40"
           >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
             <polyline points="1 4 1 10 7 10" />
@@ -483,11 +483,6 @@ export default function Camera() {
       {/* bottom controls */}
       {camState === 'live' && (
         <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/60 to-transparent px-4 pb-10 pt-12">
-          {!recording && (
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
-              {segments.length === 0 ? 'Tap for photo · Hold for video' : 'Hold to keep recording'}
-            </div>
-          )}
           <div className="flex w-full items-center justify-between">
             <div className="w-14">
               {segments.length > 0 && !recording && (
@@ -549,6 +544,18 @@ export default function Camera() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* in-place photo review — same surface, no page hop to /filter */}
+      {reviewBlob && (
+        <PhotoReview
+          blob={reviewBlob}
+          onRetake={() => setReviewBlob(null)}
+          onDone={() => {
+            setReviewBlob(null)
+            navigate('/create')
+          }}
+        />
       )}
     </div>
   )
