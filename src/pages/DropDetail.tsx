@@ -24,6 +24,7 @@ import MentionText from '../components/MentionText'
 import RelatedDrops from '../components/RelatedDrops'
 import AddToListSheet from '../components/AddToListSheet'
 import { markSeen } from '../lib/seen'
+import ReminderButton from '../components/ReminderButton'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
@@ -500,6 +501,7 @@ export default function DropDetail({ id }: { id: string }) {
             <TallyIcon saved={saved} className="h-4 w-4" />
             {saved ? 'Tallied' : 'Tally'} · {stats.saves}
           </button>
+          {!!user && user.id !== drop.author_id && <ReminderButton dropId={drop.id} />}
           {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
           {pinError && (
             <p className="w-full text-xs font-bold text-miss">Could not update your pin — try again.</p>

@@ -1,4 +1,4 @@
-export type NotificationKind = 'W' | 'L' | 'follow' | 'comment' | 'approved' | 'requested' | 'mention' | 'like'
+export type NotificationKind = 'W' | 'L' | 'follow' | 'comment' | 'approved' | 'requested' | 'mention' | 'like' | 'reminder' | 'recap'
 
 export interface Notification {
   id: string

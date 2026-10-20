@@ -38,6 +38,16 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
           </svg>
         </span>
       )
+    case 'reminder':
+      return (
+        <span className={`${base} bg-sig text-[#0b1520]`} aria-hidden>
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
+            <path d="M4 5v14M9.3 5v14M14.6 5v14M19.9 5v14M3 17.5 21 6.5" />
+          </svg>
+        </span>
+      )
+    case 'recap':
+      return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>★</span>
   }
 }
 
@@ -56,6 +66,10 @@ function textFor(n: Notification): string {
       return `${name} mentioned you in a comment`
     case 'like':
       return `${name} liked your comment`
+    case 'reminder':
+      return `${name} put you on — today's the day to try it`
+    case 'recap':
+      return 'Your week on TALLY is ready — see your recap'
     case 'approved':
       return `${name} approved your follow request`
     case 'requested':
@@ -72,7 +86,7 @@ export default function Notifications() {
   const FILTER_KINDS: Record<string, NotificationKind[]> = {
     verdicts: ['W', 'L'],
     comments: ['comment', 'mention', 'like'],
-    social: ['follow', 'approved', 'requested'],
+    social: ['follow', 'approved', 'requested', 'reminder', 'recap'],
   }
   const shownItems = filter === 'all' ? items : items.filter((n) => FILTER_KINDS[filter].includes(n.kind))
 
@@ -134,7 +148,7 @@ export default function Notifications() {
                 { id: 'all', label: 'All' },
                 { id: 'verdicts', label: 'Verdicts' },
                 { id: 'comments', label: 'Comments' },
-                { id: 'social', label: 'Social' },
+                { id: 'social', label: 'Activity' },
               ] as const
             ).map((t) => (
               <button

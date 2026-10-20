@@ -35,6 +35,36 @@ function DropsList({
   profile: Profile
   isOwn: boolean
 }) {
+  const [dropSort, setDropSort] = useState<'new' | 'score' | 'verdicts'>('new')
+  const [verdictCounts, setVerdictCounts] = useState<Map<string, number>>(new Map())
+  useEffect(() => {
+    if (dropSort !== 'verdicts' || drops.length === 0) return
+    let live = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('verdicts')
+        .select('drop_id')
+        .in('drop_id', drops.map((d) => d.id))
+        .not('verdict', 'is', null)
+        .limit(5000)
+      if (!live) return
+      const counts = new Map<string, number>()
+      for (const r of (data ?? []) as Array<{ drop_id: string }>) {
+        counts.set(r.drop_id, (counts.get(r.drop_id) ?? 0) + 1)
+      }
+      setVerdictCounts(counts)
+    })()
+    return () => {
+      live = false
+    }
+  }, [dropSort, drops])
+  const sortedDrops =
+    dropSort === 'score'
+      ? [...drops].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+      : dropSort === 'verdicts'
+        ? [...drops].sort((a, b) => (verdictCounts.get(b.id) ?? 0) - (verdictCounts.get(a.id) ?? 0))
+        : drops
+
   if (drops.length === 0) {
     return (
       <EmptyState
@@ -85,7 +115,28 @@ function DropsList({
           </span>
         </button>
       )}
-      <DropGrid drops={drops} />
+      {drops.length > 3 && (
+        <div className="mb-3 flex gap-1.5 px-4">
+          {(
+            [
+              { id: 'new', label: 'Newest' },
+              { id: 'score', label: 'Top scored' },
+              { id: 'verdicts', label: 'Most verdicts' },
+            ] as const
+          ).map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setDropSort(s.id)}
+              className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
+                dropSort === s.id ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <DropGrid drops={sortedDrops} />
     </div>
   )
 }

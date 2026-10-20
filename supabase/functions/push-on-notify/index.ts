@@ -68,6 +68,8 @@ serve(async (req) => {
     comment: `${name} commented on ${title}`,
     mention: `${name} mentioned you on ${title}`,
     like: `${name} liked your comment on ${title}`,
+    reminder: `${name} put you on: ${title} — today's the day to try it`,
+    recap: 'Your week on TALLY is ready — see how your drops did',
     approved: `${name} approved your follow request`,
     requested: `${name} requested to follow you`,
   }

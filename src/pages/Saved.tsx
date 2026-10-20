@@ -8,6 +8,7 @@ import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
 import { useFeedVotes } from '../lib/feedVotes'
 import MyLists from '../components/MyLists'
+import ReminderButton from '../components/ReminderButton'
 
 type Sort = 'recent' | 'oldest' | 'top'
 type Status = 'all' | 'totry' | 'tried'
@@ -241,6 +242,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
                         </button>
                       </span>
                     )}
+                    {status === 'totry' && d.author_id !== user?.id && <ReminderButton dropId={d.id} slim />}
                   </li>
                 )
               })}
