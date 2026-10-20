@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { trustScoreFor, winRateFor, type TrustBreakdown, type WinRate } from './stats'
+import type { Verdict } from './types'
 
 /**
  * The author's Trust breakdown, computed the same way Profile computes
