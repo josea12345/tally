@@ -123,7 +123,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         )}
         {drop.spotify_popularity != null && (
           <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
-            {drop.external_label === 'Deezer' ? 'Deezer' : 'Spotify'} {drop.spotify_popularity}
+            Deezer {drop.spotify_popularity}
           </span>
         )}
       </div>
@@ -153,7 +153,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         )}
         {drop.spotify_popularity != null && (
           <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
-            {drop.external_label === 'Deezer' ? 'Deezer' : 'Spotify'} {drop.spotify_popularity}
+            Deezer {drop.spotify_popularity}
           </span>
         )}
       </div>

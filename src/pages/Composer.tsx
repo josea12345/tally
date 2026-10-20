@@ -74,6 +74,8 @@ export default function Composer({ editId }: { editId?: string }) {
   const [spotifyUrl, setSpotifyUrl] = useState<string | null>(null)
   const [spotifyArt, setSpotifyArt] = useState<string | null>(null)
   const [spotifyPopularity, setSpotifyPopularity] = useState<number | null>(null)
+  const [musicPick, setMusicPick] = useState<MusicTrack | null>(null)
+  const [restoredMusicLabel, setRestoredMusicLabel] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   /** TMDB title pick: fill the title, attach the poster as cover, link the TMDB page. */
@@ -106,6 +108,7 @@ export default function Composer({ editId }: { editId?: string }) {
   /** Music pick (song, album or artist): fill the title, attach the art as cover, link it. */
   const pickTrack = (t: MusicTrack) => {
     setTitle(t.kind === 'artist' ? t.name : `${t.name} — ${t.artists}`)
+    setMusicPick(t)
     setSpotifyUrl(t.url)
     setSpotifyPopularity(t.popularity)
     setMediaList((prev) => {
@@ -177,7 +180,10 @@ export default function Composer({ editId }: { editId?: string }) {
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
         if (d.external_label === 'TMDB') setTmdbUrl(d.external_url)
-        if (d.external_label === 'Spotify' || d.external_label === 'Deezer') setSpotifyUrl(d.external_url)
+        if (d.external_label === 'Spotify' || d.external_label === 'Deezer') {
+          setSpotifyUrl(d.external_url)
+          setRestoredMusicLabel(d.external_label)
+        }
         if (d.spotify_popularity != null) setSpotifyPopularity(Number(d.spotify_popularity))
         if (d.imdb_id) setImdbId(d.imdb_id)
         if (d.imdb_rating != null) setImdbRating(Number(d.imdb_rating))
@@ -246,8 +252,22 @@ export default function Composer({ editId }: { editId?: string }) {
         externalUrl = safeExternalUrl(tmdbUrl)
         externalLabel = externalUrl ? 'TMDB' : null
       } else if (spotifyUrl && category === 'music') {
-        externalUrl = safeExternalUrl(spotifyUrl)
-        externalLabel = externalUrl ? 'Deezer' : null
+        if (musicPick) {
+          // The pick's data comes from Deezer, but the link takes you to
+          // Spotify — a search for the exact song/album/artist (opens in
+          // the Spotify app). No Spotify API needed for search URLs.
+          const query =
+            musicPick.kind === 'artist' ? musicPick.name : `${musicPick.name} ${musicPick.artists}`
+          externalUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`
+          externalLabel = 'Spotify'
+        } else if (spotifyUrl.includes('deezer.com')) {
+          // Restored Deezer-linked drop being re-saved: repoint to Spotify.
+          externalUrl = `https://open.spotify.com/search/${encodeURIComponent(title.trim())}`
+          externalLabel = 'Spotify'
+        } else {
+          externalUrl = safeExternalUrl(spotifyUrl)
+          externalLabel = externalUrl ? restoredMusicLabel : null
+        }
       } else if (linkKind === 'paste' && pasteUrl.trim()) {
         externalUrl = safeExternalUrl(normalizePastedUrl(pasteUrl))
         // Pasted URLs get the honest generic label — never the service
@@ -370,7 +390,17 @@ export default function Composer({ editId }: { editId?: string }) {
       ) : (
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            // Manually retyping the title abandons the music pick — the
+            // auto-link branch takes over from the typed text instead.
+            if (category === 'music' && musicPick) {
+              setMusicPick(null)
+              setSpotifyUrl(null)
+              setSpotifyPopularity(null)
+              setSpotifyArt(null)
+            }
+          }}
           placeholder={MEDIA_PLACEHOLDER[category]}
           className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-4 text-lg font-bold outline-none placeholder:text-mute/60 focus:border-sig"
         />
