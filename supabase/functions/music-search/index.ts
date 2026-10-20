@@ -42,15 +42,20 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
-  // Must be a logged-in TALLY user.
+  // Must be a logged-in TALLY user. NOTE: getUser() with no argument
+  // throws AuthSessionMissingError in the edge runtime even when the
+  // Authorization header is set globally — pass the caller's token
+  // explicitly (verified live 2026-10-20).
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+  if (!token) return json({ error: 'unauthorized' }, 401)
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
   )
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser(token)
   if (!user) return json({ error: 'unauthorized' }, 401)
 
   let q = ''
