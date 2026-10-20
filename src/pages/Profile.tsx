@@ -251,15 +251,41 @@ export default function Profile({ id }: { id?: string }) {
 
   const r = stats?.rate
 
+  // Overall: the average of whichever scores exist (Taste + Trust), shown as a
+  // compact badge by the name. Null until at least one score has data.
+  const tasteScore = r && r.rate != null ? Math.round(r.score) : null
+  const trustScore = trust && trust.score != null ? Math.round(trust.score) : null
+  const overallScore =
+    tasteScore != null && trustScore != null
+      ? Math.round((tasteScore + trustScore) / 2)
+      : (tasteScore ?? trustScore)
+
   return (
     <div className="pb-8">
       <div className="border-b border-line px-4 pb-5 pt-6">
         <div className="flex items-start gap-4">
           <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={84} />
           <div className="min-w-0 flex-1">
-            <h1 className="wordmark truncate text-3xl">
-              {profile.display_name || `@${profile.username}`}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="wordmark truncate text-3xl">
+                {profile.display_name || `@${profile.username}`}
+              </h1>
+              <span
+                className={`flex shrink-0 items-baseline gap-1 rounded-full border px-2.5 py-1 ${
+                  overallScore != null ? 'border-sig/50 bg-sig/10' : 'border-line bg-ink-2'
+                }`}
+                title="Overall score — the average of Taste Score and Trust"
+              >
+                <span
+                  className={`text-base font-black tabular-nums ${
+                    overallScore != null ? 'text-sig' : 'text-mute'
+                  }`}
+                >
+                  {overallScore ?? '–'}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-mute">OVR</span>
+              </span>
+            </div>
             <p className="text-sm text-mute">@{profile.username}{profile.city ? ` · ${profile.city}` : ''}</p>
           </div>
           {isOwn ? (
@@ -341,61 +367,99 @@ export default function Profile({ id }: { id?: string }) {
           </div>
         )}
 
-        {/* taste score hero */}
-        <div className="mt-6 flex flex-col items-center">
-          <div className="relative h-40 w-40">
-            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
-              {r && r.rate != null && (
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 44}
-                  strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
-                  style={{ stroke: 'var(--color-sig)', filter: 'drop-shadow(0 0 8px rgba(69, 200, 255, 0.55))' }}
-                />
+        {/* scores: taste + trust, compact side by side */}
+        <div className="mt-6">
+          <div className="flex items-start justify-center gap-10">
+            {/* taste */}
+            <div className="flex w-36 flex-col items-center">
+              <div className="relative h-28 w-28">
+                <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+                  <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+                  {r && r.rate != null && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="44"
+                      fill="none"
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 44}
+                      strokeDashoffset={2 * Math.PI * 44 * (1 - r.score / 100)}
+                      style={{ stroke: 'var(--color-sig)', filter: 'drop-shadow(0 0 8px rgba(69, 200, 255, 0.55))' }}
+                    />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-4xl font-black tabular-nums text-sig">
+                    {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute">
+                Taste Score
+              </div>
+              {r && r.rate == null && (
+                <p className="mt-1 text-center text-[11px] leading-snug text-mute">
+                  Appears after {WIN_RATE_MINIMUM} verdicts
+                </p>
               )}
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-6xl font-black tabular-nums text-sig">
-                {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
-              </span>
+              <button
+                onClick={() => setShowFormula((s) => !s)}
+                className="mt-1 text-[11px] font-bold text-mute transition hover:text-sig"
+              >
+                How it's calculated {showFormula ? '▴' : '▾'}
+              </button>
+            </div>
+
+            {/* trust */}
+            <div className="flex w-36 flex-col items-center">
+              <div className="relative h-28 w-28">
+                <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+                  <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+                  {trust && trust.score != null && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="44"
+                      fill="none"
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 44}
+                      strokeDashoffset={2 * Math.PI * 44 * (1 - trust.score / 100)}
+                      style={{ stroke: 'var(--color-win)', filter: 'drop-shadow(0 0 8px rgba(105, 231, 207, 0.45))' }}
+                    />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-4xl font-black tabular-nums text-win">
+                    {trust && trust.score != null ? <CountUp value={trust.score} /> : '—'}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute">
+                Trust
+              </div>
+              {trust && trust.score == null && (
+                <p className="mt-1 text-center text-[11px] leading-snug text-mute">
+                  Appears with {TRUST_MIN_DROPS} rated drops
+                </p>
+              )}
+              {trust && trust.score != null && trust.meanDiff != null && (
+                <p className="mt-1 text-center text-[11px] leading-snug text-mute">
+                  Within <span className="font-bold text-fog">{trust.meanDiff.toFixed(1)}</span> of the community
+                </p>
+              )}
+              <button
+                onClick={() => setShowTrustInfo((s) => !s)}
+                className="mt-1 text-[11px] font-bold text-mute transition hover:text-sig"
+              >
+                How it's calculated {showTrustInfo ? '▴' : '▾'}
+              </button>
             </div>
           </div>
-          <div className="mt-2 text-[11px] font-black uppercase tracking-[0.25em] text-mute">
-            Taste Score
-          </div>
-          {r && r.rate == null && (
-            <p className="mt-2 max-w-[270px] text-center text-xs leading-relaxed text-mute">
-              Not enough data yet — win rate appears after {WIN_RATE_MINIMUM} verdicts. Missing verdicts never
-              count as wins.
-            </p>
-          )}
-          {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
-            <div className="mt-4 w-full max-w-[300px]">
-              <TallyMarks wins={r.wins} losses={r.losses} />
-              <p className="mt-2 text-center text-xs text-mute">
-                {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
-              </p>
-            </div>
-          )}
-          {r && r.rate != null && (
-            <p className="mt-1 text-center text-[11px] text-mute/70">
-              Only verdicts move it — and more verdicts move it more. Saves don't count.
-            </p>
-          )}
-          <button
-            onClick={() => setShowFormula((s) => !s)}
-            className="mt-2 text-xs font-bold text-mute transition hover:text-sig"
-          >
-            How it's calculated {showFormula ? '▴' : '▾'}
-          </button>
+
           {showFormula && (
-            <div className="mt-2 w-full max-w-[300px] rounded-2xl border border-line bg-ink-2 p-4">
+            <div className="mx-auto mt-3 w-full max-w-[320px] rounded-2xl border border-line bg-ink-2 p-4">
               <div className="mb-2 text-center text-sm font-black tracking-tight">
                 Score = the low end of your win rate's 95% confidence range × 100
               </div>
@@ -407,56 +471,8 @@ export default function Profile({ id }: { id?: string }) {
               </ul>
             </div>
           )}
-        </div>
-
-        {/* trust score */}
-        <div className="mt-6 flex w-full flex-col items-center border-t border-line pt-6">
-          <div className="relative h-28 w-28">
-            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
-              {trust && trust.score != null && (
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 44}
-                  strokeDashoffset={2 * Math.PI * 44 * (1 - trust.score / 100)}
-                  style={{ stroke: 'var(--color-win)', filter: 'drop-shadow(0 0 8px rgba(105, 231, 207, 0.45))' }}
-                />
-              )}
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-4xl font-black tabular-nums text-win">
-                {trust && trust.score != null ? <CountUp value={trust.score} /> : '—'}
-              </span>
-            </div>
-          </div>
-          <div className="mt-2 text-[11px] font-black uppercase tracking-[0.25em] text-mute">
-            Trust
-          </div>
-          {trust && trust.score == null && (
-            <p className="mt-2 max-w-[270px] text-center text-xs leading-relaxed text-mute">
-              Not enough data yet — Trust appears once {TRUST_MIN_DROPS} of your drops have your score
-              plus community ratings.
-            </p>
-          )}
-          {trust && trust.score != null && trust.meanDiff != null && (
-            <p className="mt-2 max-w-[280px] text-center text-xs text-mute">
-              Your scores land within <span className="font-bold text-fog">{trust.meanDiff.toFixed(1)}</span> of
-              the community · {trust.interactions} interactions
-            </p>
-          )}
-          <button
-            onClick={() => setShowTrustInfo((s) => !s)}
-            className="mt-2 text-xs font-bold text-mute transition hover:text-sig"
-          >
-            How it's calculated {showTrustInfo ? '▴' : '▾'}
-          </button>
           {showTrustInfo && (
-            <div className="mt-2 w-full max-w-[300px] rounded-2xl border border-line bg-ink-2 p-4">
+            <div className="mx-auto mt-3 w-full max-w-[320px] rounded-2xl border border-line bg-ink-2 p-4">
               <div className="mb-2 text-center text-sm font-black tracking-tight">
                 Do your ratings hold up?
               </div>
@@ -467,6 +483,20 @@ export default function Profile({ id }: { id?: string }) {
                 <li>· Rate other people's drops in the comments to feed their Trust.</li>
               </ul>
             </div>
+          )}
+
+          {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
+            <div className="mx-auto mt-4 w-full max-w-[300px]">
+              <TallyMarks wins={r.wins} losses={r.losses} />
+              <p className="mt-2 text-center text-xs text-mute">
+                {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
+              </p>
+            </div>
+          )}
+          {r && r.rate != null && (
+            <p className="mt-1 text-center text-[11px] text-mute/70">
+              Only verdicts move it — and more verdicts move it more. Saves don't count.
+            </p>
           )}
         </div>
 
