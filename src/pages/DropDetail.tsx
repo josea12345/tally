@@ -18,7 +18,7 @@ import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import TallyIcon from '../components/TallyIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
-import { fetchTrustBreakdown } from '../lib/trustData'
+import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
 
 export default function DropDetail({ id }: { id: string }) {
@@ -169,13 +169,17 @@ export default function DropDetail({ id }: { id: string }) {
     if (!drop?.author) return
     setCardBusy(true)
     try {
-      const trust = await fetchTrustBreakdown(drop.author_id)
+      const [trust, authorRate] = await Promise.all([
+        fetchTrustBreakdown(drop.author_id),
+        fetchAuthorWinRate(drop.author_id),
+      ])
       const blob = await renderTasteCard(
         drop,
         drop.author.display_name ?? drop.author.username,
         drop.author.username,
         verdicts,
-        trust?.score ?? null
+        trust?.score ?? null,
+        authorRate
       )
       const how = await shareTasteCard(blob, drop.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase())
       alert(how === 'shared' ? 'Taste card shared — story-sized and ready to post.' : 'Taste card saved — story-sized and ready to post.')

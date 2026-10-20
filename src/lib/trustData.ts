@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { trustScoreFor, type TrustBreakdown } from './stats'
+import { trustScoreFor, winRateFor, type TrustBreakdown, type WinRate } from './stats'
 
 /**
  * The author's Trust breakdown, computed the same way Profile computes
@@ -39,6 +39,35 @@ export async function fetchTrustBreakdown(authorId: string): Promise<TrustBreakd
       list.map((d) => ({ score: d.score, community: communityByDrop.get(d.id) ?? [] })),
       interactions
     )
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The author's OVERALL win rate across every verdict on every drop they
+ * posted — their real Taste Score input. (The taste card previously showed
+ * a "Taste Score" computed from one drop's verdicts only; this is the
+ * honest all-time record.)
+ */
+export async function fetchAuthorWinRate(authorId: string): Promise<WinRate | null> {
+  try {
+    const { data: myDrops } = await supabase
+      .from('drops')
+      .select('id')
+      .eq('author_id', authorId)
+      .limit(2000)
+    const ids = ((myDrops ?? []) as Array<{ id: string }>).map((d) => d.id)
+    if (ids.length === 0) return null
+    const { data: rows } = await supabase
+      .from('verdicts')
+      .select('verdict')
+      .in('drop_id', ids)
+      .limit(5000)
+    const verdicts = ((rows ?? []) as Array<{ verdict: string | null }>)
+      .map((r) => r.verdict)
+      .filter((v): v is 'W' | 'L' => v === 'W' || v === 'L')
+    return winRateFor(verdicts)
   } catch {
     return null
   }

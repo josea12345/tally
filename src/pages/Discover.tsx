@@ -292,8 +292,24 @@ export default function Discover() {
         return km * 0.621371 <= NEAR_MILES
       })
     }
+    if (tab === 'putons' && !debounced) {
+      // Ranked feed (Put Ons only — Following, Near me and search stay
+      // chronological): real engagement floats a drop up, and a freshness
+      // bonus keeps brand-new posts in the mix before they have verdicts.
+      const now = Date.now()
+      const rank = (d: Drop) => {
+        const s = stats.get(d.id)
+        const engage = s ? s.wins * 3 + s.losses * 2 + s.saves * 2 + s.comments : 0
+        const ageH = Math.max(0, (now - new Date(d.created_at).getTime()) / 3.6e6)
+        const fresh = ageH < 12 ? 6 : ageH < 48 ? 3 : ageH < 168 ? 1 : 0
+        return engage + fresh
+      }
+      list = [...list].sort(
+        (a, b) => rank(b) - rank(a) || +new Date(b.created_at) - +new Date(a.created_at),
+      )
+    }
     return list
-  }, [drops, tab, following, effective])
+  }, [drops, tab, following, effective, stats, debounced])
 
   const toggleSave = async (dropId: string) => {
     if (!user) {

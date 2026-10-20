@@ -1,6 +1,6 @@
 /** Canvas-rendered 1080×1920 taste card PNG for sharing drops to stories. */
 import type { Drop } from './types'
-import { winRateFor } from './stats'
+import { winRateFor, type WinRate } from './stats'
 import { dropMedia } from './types'
 import type { Verdict } from './types'
 
@@ -39,7 +39,8 @@ export async function renderTasteCard(
   authorName: string,
   authorHandle: string,
   verdicts: Verdict[],
-  trustScore?: number | null
+  trustScore?: number | null,
+  authorRate?: WinRate | null
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -133,40 +134,48 @@ export async function renderTasteCard(
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
 
-  // reputation pills: taste (+ trust when the author has earned one)
+  // reputation pills: this drop's honest W–L record (blue), the author's
+  // OVERALL Taste Score when they have one (dark), and Trust (mint),
+  // flowed with wrap. An earlier version labeled the single-drop record
+  // as the author's "Taste Score" — the two numbers are different things.
   const hr = winRateFor(verdicts)
-  const pillText =
-    hr.rate == null ? 'Record still building' : `Taste Score ${hr.score} · ${hr.total} verdicts`
+  const pills: Array<{ text: string; bg: string; fg: string }> = [
+    {
+      text: hr.wins + hr.losses === 0 ? 'No verdicts yet' : `${hr.wins} W · ${hr.losses} L on this drop`,
+      bg: '#45c8ff',
+      fg: '#191725',
+    },
+  ]
+  if (authorRate && authorRate.rate != null) {
+    pills.push({ text: `Taste Score ${authorRate.score}`, bg: '#262338', fg: '#f2eefc' })
+  }
+  if (trustScore != null) {
+    pills.push({ text: `Trust ${Math.round(trustScore)}`, bg: '#69e7cf', fg: '#191725' })
+  }
   const callText = drop.score != null ? `${authorName}'s call: ${drop.score}/10` : null
   ctx.font = '700 40px Inter, sans-serif'
-  const px = pad
-  const py = y
   const ph = 84
-  const tw = ctx.measureText(pillText).width
-  ctx.fillStyle = '#45c8ff'
-  ctx.beginPath()
-  ctx.roundRect(px, py, tw + 80, ph, 42)
-  ctx.fill()
-  ctx.fillStyle = '#191725'
-  ctx.fillText(pillText, px + 40, py + 55)
-  let pillsBottom = py + ph
-  if (trustScore != null) {
-    const tText = `Trust ${Math.round(trustScore)}`
-    const trustW = ctx.measureText(tText).width + 80
-    const sameRow = px + tw + 80 + 24 + trustW <= W - pad
-    const tx = sameRow ? px + tw + 80 + 24 : px
-    const ty = sameRow ? py : py + ph + 24
-    ctx.fillStyle = '#69e7cf'
+  let pillX = pad
+  let pillY = y
+  let pillsBottom = y
+  for (const pill of pills) {
+    const w = ctx.measureText(pill.text).width + 80
+    if (pillX > pad && pillX + w > W - pad) {
+      pillX = pad
+      pillY += ph + 24
+    }
+    ctx.fillStyle = pill.bg
     ctx.beginPath()
-    ctx.roundRect(tx, ty, trustW, ph, 42)
+    ctx.roundRect(pillX, pillY, w, ph, 42)
     ctx.fill()
-    ctx.fillStyle = '#191725'
-    ctx.fillText(tText, tx + 40, ty + 55)
-    pillsBottom = Math.max(pillsBottom, ty + ph)
+    ctx.fillStyle = pill.fg
+    ctx.fillText(pill.text, pillX + 40, pillY + 55)
+    pillsBottom = Math.max(pillsBottom, pillY + ph)
+    pillX += w + 24
   }
   if (callText) {
     ctx.fillStyle = '#a49dbb'
-    ctx.fillText(callText, px, pillsBottom + 58)
+    ctx.fillText(callText, pad, pillsBottom + 58)
   }
 
   // footer

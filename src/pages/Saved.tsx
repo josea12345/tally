@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop } from '../lib/types'
-import { CATEGORY_GROUPS } from '../lib/types'
+import type { Drop, DropStats } from '../lib/types'
+import { CATEGORY_GROUPS, dropMedia } from '../lib/types'
 import { navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
+import { useFeedVotes } from '../lib/feedVotes'
 
 type Sort = 'recent' | 'oldest' | 'top'
 type Status = 'all' | 'totry' | 'tried'
@@ -24,6 +25,17 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
   const [group, setGroup] = useState('all')
   const [sort, setSort] = useState<Sort>('recent')
   const [status, setStatus] = useState<Status>('all')
+  // One-tap verdicts from the To Try checklist (the hook wants a stats
+  // sink for optimistic counts — Tallies doesn't display counts, so the
+  // map is write-only here).
+  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
+  const [, setStatsSink] = useState<Map<string, DropStats>>(new Map())
+
+  const quickVote = (d: Drop, v: 'W' | 'L') => {
+    void vote(d.id, v, setStatsSink, d.author_id)
+    // Voting implies tried — the row leaves To Try immediately.
+    setTriedIds((s) => new Set(s).add(d.id))
+  }
 
   useEffect(() => {
     if (!user) return
@@ -42,11 +54,16 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
         // Which of my tallies have I actually tried? (verdicts.tried)
         const { data: vrows } = await supabase
           .from('verdicts')
-          .select('drop_id,tried')
+          .select('drop_id,tried,verdict,user_id')
           .eq('user_id', user.id)
           .in('drop_id', list.map((d) => d.id))
           .limit(1000)
         if (!live) return
+        setVotesFromRows(
+          ((vrows ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>).map(
+            (v) => ({ drop_id: v.drop_id, verdict: v.verdict, user_id: v.user_id }),
+          ),
+        )
         setTriedIds(
           new Set(
             ((vrows ?? []) as Array<{ drop_id: string; tried: boolean }>)
@@ -169,6 +186,63 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
                   ? "Nothing tried yet — your to-try list is waiting."
                   : 'Nothing here under this filter yet.'}
             </p>
+          ) : status === 'totry' ? (
+            <ul className="divide-y divide-line">
+              {visible.map((d) => {
+                const media = dropMedia(d)[0]
+                const mine = myVotes.get(d.id)
+                return (
+                  <li key={d.id} className="flex items-center gap-2 px-4 py-3">
+                    <button
+                      onClick={() => navigate(`/drop/${d.id}`)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      {media ? (
+                        <img
+                          src={media.type === 'video' ? (media.posterUrl ?? media.url) : media.url}
+                          alt=""
+                          loading="lazy"
+                          className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-ink-3 text-lg font-black text-mute">
+                          {(d.title || '?').slice(0, 1)}
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold">{d.title}</span>
+                        <span className="block truncate text-xs text-mute">
+                          @{d.author?.username ?? 'unknown'}
+                          {d.city ? ` · ${d.city}` : ''}
+                        </span>
+                      </span>
+                    </button>
+                    {d.author_id !== user?.id && (
+                      <span className="flex shrink-0 gap-1.5">
+                        <button
+                          onClick={() => quickVote(d, 'W')}
+                          aria-label={`Call ${d.title} a W`}
+                          className={`press h-10 w-10 rounded-full text-sm font-black ${
+                            mine === 'W' ? 'bg-win text-ink' : 'border border-win/60 text-win'
+                          }`}
+                        >
+                          W
+                        </button>
+                        <button
+                          onClick={() => quickVote(d, 'L')}
+                          aria-label={`Call ${d.title} an L`}
+                          className={`press h-10 w-10 rounded-full text-sm font-black ${
+                            mine === 'L' ? 'bg-miss text-white' : 'border border-miss/60 text-miss'
+                          }`}
+                        >
+                          L
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           ) : (
             <DropGrid drops={visible} showScores={sort === 'top'} />
           )}
