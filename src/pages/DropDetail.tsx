@@ -291,7 +291,9 @@ export default function DropDetail({ id }: { id: string }) {
             )}
             {drop.spotify_popularity != null && (
               <div className="inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-4 py-1.5">
-                <span className="text-xl font-black">Spotify {drop.spotify_popularity}</span>
+                <span className="text-xl font-black">
+                  {drop.external_label === 'Deezer' ? 'Deezer' : 'Spotify'} {drop.spotify_popularity}
+                </span>
               </div>
             )}
           </div>

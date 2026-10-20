@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { searchSpotify, type SpotifyTrack } from '../lib/spotify'
+import { searchMusic, type MusicTrack } from '../lib/music'
 
 /**
- * Spotify track search for the composer (music). Picking a track fills the
- * drop title, attaches the album art as the cover, and links the track —
- * the music mirror of the TMDB title search. Renders nothing until the
- * backend is configured; manual entry still works.
+ * Track search for the composer (music), backed by Deezer via the
+ * music-search edge function. Picking a track fills the drop title,
+ * attaches the album art as the cover, and links the track — the music
+ * mirror of the TMDB title search. Renders nothing until the backend
+ * answers; manual entry still works.
  */
-export default function MusicSearch({ onPick }: { onPick: (t: SpotifyTrack) => void }) {
+export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => void }) {
   const [q, setQ] = useState('')
-  const [results, setResults] = useState<SpotifyTrack[]>([])
+  const [results, setResults] = useState<MusicTrack[]>([])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
@@ -23,7 +24,7 @@ export default function MusicSearch({ onPick }: { onPick: (t: SpotifyTrack) => v
     setSearching(true)
     const t = setTimeout(async () => {
       try {
-        const r = await searchSpotify(q)
+        const r = await searchMusic(q)
         setResults(r)
         setUnavailable(false)
       } catch {
@@ -84,7 +85,7 @@ export default function MusicSearch({ onPick }: { onPick: (t: SpotifyTrack) => v
             </button>
           ))}
           <p className="border-t border-line px-4 py-2 text-[10px] text-mute/70">
-            Track data by Spotify — not endorsed by Spotify.
+            Track data by Deezer — not endorsed by Deezer.
           </p>
         </div>
       )}

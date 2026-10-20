@@ -82,7 +82,7 @@ export interface Drop {
   ingredients: string[]
   instructions: string[]
   external_url: string | null
-  external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Official site' | 'TMDB' | null
+  external_label: 'IMDb' | 'Rotten Tomatoes' | 'Spotify' | 'Deezer' | 'Official site' | 'TMDB' | null
   /** Exact IMDb id (tt…) + rating, resolved via TMDB → OMDb at post time. */
   imdb_id: string | null
   imdb_rating: number | null

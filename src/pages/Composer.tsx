@@ -10,7 +10,7 @@ import PlaceAutocomplete from '../components/PlaceAutocomplete'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
 import TitleSearch from '../components/TitleSearch'
 import MusicSearch from '../components/MusicSearch'
-import type { SpotifyTrack } from '../lib/spotify'
+import type { MusicTrack } from '../lib/music'
 import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
@@ -103,8 +103,8 @@ export default function Composer({ editId }: { editId?: string }) {
     }
   }
 
-  /** Spotify track pick: fill the title, attach the album art as cover, link the track. */
-  const pickTrack = (t: SpotifyTrack) => {
+  /** Track pick: fill the title, attach the album art as cover, link the track. */
+  const pickTrack = (t: MusicTrack) => {
     setTitle(`${t.name} — ${t.artists}`)
     setSpotifyUrl(t.url)
     setSpotifyPopularity(t.popularity)
@@ -177,7 +177,7 @@ export default function Composer({ editId }: { editId?: string }) {
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
         if (d.external_label === 'TMDB') setTmdbUrl(d.external_url)
-        if (d.external_label === 'Spotify') setSpotifyUrl(d.external_url)
+        if (d.external_label === 'Spotify' || d.external_label === 'Deezer') setSpotifyUrl(d.external_url)
         if (d.spotify_popularity != null) setSpotifyPopularity(Number(d.spotify_popularity))
         if (d.imdb_id) setImdbId(d.imdb_id)
         if (d.imdb_rating != null) setImdbRating(Number(d.imdb_rating))
@@ -247,7 +247,7 @@ export default function Composer({ editId }: { editId?: string }) {
         externalLabel = externalUrl ? 'TMDB' : null
       } else if (spotifyUrl && category === 'music') {
         externalUrl = safeExternalUrl(spotifyUrl)
-        externalLabel = externalUrl ? 'Spotify' : null
+        externalLabel = externalUrl ? 'Deezer' : null
       } else if (linkKind === 'paste' && pasteUrl.trim()) {
         externalUrl = safeExternalUrl(normalizePastedUrl(pasteUrl))
         // Pasted URLs get the honest generic label — never the service
