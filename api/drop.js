@@ -49,6 +49,8 @@ export default async function handler(request) {
           const posters = d.media_poster_urls || []
           if (urls[0]) image = types[0] === 'video' ? posters[0] || image : urls[0]
           else if (d.media_url) image = d.media_type === 'video' ? d.media_poster_url || image : d.media_url
+          // TMDB posters were stored at w342 — serve the full-size original.
+          if (image.includes('image.tmdb.org/t/p/')) image = image.replace(/\/t\/p\/[^/]+\//, '/t/p/original/')
         }
       }
     } catch {

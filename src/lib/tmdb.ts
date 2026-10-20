@@ -26,6 +26,7 @@ export interface TmdbTitle {
   year: string
   overview: string
   posterUrl: string | null
+  posterThumb: string | null
   tmdbUrl: string
 }
 
@@ -42,7 +43,8 @@ export async function searchTmdb(query: string, kind: 'movie' | 'tv'): Promise<T
       title: kind === 'movie' ? r.title : r.name,
       year: String(kind === 'movie' ? r.release_date : r.first_air_date ?? '').slice(0, 4),
       overview: r.overview ?? '',
-      posterUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null,
+      posterUrl: r.poster_path ? `https://image.tmdb.org/t/p/original${r.poster_path}` : null,
+      posterThumb: r.poster_path ? `https://image.tmdb.org/t/p/w185${r.poster_path}` : null,
       tmdbUrl: `https://www.themoviedb.org/${kind}/${r.id}`,
     }))
   } catch {

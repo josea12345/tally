@@ -5,6 +5,7 @@ import type { Drop, Profile, Verdict } from '../lib/types'
 import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 import DropGrid from '../components/DropGrid'
+import { hiResArtwork } from '../components/ArtworkImage'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import BadgeList from '../components/BadgeList'
@@ -63,7 +64,7 @@ function DropsList({
                 src={
                   pinnedMedia.type === 'video'
                     ? (pinnedMedia.posterUrl ?? '')
-                    : pinnedMedia.url
+                    : hiResArtwork(pinnedMedia.url)
                 }
                 alt=""
                 loading="lazy"

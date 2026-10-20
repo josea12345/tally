@@ -9,8 +9,18 @@ export function isArtworkUrl(url: string): boolean {
   return url.includes('dzcdn.net') || url.includes('image.tmdb.org')
 }
 
+/**
+ * TMDB serves every poster at several sizes; picks used to be stored at
+ * w342, which turns to mush in a full-width frame. Rewrite the size
+ * segment to `original` at render time so existing posts sharpen too.
+ */
+export function hiResArtwork(url: string): string {
+  if (!url.includes('image.tmdb.org/t/p/')) return url
+  return url.replace(/\/t\/p\/[^/]+\//, '/t/p/original/')
+}
+
 export default function ArtworkImage({
-  src,
+  src: rawSrc,
   alt,
   onClick,
   className = '',
@@ -21,6 +31,7 @@ export default function ArtworkImage({
   /** Sizing for the frame, e.g. "h-full w-full" (feed) or "h-[380px] w-full" (detail). */
   className?: string
 }) {
+  const src = hiResArtwork(rawSrc)
   return (
     <div className={`relative overflow-hidden bg-black ${className}`}>
       <img

@@ -61,8 +61,8 @@ export default function TitleSearch({
               }}
               className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-ink-2"
             >
-              {r.posterUrl ? (
-                <img src={r.posterUrl} alt="" className="h-14 w-10 shrink-0 rounded object-cover" loading="lazy" />
+              {r.posterThumb ? (
+                <img src={r.posterThumb} alt="" className="h-14 w-10 shrink-0 rounded object-cover" loading="lazy" />
               ) : (
                 <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-ink-2 text-xs text-mute">
                   ?

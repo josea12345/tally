@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
+import { hiResArtwork } from './ArtworkImage'
 
 /**
  * TikTok-style fullscreen media viewer. One viewer for both photos and video:
@@ -221,7 +222,7 @@ export default function MediaViewer({
         />
       ) : (
         <img
-          src={item.url}
+          src={hiResArtwork(item.url)}
           alt=""
           onClick={(e) => {
             e.stopPropagation()

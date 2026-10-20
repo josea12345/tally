@@ -1,6 +1,7 @@
 import type { Drop } from '../lib/types'
 import { dropMedia } from '../lib/types'
 import { navigate } from '../App'
+import { hiResArtwork } from './ArtworkImage'
 
 /** Instagram-style 3-column grid of drop covers. Tapping a tile opens the drop. */
 export default function DropGrid({ drops, showScores = false }: { drops: Drop[]; showScores?: boolean }) {
@@ -19,12 +20,12 @@ export default function DropGrid({ drops, showScores = false }: { drops: Drop[];
             {cover ? (
               cover.type === 'video' ? (
                 cover.posterUrl ? (
-                  <img src={cover.posterUrl} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={hiResArtwork(cover.posterUrl)} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   <video src={cover.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
                 )
               ) : (
-                <img src={cover.url} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
+                <img src={hiResArtwork(cover.url)} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
               )
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-ink-3 p-2">

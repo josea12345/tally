@@ -2,6 +2,7 @@
 import type { Drop } from './types'
 import { winRateFor, type WinRate } from './stats'
 import { dropMedia } from './types'
+import { hiResArtwork } from '../components/ArtworkImage'
 import type { Verdict } from './types'
 
 const W = 1080
@@ -56,7 +57,7 @@ export async function renderTasteCard(
   let drewPhoto = false
   const first = dropMedia(drop)[0]
   if (first && first.type === 'photo') {
-    const img = await loadImage(first.url)
+    const img = await loadImage(hiResArtwork(first.url))
     if (img) {
       const scale = Math.max(W / img.width, coverH / img.height)
       const dw = img.width * scale

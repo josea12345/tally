@@ -64,10 +64,10 @@ export async function fetchAuthorWinRate(authorId: string): Promise<WinRate | nu
       .select('verdict')
       .in('drop_id', ids)
       .limit(5000)
-    const verdicts = ((rows ?? []) as Array<{ verdict: string | null }>)
-      .map((r) => r.verdict)
-      .filter((v): v is 'W' | 'L' => v === 'W' || v === 'L')
-    return winRateFor(verdicts)
+    const verdicts = ((rows ?? []) as Array<{ verdict: string | null }>).filter(
+      (r): r is { verdict: 'W' | 'L' } => r.verdict === 'W' || r.verdict === 'L',
+    )
+    return winRateFor(verdicts as unknown as Verdict[])
   } catch {
     return null
   }
