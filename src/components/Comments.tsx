@@ -35,6 +35,24 @@ export default function Comments({
   const [likeCounts, setLikeCounts] = useState<Map<string, number>>(new Map())
   const [myLikes, setMyLikes] = useState<Set<string>>(new Set())
   const [sortMode, setSortMode] = useState<'new' | 'top'>('new')
+  const [reportArm, setReportArm] = useState<string | null>(null)
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
+
+  const reportComment = async (c: Comment) => {
+    if (!user) return
+    if (reportArm !== c.id) {
+      setReportArm(c.id)
+      return
+    }
+    setReportArm(null)
+    const { error } = await supabase.from('reports').insert({
+      reporter_id: user.id,
+      comment_id: c.id,
+      reported_user_id: c.user_id,
+      reason: 'Inappropriate comment',
+    })
+    if (!error) setReportedIds((prev) => new Set(prev).add(c.id))
+  }
   const mentionToken = useRef<{ start: number; end: number; q: string } | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -306,6 +324,18 @@ export default function Comments({
               Reply
             </button>
           )}
+          {user &&
+            c.user_id !== user.id &&
+            (reportedIds.has(c.id) ? (
+              <span className="shrink-0 text-[10px] font-bold text-win">Reported ✓</span>
+            ) : (
+              <button
+                onClick={() => reportComment(c)}
+                className="shrink-0 text-[10px] font-bold text-mute hover:text-miss"
+              >
+                {reportArm === c.id ? 'Tap again to report' : 'Report'}
+              </button>
+            ))}
           {user && c.user_id === user.id && (
             <button
               onClick={() => remove(c.id)}

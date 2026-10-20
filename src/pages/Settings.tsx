@@ -27,10 +27,13 @@ interface ReportRow {
   details: string | null
   created_at: string
   drop_id: string | null
+  comment_id: string | null
   reported_user_id: string | null
   reporterName: string
   dropTitle: string | null
   reportedName: string | null
+  commentBody: string | null
+  commentDropId: string | null
 }
 
 export default function Settings() {
@@ -245,13 +248,23 @@ export default function Settings() {
     }
     setActingReport(null)
   }
+  const deleteReportedComment = async (r: ReportRow) => {
+    if (!r.comment_id) return
+    setActingReport(r.id)
+    const { error } = await supabase.from('comments').delete().eq('id', r.comment_id)
+    if (!error) {
+      await supabase.from('reports').update({ status: 'actioned' }).eq('id', r.id)
+      setReports((rs) => (rs ?? []).filter((x) => x.id !== r.id))
+    }
+    setActingReport(null)
+  }
   useEffect(() => {
     if (!profile?.is_admin) return
     let live = true
     ;(async () => {
       const { data } = await supabase
         .from('reports')
-        .select('id, reason, details, created_at, drop_id, reported_user_id, reporter_id')
+        .select('id, reason, details, created_at, drop_id, comment_id, reported_user_id, reporter_id')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(50)
@@ -262,28 +275,38 @@ export default function Settings() {
         details: string | null
         created_at: string
         drop_id: string | null
+        comment_id: string | null
         reported_user_id: string | null
         reporter_id: string
       }>
       const userIds = [...new Set(rows.flatMap((r) => [r.reporter_id, r.reported_user_id]).filter(Boolean))] as string[]
       const dropIds = [...new Set(rows.map((r) => r.drop_id).filter(Boolean))] as string[]
-      const [{ data: profs }, { data: drps }] = await Promise.all([
+      const commentIds = [...new Set(rows.map((r) => r.comment_id).filter(Boolean))] as string[]
+      const [{ data: profs }, { data: drps }, { data: cmts }] = await Promise.all([
         userIds.length
           ? supabase.from('profiles').select('id, username').in('id', userIds)
           : Promise.resolve({ data: [] as Array<{ id: string; username: string }> }),
         dropIds.length
           ? supabase.from('drops').select('id, title').in('id', dropIds)
           : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
+        commentIds.length
+          ? supabase.from('comments').select('id, body, drop_id').in('id', commentIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; body: string; drop_id: string }> }),
       ])
       if (!live) return
       const nameOf = new Map(((profs ?? []) as Array<{ id: string; username: string }>).map((p) => [p.id, p.username]))
       const titleOf = new Map(((drps ?? []) as Array<{ id: string; title: string }>).map((d) => [d.id, d.title]))
+      const commentOf = new Map(
+        ((cmts ?? []) as Array<{ id: string; body: string; drop_id: string }>).map((c) => [c.id, c]),
+      )
       setReports(
         rows.map((r) => ({
           ...r,
           reporterName: nameOf.get(r.reporter_id) ?? 'unknown',
           dropTitle: r.drop_id ? (titleOf.get(r.drop_id) ?? null) : null,
           reportedName: r.reported_user_id ? (nameOf.get(r.reported_user_id) ?? null) : null,
+          commentBody: r.comment_id ? (commentOf.get(r.comment_id)?.body ?? null) : null,
+          commentDropId: r.comment_id ? (commentOf.get(r.comment_id)?.drop_id ?? null) : null,
         }))
       )
     })()
@@ -594,6 +617,21 @@ export default function Settings() {
                       {r.dropTitle ? `Open drop: ${r.dropTitle}` : 'Open drop'}
                     </button>
                   )}
+                  {r.comment_id && (
+                    <div className="mt-2 rounded-xl bg-ink-3 px-3 py-2">
+                      <p className="text-xs leading-relaxed text-fog/90">
+                        “{r.commentBody ?? '(comment already gone)'}”
+                      </p>
+                      {r.commentDropId && (
+                        <button
+                          onClick={() => navigate(`/drop/${r.commentDropId}`)}
+                          className="press mt-1.5 text-[11px] font-black text-sig"
+                        >
+                          Open the drop →
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {r.reported_user_id && (
                     <button
                       onClick={() => navigate(`/profile/${r.reported_user_id}`)}
@@ -610,13 +648,22 @@ export default function Settings() {
                     >
                       Dismiss
                     </button>
-                    {r.drop_id && (
+                    {r.drop_id && !r.comment_id && (
                       <button
                         onClick={() => deleteReportedDrop(r)}
                         disabled={actingReport === r.id}
                         className="press flex-1 rounded-full bg-miss py-2 text-xs font-black text-white disabled:opacity-50"
                       >
                         {actingReport === r.id ? 'Working…' : 'Delete drop'}
+                      </button>
+                    )}
+                    {r.comment_id && (
+                      <button
+                        onClick={() => deleteReportedComment(r)}
+                        disabled={actingReport === r.id}
+                        className="press flex-1 rounded-full bg-miss py-2 text-xs font-black text-white disabled:opacity-50"
+                      >
+                        {actingReport === r.id ? 'Working…' : 'Delete comment'}
                       </button>
                     )}
                   </div>

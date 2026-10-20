@@ -91,7 +91,7 @@ export default function ListPage({ id }: { id: string }) {
   }
 
   const share = async () => {
-    const url = `${window.location.origin}/#/list/${id}`
+    const url = `${window.location.origin}/list/${id}`
     try {
       if (navigator.share) {
         await navigator.share({ title: col?.name ?? 'TALLY list', url })

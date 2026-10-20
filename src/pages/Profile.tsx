@@ -109,6 +109,7 @@ export default function Profile({ id }: { id?: string }) {
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
   const [week, setWeek] = useState<{ w: number; l: number; tallies: number; comments: number; followers: number } | null>(null)
   const [recapBusy, setRecapBusy] = useState(false)
+  const [profileCopied, setProfileCopied] = useState(false)
   const [showTrustInfo, setShowTrustInfo] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>([])
@@ -351,6 +352,25 @@ export default function Profile({ id }: { id?: string }) {
     }
   }
 
+  const shareProfile = async () => {
+    const url = `${window.location.origin}/u/${profile.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `@${profile.username} on TALLY`, url })
+        return
+      }
+      throw new Error('no native share')
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url)
+        setProfileCopied(true)
+        setTimeout(() => setProfileCopied(false), 1600)
+      } catch {
+        // clipboard unavailable
+      }
+    }
+  }
+
   return (
     <div className="pb-8">
       <div className="border-b border-line px-4 pb-5 pt-6">
@@ -389,6 +409,12 @@ export default function Profile({ id }: { id?: string }) {
                 <GearIcon className="h-5 w-5" />
               </button>
               <button
+                onClick={shareProfile}
+                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+              >
+                {profileCopied ? 'Copied!' : 'Share'}
+              </button>
+              <button
                 onClick={() => setEditing((e) => !e)}
                 className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
               >
@@ -396,7 +422,15 @@ export default function Profile({ id }: { id?: string }) {
               </button>
             </div>
           ) : (
-            <FollowButton followeeId={profile.id} onChange={refreshFollow} />
+            <div className="flex items-center gap-2">
+              <FollowButton followeeId={profile.id} onChange={refreshFollow} />
+              <button
+                onClick={shareProfile}
+                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+              >
+                {profileCopied ? 'Copied!' : 'Share'}
+              </button>
+            </div>
           )}
         </div>
         {profile.bio && !editing && <p className="mt-3 text-[15px] leading-relaxed">{profile.bio}</p>}

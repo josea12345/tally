@@ -25,6 +25,56 @@ export default function Search() {
   const [topics, setTopics] = useState<Array<{ key: string; label: string; count: number }>>([])
   const [topRated, setTopRated] = useState<Array<DropHit & { wins: number; losses: number }>>([])
   const [active, setActive] = useState<Array<{ profile: Profile; drops: number }>>([])
+  const [suggested, setSuggested] = useState<Array<{ profile: Profile; note: string }>>([])
+
+  // Who to follow: friends-of-follows, most-mutual first.
+  useEffect(() => {
+    if (!user) {
+      setSuggested([])
+      return
+    }
+    let live = true
+    ;(async () => {
+      const { data: myFollows } = await supabase
+        .from('follows')
+        .select('followee_id')
+        .eq('follower_id', user.id)
+        .limit(500)
+      const followees = new Set(
+        ((myFollows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id),
+      )
+      if (followees.size === 0) return
+      const { data: fof } = await supabase
+        .from('follows')
+        .select('follower_id, followee_id')
+        .in('follower_id', [...followees])
+        .limit(1000)
+      const tally = new Map<string, { count: number; via: string }>()
+      for (const r of (fof ?? []) as Array<{ follower_id: string; followee_id: string }>) {
+        if (r.followee_id === user.id || followees.has(r.followee_id)) continue
+        const e = tally.get(r.followee_id) ?? { count: 0, via: r.follower_id }
+        e.count += 1
+        tally.set(r.followee_id, e)
+      }
+      const top = [...tally.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 4)
+      if (top.length === 0) return
+      const ids = top.map(([id]) => id)
+      const viaIds = [...new Set(top.map(([, e]) => e.via))]
+      const { data: profs } = await supabase.from('profiles').select('*').in('id', [...ids, ...viaIds])
+      if (!live) return
+      const byId = new Map(((profs ?? []) as Profile[]).map((p) => [p.id, p]))
+      const out: Array<{ profile: Profile; note: string }> = []
+      for (const [id, e] of top) {
+        const p = byId.get(id)
+        const via = byId.get(e.via)
+        if (p) out.push({ profile: p, note: via ? `Followed by @${via.username}` : 'Suggested for you' })
+      }
+      setSuggested(out)
+    })()
+    return () => {
+      live = false
+    }
+  }, [user?.id])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -228,6 +278,16 @@ export default function Search() {
               <ul className="space-y-2.5">
                 {topRated.map((d) => (
                   <DropRow key={d.id} drop={d} record={`${d.wins} W · ${d.losses} L`} />
+                ))}
+              </ul>
+            </section>
+          )}
+          {suggested.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Suggested for you</h2>
+              <ul className="space-y-3">
+                {suggested.map(({ profile, note }) => (
+                  <PersonRow key={profile.id} profile={profile} note={note} />
                 ))}
               </ul>
             </section>
