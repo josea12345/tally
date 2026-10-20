@@ -7,6 +7,7 @@ import { MEDIA_CATEGORIES, CATEGORY_GROUPS, isPlaceCategory } from '../lib/types
 import { winRateFor } from '../lib/stats'
 import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
+import { tapHaptic } from '../lib/haptics'
 import { Avatar, navigate } from '../App'
 import { useUnreadCount } from '../lib/useNotifications'
 import AlertIcon from '../components/AlertIcon'
@@ -63,6 +64,12 @@ export default function Discover() {
   const [tastemakers, setTastemakers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Pull-to-refresh: bumping the nonce re-runs the feed load with a spinner
+  // instead of the skeleton flash.
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const [pull, setPull] = useState(0)
+  const pullStartY = useRef<number | null>(null)
   const { state: locState, effective, locate, useCity } = useDeviceLocation(profile?.city)
 
   useEffect(() => {
@@ -73,7 +80,10 @@ export default function Discover() {
   useEffect(() => {
     let live = true
     const load = async () => {
-      setLoading(true)
+      // First load gets skeletons; later loads (filters, pull-to-refresh)
+      // keep the current content and just spin the refresh pill.
+      if (refreshNonce === 0) setLoading(true)
+      else setRefreshing(true)
       setError(null)
       try {
         let q = supabase
@@ -188,14 +198,17 @@ export default function Discover() {
       } catch (e) {
         if (live) setError(e instanceof Error ? e.message : 'Could not load drops.')
       } finally {
-        if (live) setLoading(false)
+        if (live) {
+          setLoading(false)
+          setRefreshing(false)
+        }
       }
     }
     load()
     return () => {
       live = false
     }
-  }, [group, sub, debounced, user])
+  }, [group, sub, debounced, user, refreshNonce])
 
   const visible = useMemo(() => {
     let list = drops
@@ -254,8 +267,55 @@ export default function Discover() {
     { id: 'near', label: 'Near me' },
   ]
 
+  // Pull-to-refresh: observe the drag at the very top; past the threshold,
+  // release re-runs the feed load.
+  const onPullStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 0 && !refreshing && !loading) pullStartY.current = e.touches[0].clientY
+  }
+  const onPullMove = (e: React.TouchEvent) => {
+    if (pullStartY.current == null) return
+    const dy = e.touches[0].clientY - pullStartY.current
+    if (dy > 0 && window.scrollY <= 0) setPull(Math.min(dy * 0.45, 90))
+    else {
+      pullStartY.current = null
+      setPull(0)
+    }
+  }
+  const onPullEnd = () => {
+    if (pull >= 56) {
+      tapHaptic()
+      setRefreshNonce((n) => n + 1)
+    }
+    pullStartY.current = null
+    setPull(0)
+  }
+
   return (
-    <div>
+    <div onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd} onTouchCancel={onPullEnd}>
+      {(pull > 0 || refreshing) && (
+        <div
+          className="pointer-events-none fixed left-1/2 top-36 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink-3 shadow-xl"
+          style={{
+            transform: `translateX(-50%) translateY(${refreshing ? 0 : Math.min(pull * 0.4, 30)}px) scale(${refreshing ? 1 : Math.min(0.6 + pull / 140, 1)})`,
+            opacity: refreshing ? 1 : Math.min(pull / 40, 1),
+          }}
+        >
+          {refreshing ? (
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-sig/30 border-t-sig" />
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              className="h-5 w-5 text-sig transition-transform duration-150"
+              style={{ transform: pull >= 56 ? 'rotate(180deg)' : 'none' }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v13m0 0l-5-5m5 5l5-5" />
+            </svg>
+          )}
+        </div>
+      )}
       <div className="pt-safe sticky top-0 z-30 border-b border-line bg-ink/95 px-4 pb-1.5 pt-2.5 backdrop-blur">
         {/* TikTok-style top bar: bell | text tabs | search */}
         <div className="mb-1 flex items-center justify-between">

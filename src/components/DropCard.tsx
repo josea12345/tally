@@ -14,6 +14,8 @@ import { safeExternalUrl } from '../lib/urls'
 import TallyIcon from './TallyIcon'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
+import ShareButton from './ShareButton'
+import { tapHaptic } from '../lib/haptics'
 import { VerdictBurst, FlyToTally } from './VoteFx'
 
 interface Props {
@@ -57,6 +59,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation()
+    tapHaptic()
     if (!saved) {
       setHeartPop(false)
       requestAnimationFrame(() => setHeartPop(true))
@@ -76,6 +79,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       selfNoteTimer.current = window.setTimeout(() => setSelfNote(false), 1600)
       return
     }
+    tapHaptic()
     setSlam(v)
     setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
     if (myVote !== v) setBurst({ v, id: ++fxId.current })
@@ -234,6 +238,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         <ChatIcon className="h-6 w-6 text-white drop-shadow-lg" />
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(commentCount)}</span>
       </button>
+      <ShareButton drop={drop} variant="overlay" />
     </div>
   )
 
@@ -274,6 +279,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         </span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
       </button>
+      <ShareButton drop={drop} variant="row" />
     </div>
   )
 

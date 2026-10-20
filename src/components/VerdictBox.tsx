@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Verdict } from '../lib/types'
 import { navigate } from '../App'
 import { notify, unnotifyVote } from '../lib/notify'
+import { tapHaptic } from '../lib/haptics'
 
 const TRIED_COPY: Record<string, string> = {
   movies: 'I watched it — mark as tried',
@@ -57,6 +58,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
   }
 
   const vote = async (verdict: 'W' | 'L') => {
+    tapHaptic()
     if (!requireAuth() || !user) return
     setBusy(true)
     try {

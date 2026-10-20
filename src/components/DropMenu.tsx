@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop } from '../lib/types'
 import { topicKeyFor } from '../lib/format'
+import { shareDrop } from '../lib/share'
 import { navigate } from '../App'
 import ReportDialog from './ReportDialog'
 
@@ -21,6 +22,7 @@ export default function DropMenu({
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [sharedNote, setSharedNote] = useState(false)
   const [busy, setBusy] = useState(false)
   const author = drop.author
 
@@ -68,12 +70,26 @@ export default function DropMenu({
             {!confirming ? (
               <>
                 <button
+                  onClick={async () => {
+                    const r = await shareDrop(drop)
+                    if (r === 'copied') {
+                      setSharedNote(true)
+                      setTimeout(close, 700)
+                    } else {
+                      close()
+                    }
+                  }}
+                  className="block w-full px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
+                >
+                  {sharedNote ? 'Link copied!' : 'Share drop'}
+                </button>
+                <button
                   onClick={() => {
                     const key = drop.topic_key ?? topicKeyFor(drop)
                     close()
                     navigate(`/topic/${encodeURIComponent(key)}`)
                   }}
-                  className="block w-full px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
+                  className="block w-full border-t border-line px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
                 >
                   All posts about this
                 </button>

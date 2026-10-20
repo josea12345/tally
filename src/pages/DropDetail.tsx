@@ -11,6 +11,8 @@ import LinkChips from '../components/LinkChips'
 import MediaCarousel from '../components/MediaCarousel'
 import DropMenu from '../components/DropMenu'
 import { dropMedia } from '../lib/types'
+import { shareDrop } from '../lib/share'
+import { tapHaptic } from '../lib/haptics'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import TallyIcon from '../components/TallyIcon'
@@ -119,6 +121,7 @@ export default function DropDetail({ id }: { id: string }) {
   }, [load])
 
   const toggleSave = async () => {
+    tapHaptic()
     if (!user) {
       navigate('/auth')
       return
@@ -150,15 +153,13 @@ export default function DropDetail({ id }: { id: string }) {
     setSaveBusy(false)
   }
 
-  const shareUrl = () => `${window.location.origin}${window.location.pathname}#/drop/${id}`
-
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl())
+    if (!drop) return
+    // Native share sheet on phones; clipboard copy on desktop.
+    const r = await shareDrop(drop)
+    if (r === 'copied') {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* clipboard unavailable */
     }
   }
 
@@ -379,7 +380,7 @@ export default function DropDetail({ id }: { id: string }) {
             onClick={copyLink}
             className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
           >
-            {copied ? 'Link copied ✓' : 'Copy link'}
+            {copied ? 'Link copied ✓' : 'Share'}
           </button>
           <button
             onClick={exportCard}

@@ -14,6 +14,7 @@ import type { SpotifyTrack } from '../lib/spotify'
 import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
+import { successHaptic } from '../lib/haptics'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
 import { topicKeyFor } from '../lib/format'
 import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
@@ -306,6 +307,7 @@ export default function Composer({ editId }: { editId?: string }) {
         const { data, error: insErr } = await supabase.from('drops').insert(row).select('id').single()
         if (insErr) throw insErr
         clearDraftMedia()
+        successHaptic()
         navigate(`/drop/${(data as { id: string }).id}`)
       }
     } catch (e) {

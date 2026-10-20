@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { notify } from '../lib/notify'
+import { tapHaptic } from '../lib/haptics'
 
 export default function FollowButton({ followeeId, onChange }: { followeeId: string; onChange?: () => void }) {
   const { user } = useAuth()
@@ -76,6 +77,7 @@ export default function FollowButton({ followeeId, onChange }: { followeeId: str
     <button
       onClick={(e) => {
         e.stopPropagation()
+        tapHaptic()
         toggle()
       }}
       disabled={busy}
