@@ -574,35 +574,35 @@ export default function Profile({ id }: { id?: string }) {
 
         {/* this week recap — own profile only */}
         {week && (
-          <div className="mx-auto mt-5 w-full max-w-[430px] rounded-2xl border border-line bg-ink-2 px-4 py-3">
-            <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.25em] text-mute">
+          <div className="mx-auto mt-4 w-full max-w-[430px] rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+            <div className="mb-1.5 text-center text-[9px] font-black uppercase tracking-[0.22em] text-mute">
               This week
             </div>
             {week.w + week.l + week.tallies + week.comments + week.followers === 0 ? (
-              <p className="text-center text-xs text-mute">
+              <p className="text-center text-[11px] text-mute">
                 Quiet so far — no new action on your drops yet.
               </p>
             ) : (
-              <div className="flex items-start justify-center gap-5 text-center">
-                <div>
-                  <div className="text-base font-black tabular-nums">
+              <div className="flex items-start justify-between gap-2 text-center">
+                <div className="min-w-0 flex-1">
+                  <div className="whitespace-nowrap text-sm font-black tabular-nums">
                     <span className="text-win">{week.w} W</span>
                     <span className="text-mute"> · </span>
                     <span className="text-miss">{week.l} L</span>
                   </div>
-                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">verdicts</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">verdicts</div>
                 </div>
-                <div>
-                  <div className="text-base font-black tabular-nums text-fog">{week.tallies}</div>
-                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">new tallies</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-black tabular-nums text-fog">{week.tallies}</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">tallies</div>
                 </div>
-                <div>
-                  <div className="text-base font-black tabular-nums text-fog">{week.comments}</div>
-                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">comments</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-black tabular-nums text-fog">{week.comments}</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">comments</div>
                 </div>
-                <div>
-                  <div className="text-base font-black tabular-nums text-fog">{week.followers}</div>
-                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">new follows</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-black tabular-nums text-fog">{week.followers}</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">follows</div>
                 </div>
               </div>
             )}
