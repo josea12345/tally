@@ -66,6 +66,7 @@ serve(async (req) => {
     L: `${name} called L on ${title}`,
     follow: `${name} followed you`,
     comment: `${name} commented on ${title}`,
+    mention: `${name} mentioned you on ${title}`,
     approved: `${name} approved your follow request`,
     requested: `${name} requested to follow you`,
   }

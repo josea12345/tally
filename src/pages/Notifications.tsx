@@ -28,6 +28,8 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
           <ChatIcon className="h-5 w-5" />
         </span>
       )
+    case 'mention':
+      return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>@</span>
   }
 }
 
@@ -42,6 +44,8 @@ function textFor(n: Notification): string {
       return `${name} followed you`
     case 'comment':
       return `${name} commented on your drop`
+    case 'mention':
+      return `${name} mentioned you in a comment`
     case 'approved':
       return `${name} approved your follow request`
     case 'requested':

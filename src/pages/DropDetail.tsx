@@ -20,6 +20,7 @@ import TallyIcon from '../components/TallyIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
 import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
+import MentionText from '../components/MentionText'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
@@ -343,7 +344,7 @@ export default function DropDetail({ id }: { id: string }) {
         )}
         <p className="mt-2 text-[17px] leading-relaxed">
           <span className="font-bold text-sig">Hear me out — </span>
-          {drop.description}
+          <MentionText text={drop.description ?? ''} />
         </p>
         {(drop.street_address || drop.neighborhood || drop.city) && (
           <div className="mt-3 rounded-2xl border border-line bg-ink-2 p-4">

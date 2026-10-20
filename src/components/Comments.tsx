@@ -5,6 +5,7 @@ import type { Comment, Profile } from '../lib/types'
 import { timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
+import MentionText from './MentionText'
 
 /** Threaded conversation on a drop: list + post + delete-own. */
 export default function Comments({
@@ -28,6 +29,51 @@ export default function Comments({
   const pickedTouched = useRef(false)
   // Reply target: replies hang off the TOP-LEVEL comment (one level deep).
   const [replyTo, setReplyTo] = useState<{ topId: string; name: string } | null>(null)
+  // @mention autocomplete: the token being typed + matching profiles.
+  const [mentionOpts, setMentionOpts] = useState<Profile[]>([])
+  const mentionToken = useRef<{ start: number; end: number; q: string } | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const onBodyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setBody(v)
+    const caret = e.target.selectionStart ?? v.length
+    const m = v.slice(0, caret).match(/(?:^|\s)@([A-Za-z0-9_]*)$/)
+    if (m && m[1].length >= 1) {
+      mentionToken.current = { start: caret - m[1].length - 1, end: caret, q: m[1].toLowerCase() }
+      const q = m[1].toLowerCase()
+      window.setTimeout(async () => {
+        if (mentionToken.current?.q !== q) return // superseded by newer typing
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('username', `${q}%`)
+          .neq('id', user?.id ?? '')
+          .order('username')
+          .limit(5)
+        if (mentionToken.current?.q === q) setMentionOpts((data ?? []) as Profile[])
+      }, 150)
+    } else {
+      mentionToken.current = null
+      setMentionOpts([])
+    }
+  }
+
+  const pickMention = (p: Profile) => {
+    const tok = mentionToken.current
+    if (!tok) return
+    const insert = `@${p.username} `
+    const next = body.slice(0, tok.start) + insert + body.slice(tok.end)
+    setBody(next)
+    mentionToken.current = null
+    setMentionOpts([])
+    const el = inputRef.current
+    if (el) {
+      el.focus()
+      const pos = tok.start + insert.length
+      requestAnimationFrame(() => el.setSelectionRange(pos, pos))
+    }
+  }
 
   const isAuthor = !!user && !!authorId && user.id === authorId
   const myRated = comments.find((c) => user && c.user_id === user.id && c.rating != null)
@@ -115,6 +161,8 @@ export default function Comments({
       onCountChange?.(next.length)
       setBody('')
       setReplyTo(null)
+      mentionToken.current = null
+      setMentionOpts([])
       if (authorId) void notify(authorId, user.id, 'comment', dropId)
     } catch {
       // Draft is preserved above (setBody only runs on success).
@@ -181,7 +229,7 @@ export default function Comments({
             </button>
           )}
         </div>
-        <p className="mt-0.5 break-words text-sm">{c.body}</p>
+        <p className="mt-0.5 break-words text-sm"><MentionText text={c.body} /></p>
       </div>
     </div>
   )
@@ -235,6 +283,23 @@ export default function Comments({
               >
                 ✕
               </button>
+            </div>
+          )}
+          {mentionOpts.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {mentionOpts.map((p) => (
+                <button
+                  key={p.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    pickMention(p)
+                  }}
+                  className="flex items-center gap-1.5 rounded-full border border-sig/50 bg-sig/10 py-1 pl-1 pr-3 text-xs font-bold text-sig"
+                >
+                  <Avatar url={p.avatar_url} name={p.display_name ?? p.username} size={18} />
+                  @{p.username}
+                </button>
+              ))}
             </div>
           )}
           <div className="flex gap-2">
@@ -297,8 +362,9 @@ export default function Comments({
               </div>
             )}
             <input
+              ref={inputRef}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={onBodyChange}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') post()
               }}

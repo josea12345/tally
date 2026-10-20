@@ -22,6 +22,9 @@ export default function Search() {
   const [people, setPeople] = useState<Profile[]>([])
   const [drops, setDrops] = useState<DropHit[]>([])
   const [fresh, setFresh] = useState<DropHit[]>([])
+  const [topics, setTopics] = useState<Array<{ key: string; label: string; count: number }>>([])
+  const [topRated, setTopRated] = useState<Array<DropHit & { wins: number; losses: number }>>([])
+  const [active, setActive] = useState<Array<{ profile: Profile; drops: number }>>([])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -29,18 +32,84 @@ export default function Search() {
     return () => clearTimeout(t)
   }, [query])
 
-  // Fresh drops when there's no query
+  // Explore (no query): trending topics, this week's top-rated drops,
+  // most active people, then fresh drops — all from real data.
   useEffect(() => {
     if (debounced) return
     let live = true
-    supabase
-      .from('drops')
-      .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)')
-      .order('created_at', { ascending: false })
-      .limit(15)
-      .then(({ data }) => {
-        if (live) setFresh((data ?? []) as DropHit[])
-      })
+    const DROP_COLS =
+      'id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
+    ;(async () => {
+      const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
+      const [{ data: freshRows }, { data: topicRows }, { data: weekDrops }, { data: authorRows }] =
+        await Promise.all([
+          supabase.from('drops').select(DROP_COLS).order('created_at', { ascending: false }).limit(15),
+          supabase.from('drops').select('topic_key, title').not('topic_key', 'is', null).order('created_at', { ascending: false }).limit(500),
+          supabase.from('drops').select(DROP_COLS).gte('created_at', weekAgo).order('created_at', { ascending: false }).limit(100),
+          supabase.from('drops').select('author_id').limit(1000),
+        ])
+      if (!live) return
+      setFresh((freshRows ?? []) as unknown as DropHit[])
+
+      const byTopic = new Map<string, { label: string; count: number }>()
+      for (const r of (topicRows ?? []) as Array<{ topic_key: string; title: string }>) {
+        const cur = byTopic.get(r.topic_key)
+        if (cur) cur.count++
+        else {
+          const city = r.topic_key.split('|')[1]
+          byTopic.set(r.topic_key, {
+            label: city ? `${r.title} · ${city.charAt(0).toUpperCase() + city.slice(1)}` : r.title,
+            count: 1,
+          })
+        }
+      }
+      setTopics(
+        [...byTopic.entries()]
+          .map(([key, v]) => ({ key, ...v }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8),
+      )
+
+      const week = (weekDrops ?? []) as unknown as DropHit[]
+      if (week.length > 0) {
+        const { data: vrows } = await supabase
+          .from('verdicts')
+          .select('drop_id, verdict')
+          .in('drop_id', week.map((d) => d.id))
+          .limit(2000)
+        if (!live) return
+        const rec = new Map<string, { wins: number; losses: number }>()
+        for (const v of (vrows ?? []) as Array<{ drop_id: string; verdict: string | null }>) {
+          const e = rec.get(v.drop_id) ?? { wins: 0, losses: 0 }
+          if (v.verdict === 'W') e.wins++
+          else if (v.verdict === 'L') e.losses++
+          rec.set(v.drop_id, e)
+        }
+        setTopRated(
+          week
+            .map((d) => ({ ...d, ...(rec.get(d.id) ?? { wins: 0, losses: 0 }) }))
+            .filter((d) => d.wins + d.losses >= 2)
+            .sort((a, b) => b.wins - b.losses - (a.wins - a.losses) || b.wins - a.wins)
+            .slice(0, 5),
+        )
+      }
+
+      const counts = new Map<string, number>()
+      for (const r of (authorRows ?? []) as Array<{ author_id: string }>) {
+        counts.set(r.author_id, (counts.get(r.author_id) ?? 0) + 1)
+      }
+      const topIds = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4)
+      if (topIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('*').in('id', topIds.map(([id]) => id))
+        if (!live) return
+        const byId = new Map(((profs ?? []) as Profile[]).map((p) => [p.id, p]))
+        setActive(
+          topIds
+            .map(([id, n]) => ({ profile: byId.get(id)!, drops: n }))
+            .filter((x) => x.profile),
+        )
+      }
+    })()
     return () => {
       live = false
     }
@@ -71,7 +140,7 @@ export default function Search() {
       ])
       if (!live) return
       setPeople(((pr.data ?? []) as Profile[]).filter((p) => p.id !== user?.id))
-      setDrops((dr.data ?? []) as DropHit[])
+      setDrops((dr.data ?? []) as unknown as DropHit[])
       setBusy(false)
     }
     run()
@@ -110,17 +179,55 @@ export default function Search() {
       </div>
 
       {!debounced ? (
-        <div className="px-4 pt-4">
-          <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Fresh drops</h2>
-          {fresh.length === 0 ? (
-            <p className="text-sm text-mute">Nothing dropped yet — be the first.</p>
-          ) : (
-            <ul className="space-y-2.5">
-              {fresh.map((d) => (
-                <DropRow key={d.id} drop={d} />
-              ))}
-            </ul>
+        <div className="space-y-7 px-4 pt-4">
+          {topics.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Trending topics</h2>
+              <div className="flex flex-wrap gap-2">
+                {topics.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => navigate(`/topic/${encodeURIComponent(t.key)}`)}
+                    className="rounded-full border border-line bg-ink-2 px-3.5 py-2 text-sm font-bold transition hover:border-sig/60"
+                  >
+                    {t.label} <span className="text-sig">· {t.count}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
+          {topRated.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Top rated this week</h2>
+              <ul className="space-y-2.5">
+                {topRated.map((d) => (
+                  <DropRow key={d.id} drop={d} record={`${d.wins} W · ${d.losses} L`} />
+                ))}
+              </ul>
+            </section>
+          )}
+          {active.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Putting in work</h2>
+              <ul className="space-y-3">
+                {active.map(({ profile, drops }) => (
+                  <PersonRow key={profile.id} profile={profile} note={`${drops} drop${drops === 1 ? '' : 's'}`} />
+                ))}
+              </ul>
+            </section>
+          )}
+          <section>
+            <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Fresh drops</h2>
+            {fresh.length === 0 ? (
+              <p className="text-sm text-mute">Nothing dropped yet — be the first.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {fresh.map((d) => (
+                  <DropRow key={d.id} drop={d} />
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       ) : busy ? (
         <div className="animate-pulse space-y-3 px-4 py-6">
@@ -157,7 +264,7 @@ export default function Search() {
   )
 }
 
-function PersonRow({ profile: p }: { profile: Profile }) {
+function PersonRow({ profile: p, note }: { profile: Profile; note?: string }) {
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 p-3">
       <button onClick={() => navigate(`/profile/${p.id}`)}>
@@ -168,14 +275,14 @@ function PersonRow({ profile: p }: { profile: Profile }) {
           {p.display_name || `@${p.username}`}{' '}
           <span className="font-normal text-mute">@{p.username}</span>
         </div>
-        {p.bio && <div className="truncate text-xs text-mute">{p.bio}</div>}
+        {(note || p.bio) && <div className="truncate text-xs text-mute">{note ?? p.bio}</div>}
       </button>
       <FollowButton followeeId={p.id} />
     </li>
   )
 }
 
-function DropRow({ drop: d }: { drop: DropHit }) {
+function DropRow({ drop: d, record }: { drop: DropHit; record?: string }) {
   const first = dropMedia(d)[0]
   const thumb = first ? (first.type === 'video' ? first.posterUrl || undefined : first.url) : undefined
   return (
@@ -194,6 +301,7 @@ function DropRow({ drop: d }: { drop: DropHit }) {
           <span className="block truncate text-xs text-mute">
             @{d.author?.username ?? '?'} · {timeAgo(d.created_at)}
             {d.score != null && <span className="font-bold text-sig"> · {d.score}/10</span>}
+            {record && <span className="font-bold text-win"> · {record}</span>}
           </span>
         </span>
       </button>

@@ -18,6 +18,7 @@ import DropMenu from './DropMenu'
 import ShareButton from './ShareButton'
 import { tapHaptic } from '../lib/haptics'
 import { VerdictBurst, FlyToTally } from './VoteFx'
+import MentionText from './MentionText'
 
 interface Props {
   drop: Drop
@@ -381,7 +382,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           {drop.description ? (
             <p className="text-[15px] leading-snug">
               <span className="font-bold text-sig">Hear me out — </span>
-              <span className="text-fog/90">{drop.description}</span>
+              <span className="text-fog/90"><MentionText text={drop.description} /></span>
             </p>
           ) : null}
           {drop.category === 'recipes' && (drop.ingredients.length > 0 || drop.instructions.length > 0) && (
