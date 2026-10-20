@@ -46,6 +46,29 @@ export default function DropDetail({ id }: { id: string }) {
   const [proofs, setProofs] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
   const [proofView, setProofView] = useState<string | null>(null)
   const [listing, setListing] = useState(false)
+  // Verdict notes ("the calls") + author-only view count.
+  const [callNotes, setCallNotes] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
+  const [viewCount, setViewCount] = useState<number | null>(null)
+  useEffect(() => {
+    const withNote = verdicts.filter((v) => v.note)
+    if (withNote.length === 0) {
+      setCallNotes([])
+      return
+    }
+    let live = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', [...new Set(withNote.map((v) => v.user_id))])
+      if (!live) return
+      const byId = new Map(((data ?? []) as Profile[]).map((p) => [p.id, p]))
+      setCallNotes(withNote.map((v) => ({ verdict: v, profile: byId.get(v.user_id) ?? null })))
+    })()
+    return () => {
+      live = false
+    }
+  }, [verdicts])
   useEffect(() => {
     const withProof = verdicts.filter((v) => v.proof_url)
     if (withProof.length === 0) {
@@ -193,6 +216,34 @@ export default function DropDetail({ id }: { id: string }) {
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  // Record a view (author excluded, once per viewer per day per device)
+  // and load the author's view count.
+  useEffect(() => {
+    if (!drop) return
+    const isAuthor = !!user && user.id === drop.author_id
+    if (isAuthor) {
+      let live = true
+      ;(async () => {
+        const { count } = await supabase
+          .from('drop_views')
+          .select('id', { count: 'exact', head: true })
+          .eq('drop_id', drop.id)
+        if (live) setViewCount(count ?? 0)
+      })()
+      return () => {
+        live = false
+      }
+    }
+    const key = `tally-viewed-${drop.id}-${new Date().toISOString().slice(0, 10)}`
+    try {
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch {
+      // storage unavailable — count the view anyway
+    }
+    void supabase.from('drop_views').insert({ drop_id: drop.id, viewer_id: user?.id ?? null })
+  }, [drop?.id, user?.id])
 
   const exportCard = async () => {
     if (!drop?.author) return
@@ -509,6 +560,26 @@ export default function DropDetail({ id }: { id: string }) {
           )}
         </div>
 
+        {!!user && user.id === drop.author_id && (
+          <div className="mt-3 rounded-2xl border border-line bg-ink-2 px-4 py-3 text-center">
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-mute">Your drop</div>
+            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-bold text-fog">
+              <span>{viewCount ?? '–'} views</span>
+              <span className="text-mute/50">·</span>
+              <span>{stats.saves} tallies</span>
+              <span className="text-mute/50">·</span>
+              <span>{stats.tried} tried</span>
+              <span className="text-mute/50">·</span>
+              <span>
+                <span className="text-win">{stats.wins} W</span>
+                <span className="text-mute"> – </span>
+                <span className="text-miss">{stats.losses} L</span>
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-mute">Views count from today onward — only you see this.</p>
+          </div>
+        )}
+
         {proofs.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-3 text-lg font-black">Receipts</h2>
@@ -538,6 +609,31 @@ export default function DropDetail({ id }: { id: string }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {callNotes.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-lg font-black">The calls</h2>
+            <ul className="space-y-2">
+              {callNotes.map(({ verdict: v, profile: p }) => (
+                <li key={v.id} className="flex items-start gap-2.5 rounded-2xl border border-line bg-ink-2 px-3.5 py-2.5">
+                  {v.verdict && (
+                    <span
+                      className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-black ${
+                        v.verdict === 'W' ? 'bg-win text-ink' : 'bg-miss text-white'
+                      }`}
+                    >
+                      {v.verdict}
+                    </span>
+                  )}
+                  <span className="min-w-0 text-sm">
+                    <span className="mr-1.5 font-bold text-sig">@{p?.username ?? '?'}</span>
+                    <span className="text-fog">{v.note}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

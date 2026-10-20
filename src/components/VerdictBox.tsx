@@ -36,6 +36,33 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
   useEffect(() => {
     setProofUrl(myVerdict?.proof_url ?? null)
   }, [myVerdict?.proof_url, drop.id])
+  // One-line note on my call ("worth the hype", "still a W").
+  const [noteText, setNoteText] = useState('')
+  const [noteBusy, setNoteBusy] = useState(false)
+  const [noteSaved, setNoteSaved] = useState(false)
+  useEffect(() => {
+    setNoteText(myVerdict?.note ?? '')
+  }, [myVerdict?.note, drop.id])
+
+  const saveNote = async () => {
+    if (!user || noteBusy) return
+    const note = noteText.trim()
+    setNoteBusy(true)
+    try {
+      const { error } = await supabase.from('verdicts').upsert(
+        { user_id: user.id, drop_id: drop.id, tried: true, note: note === '' ? null : note },
+        { onConflict: 'user_id,drop_id' },
+      )
+      if (error) throw error
+      setNoteSaved(true)
+      setTimeout(() => setNoteSaved(false), 1500)
+      onChanged()
+    } catch {
+      // notes are garnish — a failed save never blocks the verdict
+    } finally {
+      setNoteBusy(false)
+    }
+  }
 
   const attachProof = async (file: File) => {
     if (!user || proofBusy) return
@@ -63,8 +90,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
     }
   }
 
-  const removeProof = async () => {
-    if (!user || proofBusy || !proofUrl) return
+  const removeProof = async () => {    if (!user || proofBusy || !proofUrl) return
     setProofBusy(true)
     try {
       const { error } = await supabase.from('verdicts').upsert(
@@ -212,6 +238,28 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
             </div>
           )}
           {tried && <p className="mt-2 text-center text-[11px] text-mute">You can change your verdict anytime.</p>}
+          {tried && (myVerdict?.verdict || noteText) && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <input
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void saveNote()}
+                placeholder="Note on your call — worth the hype…"
+                maxLength={140}
+                className="w-full max-w-[300px] rounded-full border border-line bg-ink-3 px-3.5 py-2 text-xs outline-none placeholder:text-mute/60 focus:border-sig"
+              />
+              {(noteText.trim() !== (myVerdict?.note ?? '')) && (
+                <button
+                  onClick={saveNote}
+                  disabled={noteBusy}
+                  className="shrink-0 rounded-full bg-sig px-3 py-2 text-xs font-black text-ink disabled:opacity-50"
+                >
+                  {noteBusy ? '…' : 'Save'}
+                </button>
+              )}
+              {noteSaved && <span className="shrink-0 text-xs font-bold text-win">Saved ✓</span>}
+            </div>
+          )}
           {tried && (
             <div className="mt-3 flex items-center justify-center gap-3">
               {proofUrl ? (

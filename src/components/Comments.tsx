@@ -34,6 +34,7 @@ export default function Comments({
   // Comment likes: counts per comment + the set I have liked.
   const [likeCounts, setLikeCounts] = useState<Map<string, number>>(new Map())
   const [myLikes, setMyLikes] = useState<Set<string>>(new Set())
+  const [sortMode, setSortMode] = useState<'new' | 'top'>('new')
   const mentionToken = useRef<{ start: number; end: number; q: string } | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -82,6 +83,18 @@ export default function Comments({
   const myRated = comments.find((c) => user && c.user_id === user.id && c.rating != null)
   const rated = comments.filter((c) => c.rating != null && c.user_id !== authorId)
   const communityMean = rated.length > 0 ? rated.reduce((a, c) => a + (c.rating ?? 0), 0) / rated.length : null
+  // Top-level order: chronological by default; "Top" floats the most
+  // liked (then highest-rated) takes. Replies always stay nested.
+  const topLevel = comments.filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
+  const orderedTop =
+    sortMode === 'top'
+      ? [...topLevel].sort(
+          (a, b) =>
+            (likeCounts.get(b.id) ?? 0) - (likeCounts.get(a.id) ?? 0) ||
+            (b.rating ?? 0) - (a.rating ?? 0) ||
+            b.created_at.localeCompare(a.created_at),
+        )
+      : topLevel
 
   useEffect(() => {
     let live = true
@@ -322,14 +335,32 @@ export default function Comments({
           </span>
         )}
       </div>
+      {comments.length > 1 && (
+        <div className="mb-3 flex gap-1.5">
+          {(
+            [
+              { id: 'new', label: 'New' },
+              { id: 'top', label: 'Top' },
+            ] as const
+          ).map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSortMode(s.id)}
+              className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
+                sortMode === s.id ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {comments.length === 0 ? (
         <p className="mb-3 text-xs text-mute">No comments yet — say the thing everyone's thinking.</p>
       ) : (
         <div className="mb-3 flex flex-col gap-3">
-          {comments
-            .filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
-            .map((c) => (
+          {orderedTop.map((c) => (
               <div key={c.id}>
                 {commentRow(c, c.id)}
                 {comments
