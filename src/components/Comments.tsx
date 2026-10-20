@@ -156,7 +156,14 @@ export default function Comments({
       const c = data as Comment
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (prof) c.user = prof as Profile
-      const next = [...comments, c]
+      // Mirror the DB rating move locally: a fresh rated post clears the
+      // star on my older comments (the DB already did this — without the
+      // local patch the thread keeps showing two ratings until reload).
+      const ratedPost = !replyTo && picked != null && !isAuthor
+      const base = ratedPost
+        ? comments.map((x) => (x.user_id === user.id && x.rating != null ? { ...x, rating: null } : x))
+        : comments
+      const next = [...base, c]
       setComments(next)
       onCountChange?.(next.length)
       setBody('')
