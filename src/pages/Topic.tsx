@@ -20,7 +20,7 @@ export default function Topic({ topicKey }: { topicKey: string }) {
       setLoading(true)
       const { data: rows } = await supabase
         .from('drops')
-        .select('*, author:profiles(*)')
+        .select('*, author:profiles!drops_author_id_fkey(*)')
         .eq('topic_key', topicKey)
         .order('created_at', { ascending: false })
         .limit(100)

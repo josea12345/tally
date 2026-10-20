@@ -30,7 +30,7 @@ export default function PutOnChain({ drop }: Props) {
       // Re-drops: same normalized title+city by another author, created after this drop.
       const { data: siblings } = await supabase
         .from('drops')
-        .select('*, author:profiles(*)')
+        .select('*, author:profiles!drops_author_id_fkey(*)')
         .neq('id', drop.id)
         .order('created_at')
         .limit(200)

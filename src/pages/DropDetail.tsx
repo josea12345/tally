@@ -44,7 +44,7 @@ export default function DropDetail({ id }: { id: string }) {
     try {
       const { data, error: dErr } = await supabase
         .from('drops')
-        .select('*, author:profiles(*)')
+        .select('*, author:profiles!drops_author_id_fkey(*)')
         .eq('id', id)
         .maybeSingle()
       if (dErr) throw dErr

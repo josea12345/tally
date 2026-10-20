@@ -153,7 +153,7 @@ export default function Profile({ id }: { id?: string }) {
       })
 
       const [{ data: ds }, { count: f1 }, { count: f2 }] = await Promise.all([
-        supabase.from('drops').select('*, author:profiles(*)').eq('author_id', profileId).order('created_at', { ascending: false }).limit(200),
+        supabase.from('drops').select('*, author:profiles!drops_author_id_fkey(*)').eq('author_id', profileId).order('created_at', { ascending: false }).limit(200),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('followee_id', profileId),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', profileId),
       ])

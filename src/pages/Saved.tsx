@@ -43,7 +43,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     const load = async () => {
       const { data } = await supabase
         .from('saves')
-        .select('drop:drops(*, author:profiles(*))')
+        .select('drop:drops(*, author:profiles!drops_author_id_fkey(*))')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(200)

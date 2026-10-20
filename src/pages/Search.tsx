@@ -35,7 +35,7 @@ export default function Search() {
     let live = true
     supabase
       .from('drops')
-      .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
+      .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(15)
       .then(({ data }) => {
@@ -64,7 +64,7 @@ export default function Search() {
           .limit(20),
         supabase
           .from('drops')
-          .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles(username, display_name, avatar_url)')
+          .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)')
           .or(`title.ilike.${like},description.ilike.${like}`)
           .order('created_at', { ascending: false })
           .limit(20),

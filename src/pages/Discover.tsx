@@ -88,7 +88,7 @@ export default function Discover() {
   const buildDropsQuery = () => {
     let q = supabase
       .from('drops')
-      .select('*, author:profiles(*)')
+      .select('*, author:profiles!drops_author_id_fkey(*)')
       .order('created_at', { ascending: false })
     if (sub !== 'all') q = q.eq('category', sub)
     else if (group !== 'all') {
