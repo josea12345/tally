@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { searchMusic, type MusicTrack } from '../lib/music'
+import { searchMusic, type MusicKind, type MusicTrack } from '../lib/music'
+
+const KIND_OPTIONS: { kind: MusicKind; label: string; placeholder: string }[] = [
+  { kind: 'track', label: 'Songs', placeholder: 'Search songs…' },
+  { kind: 'album', label: 'Albums', placeholder: 'Search albums…' },
+  { kind: 'artist', label: 'Artists', placeholder: 'Search artists…' },
+]
 
 /**
  * Track search for the composer (music), backed by Deezer via the
@@ -11,6 +17,7 @@ import { searchMusic, type MusicTrack } from '../lib/music'
  */
 export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => void }) {
   const [q, setQ] = useState('')
+  const [kind, setKind] = useState<MusicKind>('track')
   const [results, setResults] = useState<MusicTrack[]>([])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -25,7 +32,7 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
     setSearching(true)
     const t = setTimeout(async () => {
       try {
-        const r = await searchMusic(q)
+        const r = await searchMusic(q, kind)
         setResults(r)
         setFailed(false)
       } catch {
@@ -37,7 +44,7 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
       }
     }, 400)
     return () => clearTimeout(t)
-  }, [q])
+  }, [q, kind])
 
   return (
     <div className="relative mb-3">
@@ -45,9 +52,23 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Search artist, song or album…"
+        placeholder={KIND_OPTIONS.find((o) => o.kind === kind)?.placeholder}
         className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3.5 text-base font-bold outline-none placeholder:text-mute/60 focus:border-sig"
       />
+      <div className="mt-2 flex gap-1.5">
+        {KIND_OPTIONS.map((o) => (
+          <button
+            key={o.kind}
+            type="button"
+            onClick={() => setKind(o.kind)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+              kind === o.kind ? 'bg-sig text-ink' : 'border border-line bg-ink-2 text-mute'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
       {open && (
         <div className="absolute z-40 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-line bg-ink-3 shadow-2xl">
           {searching && <p className="px-4 py-3 text-sm text-mute">Searching…</p>}
@@ -78,12 +99,14 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-bold">{r.name}</span>
                 <span className="block truncate text-xs text-mute">
-                  {r.artists} · {r.album}
+                  {[r.artists, r.album].filter(Boolean).join(' · ')}
                 </span>
               </span>
-              <span className="shrink-0 rounded-full bg-ink-2 px-2 py-1 text-[10px] font-black text-mute">
-                {r.popularity}
-              </span>
+              {r.popularity != null && (
+                <span className="shrink-0 rounded-full bg-ink-2 px-2 py-1 text-[10px] font-black text-mute">
+                  {r.popularity}
+                </span>
+              )}
             </button>
           ))}
           <p className="border-t border-line px-4 py-2 text-[10px] text-mute/70">

@@ -103,9 +103,9 @@ export default function Composer({ editId }: { editId?: string }) {
     }
   }
 
-  /** Track pick: fill the title, attach the album art as cover, link the track. */
+  /** Music pick (song, album or artist): fill the title, attach the art as cover, link it. */
   const pickTrack = (t: MusicTrack) => {
-    setTitle(`${t.name} — ${t.artists}`)
+    setTitle(t.kind === 'artist' ? t.name : `${t.name} — ${t.artists}`)
     setSpotifyUrl(t.url)
     setSpotifyPopularity(t.popularity)
     setMediaList((prev) => {

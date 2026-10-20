@@ -8,8 +8,10 @@
 // (This replaced spotify-search: Spotify has new developer app creation
 // on hold platform-wide, so no Client ID/Secret can be obtained.)
 //
-// POST { q: string } -> { tracks: [{ id, name, artists, album, image, popularity, url }] }
-// popularity = Deezer rank normalized to 0–100 (rank tops out near 1,000,000).
+// POST { q: string, type?: 'track' | 'album' | 'artist' }
+//   -> { tracks: [{ id, kind, name, artists, album, image, popularity, url }] }
+// popularity = Deezer rank normalized to 0–100 (tracks only; rank tops out
+// near 1,000,000 — album/artist search results carry no rank, so null).
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
@@ -23,20 +25,6 @@ const CORS = {
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: CORS })
-
-interface DeezerTrack {
-  id: number
-  title: string
-  link: string
-  rank?: number
-  artist?: { name: string }
-  album?: {
-    title: string
-    cover_xl?: string
-    cover_big?: string
-    cover_medium?: string
-  }
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
@@ -59,28 +47,61 @@ serve(async (req) => {
   if (!user) return json({ error: 'unauthorized' }, 401)
 
   let q = ''
+  let type: 'track' | 'album' | 'artist' = 'track'
   try {
-    q = (await req.json()).q?.trim() ?? ''
+    const body = await req.json()
+    q = body.q?.trim() ?? ''
+    if (body.type === 'album' || body.type === 'artist') type = body.type
   } catch {
     return json({ error: 'bad_request' }, 400)
   }
   if (!q || q.length > 120) return json({ error: 'bad_request' }, 400)
 
   try {
+    const path = type === 'track' ? 'search' : `search/${type}`
     const res = await fetch(
-      `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=12`,
+      `https://api.deezer.com/${path}?q=${encodeURIComponent(q)}&limit=12`,
     )
     if (!res.ok) return json({ error: `deezer_search_failed:${res.status}` }, 502)
     const data = await res.json()
-    const tracks = ((data.data ?? []) as DeezerTrack[]).map((t) => ({
-      id: String(t.id),
-      name: t.title,
-      artists: t.artist?.name ?? '',
-      album: t.album?.title ?? '',
-      image: t.album?.cover_xl ?? t.album?.cover_big ?? t.album?.cover_medium ?? null,
-      popularity: Math.min(100, Math.round((t.rank ?? 0) / 10000)),
-      url: t.link,
-    }))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = (data.data ?? []) as any[]
+    const tracks = items.map((t) => {
+      if (type === 'album') {
+        return {
+          id: String(t.id),
+          kind: 'album',
+          name: t.title,
+          artists: t.artist?.name ?? '',
+          album: `${t.nb_tracks ?? 0} tracks`,
+          image: t.cover_xl ?? t.cover_big ?? t.cover_medium ?? null,
+          popularity: null,
+          url: t.link,
+        }
+      }
+      if (type === 'artist') {
+        return {
+          id: String(t.id),
+          kind: 'artist',
+          name: t.name,
+          artists: 'Artist',
+          album: `${t.nb_album ?? 0} albums`,
+          image: t.picture_xl ?? t.picture_big ?? t.picture_medium ?? null,
+          popularity: null,
+          url: t.link,
+        }
+      }
+      return {
+        id: String(t.id),
+        kind: 'track',
+        name: t.title,
+        artists: t.artist?.name ?? '',
+        album: t.album?.title ?? '',
+        image: t.album?.cover_xl ?? t.album?.cover_big ?? t.album?.cover_medium ?? null,
+        popularity: Math.min(100, Math.round((t.rank ?? 0) / 10000)),
+        url: t.link,
+      }
+    })
     return json({ tracks })
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : 'unknown' }, 502)
