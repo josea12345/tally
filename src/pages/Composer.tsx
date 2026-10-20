@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, PlaceSuggestion } from '../lib/types'
@@ -219,6 +219,62 @@ export default function Composer({ editId }: { editId?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category])
 
+  // Draft safety net (new drops only — edits load from the DB): the text
+  // fields autosave locally as you type and restore on return, so a
+  // failed post or a closed app never eats a half-written drop. Media has
+  // its own pending-upload draft; this covers the words.
+  const DRAFT_KEY = 'tally-composer-draft-v1'
+  const draftRestored = useRef(false)
+  useEffect(() => {
+    if (editId || draftRestored.current) return
+    draftRestored.current = true
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw) as {
+        category?: Category
+        title?: string
+        description?: string
+        score?: number | null
+        city?: string
+        tip?: string
+        whereTo?: string
+        ingredientsText?: string
+        instructionsText?: string
+      }
+      if (d.category) setCategory(d.category)
+      if (d.title) setTitle(d.title)
+      if (d.description) setDescription(d.description)
+      if (d.score != null) setScore(d.score)
+      if (d.city) setCity(d.city)
+      if (d.tip) setTip(d.tip)
+      if (d.whereTo) setWhereTo(d.whereTo)
+      if (d.ingredientsText) setIngredientsText(d.ingredientsText)
+      if (d.instructionsText) setInstructionsText(d.instructionsText)
+    } catch {
+      // Corrupt draft — ignore it; the autosave below overwrites it.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId])
+
+  useEffect(() => {
+    if (editId) return
+    const empty = !title.trim() && !description.trim() && !tip.trim() && !whereTo.trim()
+    const t = setTimeout(() => {
+      try {
+        if (empty) localStorage.removeItem(DRAFT_KEY)
+        else
+          localStorage.setItem(
+            DRAFT_KEY,
+            JSON.stringify({ category, title, description, score, city, tip, whereTo, ingredientsText, instructionsText }),
+          )
+      } catch {
+        // Storage blocked or full — non-fatal.
+      }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [editId, category, title, description, score, city, tip, whereTo, ingredientsText, instructionsText])
+
   const pickPlace = (s: PlaceSuggestion) => {
     setPinned(s)
     setTitle(s.name)
@@ -311,11 +367,20 @@ export default function Composer({ editId }: { editId?: string }) {
         const { data, error: insErr } = await supabase.from('drops').insert(row).select('id').single()
         if (insErr) throw insErr
         clearDraftMedia()
+        try {
+          localStorage.removeItem(DRAFT_KEY)
+        } catch {
+          // ignore
+        }
         successHaptic()
         navigate(`/drop/${(data as { id: string }).id}`)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save your drop.')
+      // Supabase errors are plain objects, not Error instances — read the
+      // message off anything that carries one, so the real reason shows
+      // (a bare "Could not save" hid a constraint failure for a full day).
+      const msg = (e as { message?: string } | null)?.message
+      setError(msg ? `Could not save your drop — ${msg}` : 'Could not save your drop.')
     } finally {
       setBusy(false)
     }

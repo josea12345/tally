@@ -17,6 +17,7 @@ import Settings from './pages/Settings'
 import FollowList from './pages/FollowList'
 import Topic from './pages/Topic'
 import InstallBanner from './components/InstallBanner'
+import UpdatePill from './components/UpdatePill'
 import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
@@ -305,6 +306,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-ink text-fog">
       <InstallBanner />
+      <UpdatePill />
       <div className="mx-auto flex max-w-6xl">
         {showChrome && <DesktopRail />}
         <main

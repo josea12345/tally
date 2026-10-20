@@ -199,7 +199,11 @@ export default function Discover() {
         const rated = [...perAuthor.entries()]
           .map(([authorId, vs]) => ({ authorId, hr: winRateFor(vs) }))
           .filter((x) => x.hr.rate != null)
-          .sort((a, b) => b.hr.rate! - a.hr.rate! || b.hr.total - a.hr.total)
+          // Ranked by Taste Score (the same Wilson lower bound profiles
+          // show), not raw win rate — a lucky 5-0 can't outrank a proven
+          // record with real volume. The ≥5-verdict minimum still gates
+          // entry via rate != null.
+          .sort((a, b) => b.hr.score - a.hr.score || b.hr.total - a.hr.total)
           .slice(0, 10)
         if (rated.length > 0) {
           const { data: profs } = await supabase
