@@ -243,7 +243,15 @@ export default function DropDetail({ id }: { id: string }) {
               it.type === 'video' ? (
                 <video src={it.url} poster={it.posterUrl ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
               ) : isArtworkUrl(it.url) ? (
-                <ArtworkImage src={it.url} alt={drop.title} className="h-[380px] w-full" />
+                <ArtworkImage
+                  src={it.url}
+                  alt={drop.title}
+                  className={
+                    drop.category === 'music'
+                      ? 'aspect-square w-full max-h-[420px]'
+                      : 'aspect-[2/3] w-full max-h-[420px]'
+                  }
+                />
               ) : (
                 <img src={it.url} alt={drop.title} className="max-h-[420px] w-full object-cover" />
               )

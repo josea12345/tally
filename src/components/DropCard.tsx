@@ -336,6 +336,15 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               overlay={bottomBar}
               topBadge={scoreBadge}
               items={items}
+              frameClass={
+                items[0] && items[0].type === 'photo' && isArtworkUrl(items[0].url)
+                  ? drop.category === 'music'
+                    ? 'aspect-square'
+                    : drop.category === 'movies' || drop.category === 'tv'
+                      ? 'aspect-[2/3]'
+                      : 'aspect-[9/16]'
+                  : 'aspect-[9/16]'
+              }
               renderItem={(it) =>
                 it.type === 'video' ? (
                   <FeedVideo

@@ -12,6 +12,7 @@ export default function MediaCarousel({
   overlay,
   flush = false,
   topBadge,
+  frameClass = 'aspect-[9/16]',
 }: {
   items: CarouselItem[]
   renderItem: (item: CarouselItem, index: number) => React.ReactNode
@@ -20,6 +21,8 @@ export default function MediaCarousel({
   flush?: boolean
   /** Node pinned to the media's top-left (e.g. the score badge); the counter stacks below it. */
   topBadge?: React.ReactNode
+  /** Flush frame shape — fitted frames for cover art (square albums, 2:3 posters). */
+  frameClass?: string
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
@@ -42,7 +45,7 @@ export default function MediaCarousel({
 
   return (
     <div>
-      <div className={`relative overflow-hidden ${flush ? 'w-full aspect-[9/16] max-h-[58svh]' : 'rounded-2xl border border-line bg-black'}`}>
+      <div className={`relative overflow-hidden ${flush ? `w-full ${frameClass} max-h-[58svh]` : 'rounded-2xl border border-line bg-black'}`}>
         <div
           ref={trackRef}
           onScroll={onScroll}
