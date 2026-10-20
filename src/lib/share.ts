@@ -1,8 +1,13 @@
 import type { Drop } from './types'
 
-/** Canonical public link for a drop (matches DropDetail's share URL shape). */
+/**
+ * Canonical public link for a drop. Clean /drop/<id> URLs are answered
+ * by the OG preview function (api/drop.js), which shows the drop's own
+ * title/cover in share previews and bounces humans into the app at
+ * /#/drop/<id>.
+ */
 export function dropShareUrl(id: string): string {
-  return `${window.location.origin}${window.location.pathname}#/drop/${id}`
+  return `${window.location.origin}/drop/${id}`
 }
 
 /**

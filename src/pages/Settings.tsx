@@ -228,6 +228,23 @@ export default function Settings() {
 
   // --- Admin reports inbox (only rendered for is_admin accounts) ----------
   const [reports, setReports] = useState<ReportRow[] | null>(null)
+  const [actingReport, setActingReport] = useState<string | null>(null)
+  const dismissReport = async (r: ReportRow) => {
+    setActingReport(r.id)
+    const { error } = await supabase.from('reports').update({ status: 'dismissed' }).eq('id', r.id)
+    if (!error) setReports((rs) => (rs ?? []).filter((x) => x.id !== r.id))
+    setActingReport(null)
+  }
+  const deleteReportedDrop = async (r: ReportRow) => {
+    if (!r.drop_id) return
+    setActingReport(r.id)
+    const { error } = await supabase.from('drops').delete().eq('id', r.drop_id)
+    if (!error) {
+      await supabase.from('reports').update({ status: 'actioned' }).eq('id', r.id)
+      setReports((rs) => (rs ?? []).filter((x) => x.id !== r.id))
+    }
+    setActingReport(null)
+  }
   useEffect(() => {
     if (!profile?.is_admin) return
     let live = true
@@ -235,6 +252,7 @@ export default function Settings() {
       const { data } = await supabase
         .from('reports')
         .select('id, reason, details, created_at, drop_id, reported_user_id, reporter_id')
+        .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(50)
       if (!live) return
@@ -584,6 +602,24 @@ export default function Settings() {
                       Reported account: @{r.reportedName ?? 'unknown'}
                     </button>
                   )}
+                  <div className="mt-3 flex gap-2 border-t border-line pt-3">
+                    <button
+                      onClick={() => dismissReport(r)}
+                      disabled={actingReport === r.id}
+                      className="press flex-1 rounded-full border border-line py-2 text-xs font-black disabled:opacity-50"
+                    >
+                      Dismiss
+                    </button>
+                    {r.drop_id && (
+                      <button
+                        onClick={() => deleteReportedDrop(r)}
+                        disabled={actingReport === r.id}
+                        className="press flex-1 rounded-full bg-miss py-2 text-xs font-black text-white disabled:opacity-50"
+                      >
+                        {actingReport === r.id ? 'Working…' : 'Delete drop'}
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

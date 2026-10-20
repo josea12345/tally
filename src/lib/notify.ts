@@ -1,5 +1,3 @@
-import { supabase } from './supabase'
-
 export type NotificationKind = 'W' | 'L' | 'follow' | 'comment' | 'approved' | 'requested'
 
 export interface Notification {
@@ -15,10 +13,15 @@ export interface Notification {
 }
 
 /**
- * Best-effort notification write. The recipient never notifies themselves.
- * Respects the recipient's notification preferences (fail-open: if prefs can't
- * be read, the notification still goes through). Vote notifications replace any
- * earlier vote from the same actor on the drop (so flipping W→L doesn't stack).
+ * Notifications are created SERVER-SIDE by database triggers (migration
+ * 0033) from real events — a verdict, a comment, a follow, a request, an
+ * approval — with the recipient's preferences applied there. Client-side
+ * writes are locked by RLS, so an alert can no longer be forged.
+ *
+ * These helpers used to write the rows directly; they stay as no-ops so
+ * every existing call site keeps compiling while the triggers own
+ * creation. unnotifyVote likewise: a verdict DELETE trigger removes the
+ * vote notification.
  */
 export async function notify(
   recipientId: string,
@@ -26,66 +29,14 @@ export async function notify(
   kind: NotificationKind,
   dropId?: string | null,
 ): Promise<void> {
-  if (!recipientId || recipientId === actorId) return
-  try {
-    // Preference gate: skip kinds the recipient turned off.
-    const prefCol =
-      kind === 'W' || kind === 'L'
-        ? 'notify_wl'
-        : kind === 'comment'
-          ? 'notify_comments'
-          : 'notify_follows'
-    const { data: pref, error: prefErr } = await supabase
-      .from('profiles')
-      .select(`${prefCol}`)
-      .eq('id', recipientId)
-      .maybeSingle()
-    if (!prefErr && pref && (pref as Record<string, boolean>)[prefCol] === false) return
-
-    if ((kind === 'W' || kind === 'L') && dropId) {
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', recipientId)
-        .eq('actor_id', actorId)
-        .eq('drop_id', dropId)
-        .in('kind', ['W', 'L'])
-    }
-    if (kind === 'follow') {
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', recipientId)
-        .eq('actor_id', actorId)
-        .eq('kind', 'follow')
-    }
-    await supabase.from('notifications').insert({
-      user_id: recipientId,
-      actor_id: actorId,
-      kind,
-      drop_id: dropId ?? null,
-    })
-  } catch {
-    // notifications are best-effort — never break the action that triggered them
-  }
+  void recipientId
+  void actorId
+  void kind
+  void dropId
 }
 
-/** Remove a vote notification (e.g. the voter retracted their call). */
-export async function unnotifyVote(
-  recipientId: string,
-  actorId: string,
-  dropId: string,
-): Promise<void> {
-  if (!recipientId || recipientId === actorId) return
-  try {
-    await supabase
-      .from('notifications')
-      .delete()
-      .eq('user_id', recipientId)
-      .eq('actor_id', actorId)
-      .eq('drop_id', dropId)
-      .in('kind', ['W', 'L'])
-  } catch {
-    // best-effort
-  }
+export async function unnotifyVote(recipientId: string, actorId: string, dropId: string): Promise<void> {
+  void recipientId
+  void actorId
+  void dropId
 }
