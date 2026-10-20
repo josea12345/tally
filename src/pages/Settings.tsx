@@ -6,6 +6,8 @@ import { notify } from '../lib/notify'
 import { useBadges } from '../lib/useBadges'
 import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
 import { getChoice, setChoice, type ThemeChoice } from '../lib/theme'
+import { deleteAccount } from '../lib/account'
+import { timeAgo } from '../lib/format'
 
 interface FollowRequest {
   follower_id: string
@@ -17,6 +19,18 @@ interface BlockedRow {
   blocked_id: string
   created_at: string
   blocked: { username: string; display_name: string | null; avatar_url: string | null }
+}
+
+interface ReportRow {
+  id: string
+  reason: string
+  details: string | null
+  created_at: string
+  drop_id: string | null
+  reported_user_id: string | null
+  reporterName: string
+  dropTitle: string | null
+  reportedName: string | null
 }
 
 export default function Settings() {
@@ -208,6 +222,71 @@ export default function Settings() {
 
   const logout = async () => {
     setLeaving(true)
+    await signOut()
+    navigate('/')
+  }
+
+  // --- Admin reports inbox (only rendered for is_admin accounts) ----------
+  const [reports, setReports] = useState<ReportRow[] | null>(null)
+  useEffect(() => {
+    if (!profile?.is_admin) return
+    let live = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('reports')
+        .select('id, reason, details, created_at, drop_id, reported_user_id, reporter_id')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (!live) return
+      const rows = (data ?? []) as Array<{
+        id: string
+        reason: string
+        details: string | null
+        created_at: string
+        drop_id: string | null
+        reported_user_id: string | null
+        reporter_id: string
+      }>
+      const userIds = [...new Set(rows.flatMap((r) => [r.reporter_id, r.reported_user_id]).filter(Boolean))] as string[]
+      const dropIds = [...new Set(rows.map((r) => r.drop_id).filter(Boolean))] as string[]
+      const [{ data: profs }, { data: drps }] = await Promise.all([
+        userIds.length
+          ? supabase.from('profiles').select('id, username').in('id', userIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; username: string }> }),
+        dropIds.length
+          ? supabase.from('drops').select('id, title').in('id', dropIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
+      ])
+      if (!live) return
+      const nameOf = new Map(((profs ?? []) as Array<{ id: string; username: string }>).map((p) => [p.id, p.username]))
+      const titleOf = new Map(((drps ?? []) as Array<{ id: string; title: string }>).map((d) => [d.id, d.title]))
+      setReports(
+        rows.map((r) => ({
+          ...r,
+          reporterName: nameOf.get(r.reporter_id) ?? 'unknown',
+          dropTitle: r.drop_id ? (titleOf.get(r.drop_id) ?? null) : null,
+          reportedName: r.reported_user_id ? (nameOf.get(r.reported_user_id) ?? null) : null,
+        }))
+      )
+    })()
+    return () => {
+      live = false
+    }
+  }, [profile?.is_admin])
+
+  // --- Delete account ------------------------------------------------------
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const doDelete = async () => {
+    setDeleting(true)
+    setDeleteError(null)
+    const { error } = await deleteAccount()
+    if (error) {
+      setDeleteError(error)
+      setDeleting(false)
+      return
+    }
     await signOut()
     navigate('/')
   }
@@ -471,6 +550,47 @@ export default function Settings() {
         )}
       </section>
 
+      {/* reports inbox — admin only */}
+      {profile?.is_admin && (
+        <section className="px-4 pt-8">
+          <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Reports</h2>
+          {reports === null ? (
+            <p className="text-sm text-mute">Loading reports…</p>
+          ) : reports.length === 0 ? (
+            <p className="text-sm text-mute">No reports yet. When someone reports a drop or an account, it lands here.</p>
+          ) : (
+            <ul className="space-y-2">
+              {reports.map((r) => (
+                <li key={r.id} className="rounded-2xl border border-line bg-ink-2 p-3.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-black">{r.reason}</span>
+                    <span className="shrink-0 text-[11px] font-bold text-mute">{timeAgo(r.created_at)}</span>
+                  </div>
+                  {r.details && <p className="mt-1 text-xs leading-relaxed text-fog/85">{r.details}</p>}
+                  <p className="mt-1.5 text-[11px] font-bold text-mute">reported by @{r.reporterName}</p>
+                  {r.drop_id && (
+                    <button
+                      onClick={() => navigate(`/drop/${r.drop_id}`)}
+                      className="press mt-2 rounded-full border border-sig/50 px-3 py-1 text-xs font-black text-sig"
+                    >
+                      {r.dropTitle ? `Open drop: ${r.dropTitle}` : 'Open drop'}
+                    </button>
+                  )}
+                  {r.reported_user_id && (
+                    <button
+                      onClick={() => navigate(`/profile/${r.reported_user_id}`)}
+                      className="press mt-2 rounded-full border border-sig/50 px-3 py-1 text-xs font-black text-sig"
+                    >
+                      Reported account: @{r.reportedName ?? 'unknown'}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* account */}
       <section className="px-4 pt-8">
         <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Account</h2>
@@ -482,6 +602,39 @@ export default function Settings() {
           {leaving ? 'Logging out…' : 'Log out'}
         </button>
         <p className="mt-3 text-center text-xs text-mute">Logged in as @{profile?.username ?? '…'}</p>
+
+        {confirmingDelete ? (
+          <div className="mt-5 rounded-2xl border border-miss/60 bg-miss/10 p-4">
+            <p className="text-sm font-black text-miss">Delete your account permanently?</p>
+            <p className="mt-1 text-xs leading-relaxed text-mute">
+              Every drop, verdict, comment and tally goes with it. There is no undo.
+            </p>
+            {deleteError && <p className="mt-2 text-xs font-bold text-miss">{deleteError}</p>}
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={doDelete}
+                disabled={deleting}
+                className="press flex-1 rounded-full bg-miss py-2.5 text-sm font-black text-white disabled:opacity-50"
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete everything'}
+              </button>
+              <button
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+                className="press flex-1 rounded-full border border-line py-2.5 text-sm font-black"
+              >
+                Keep my account
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="press mt-5 w-full rounded-2xl border border-miss/30 py-3 text-sm font-black text-miss/80"
+          >
+            Delete account
+          </button>
+        )}
       </section>
     </div>
   )

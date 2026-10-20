@@ -51,6 +51,7 @@ export interface Profile {
   city: string | null
   avatar_url: string | null
   is_private: boolean
+  is_admin: boolean
   dismissed_badges: string[]
   notify_wl: boolean
   notify_follows: boolean
