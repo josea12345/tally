@@ -37,6 +37,8 @@ export default function DropDetail({ id }: { id: string }) {
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [relatedCount, setRelatedCount] = useState<number | null>(null)
+  const [pinBusy, setPinBusy] = useState(false)
+  const [pinError, setPinError] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -222,9 +224,7 @@ export default function DropDetail({ id }: { id: string }) {
 
   const author = drop.author
   const isOwner = user?.id === drop.author_id
-  const [pinBusy, setPinBusy] = useState(false)
   const isPinned = !!profile && profile.pinned_drop_id === drop.id
-  const [pinError, setPinError] = useState(false)
   const togglePin = async () => {
     if (!user || pinBusy) return
     setPinBusy(true)
