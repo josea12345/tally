@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, Profile } from '../lib/types'
-import { dropMedia } from '../lib/types'
+import type { Category, Drop, Profile } from '../lib/types'
+import { CATEGORY_LABELS, dropMedia } from '../lib/types'
 import { Avatar, navigate } from '../App'
 import FollowButton from '../components/FollowButton'
 import EmptyState from '../components/EmptyState'
@@ -10,7 +10,7 @@ import { timeAgo } from '../lib/format'
 
 type Tab = 'people' | 'drops'
 
-interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_type' | 'media_poster_url' | 'media_url'> {
+interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'category' | 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_type' | 'media_poster_url' | 'media_url'> {
   author: Pick<Profile, 'username' | 'display_name' | 'avatar_url'> | null
 }
 
@@ -19,6 +19,7 @@ export default function Search() {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [tab, setTab] = useState<Tab>('people')
+  const [catFilter, setCatFilter] = useState<'all' | Category>('all')
   const [people, setPeople] = useState<Profile[]>([])
   const [drops, setDrops] = useState<DropHit[]>([])
   const [fresh, setFresh] = useState<DropHit[]>([])
@@ -176,7 +177,7 @@ export default function Search() {
       setBusy(true)
       const like = `%${debounced.replace(/[%_]/g, '')}%`
       const DROP_COLS =
-        'id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
+        'id, title, description, score, created_at, category, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
       // Drops: fuzzy RPC (typo-tolerant, similarity-ranked) for real queries,
       // falling back to the substring match for short queries or RPC errors.
       const searchDropRows = async (): Promise<DropHit[]> => {
@@ -225,13 +226,19 @@ export default function Search() {
     }
   }, [debounced, user])
 
+  const presentCats = [...new Set(drops.map((d) => d.category).filter(Boolean))] as Category[]
+  const shownDrops = catFilter === 'all' ? drops : drops.filter((d) => d.category === catFilter)
+
   return (
     <div className="pb-8">
       <div className="border-b border-line px-4 pb-3 pt-5">
         <h1 className="mb-3 text-2xl font-black tracking-tight">Search</h1>
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setCatFilter('all')
+          }}
           placeholder="People, places, drops…"
           autoCapitalize="off"
           autoCorrect="off"
@@ -348,11 +355,40 @@ export default function Search() {
           {drops.length === 0 ? (
             <EmptyState title="No drops found" body={`Nothing matches "${debounced}" yet.`} />
           ) : (
-            <ul className="space-y-2.5">
-              {drops.map((d) => (
-                <DropRow key={d.id} drop={d} />
-              ))}
-            </ul>
+            <>
+              {presentCats.length > 1 && (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setCatFilter('all')}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
+                      catFilter === 'all' ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {presentCats.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCatFilter(c)}
+                      className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
+                        catFilter === c ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+                      }`}
+                    >
+                      {CATEGORY_LABELS[c]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {shownDrops.length === 0 ? (
+                <p className="py-6 text-center text-sm text-mute">Nothing in that category for "{debounced}".</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {shownDrops.map((d) => (
+                    <DropRow key={d.id} drop={d} />
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       )}

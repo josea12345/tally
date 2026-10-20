@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { useAuth } from '../context/AuthContext'
+import { isSeen } from '../lib/seen'
 import { timeAgo, formatCount, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import Comments from './Comments'
@@ -184,6 +185,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   // Title shown under the username in the header (linked when we have a target).
   // Centered per the founder's call; the username/handle row above stays left-aligned.
   // Right below it: the topic link — every put-on about this same place/title.
+  // Seen drops (opened before, not mine) render their title dimmed.
+  const seen = !!user && user.id !== drop.author_id && isSeen(drop.id)
   const titleLine = (
     <>
       {titleUrl ? (
@@ -192,12 +195,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="block truncate text-center text-[15px] font-bold tracking-tight text-fog transition hover:text-sig"
+          className={`block truncate text-center text-[15px] font-bold tracking-tight transition hover:text-sig ${
+            seen ? 'text-mute' : 'text-fog'
+          }`}
         >
           {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
         </a>
       ) : (
-        <div className="truncate text-center text-[15px] font-bold tracking-tight">{drop.title}</div>
+        <div className={`truncate text-center text-[15px] font-bold tracking-tight ${seen ? 'text-mute' : ''}`}>
+          {drop.title}
+        </div>
       )}
       <button
         onClick={(e) => {

@@ -23,6 +23,7 @@ import { WIN_RATE_MINIMUM } from '../lib/stats'
 import MentionText from '../components/MentionText'
 import RelatedDrops from '../components/RelatedDrops'
 import AddToListSheet from '../components/AddToListSheet'
+import { markSeen } from '../lib/seen'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
@@ -243,6 +244,7 @@ export default function DropDetail({ id }: { id: string }) {
       // storage unavailable — count the view anyway
     }
     void supabase.from('drop_views').insert({ drop_id: drop.id, viewer_id: user?.id ?? null })
+    markSeen(drop.id)
   }, [drop?.id, user?.id])
 
   const exportCard = async () => {

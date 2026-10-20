@@ -315,6 +315,58 @@ export default function Settings() {
     }
   }, [profile?.is_admin])
 
+  // --- Download my data ------------------------------------------------------
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const downloadMyData = async () => {
+    if (!user || exporting) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      const [prof, drps, vrds, cmts, svs, cols] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('drops').select('*').eq('author_id', user.id).order('created_at', { ascending: false }).limit(2000),
+        supabase.from('verdicts').select('*').eq('user_id', user.id).limit(5000),
+        supabase.from('comments').select('*').eq('user_id', user.id).limit(5000),
+        supabase.from('saves').select('*').eq('user_id', user.id).limit(5000),
+        supabase.from('collections').select('*').eq('owner_id', user.id).limit(500),
+      ])
+      const myCols = (cols.data ?? []) as Array<{ id: string }>
+      let items: unknown[] = []
+      if (myCols.length > 0) {
+        const { data } = await supabase
+          .from('collection_items')
+          .select('*')
+          .in('collection_id', myCols.map((c) => c.id))
+          .limit(5000)
+        items = data ?? []
+      }
+      const payload = {
+        exported_at: new Date().toISOString(),
+        profile: prof.data ?? null,
+        drops: drps.data ?? [],
+        verdicts: vrds.data ?? [],
+        comments: cmts.data ?? [],
+        tallies: svs.data ?? [],
+        collections: myCols,
+        collection_items: items,
+      }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `tally-export-${profile?.username ?? 'me'}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 4000)
+    } catch {
+      setExportError('Export failed — try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // --- Delete account ------------------------------------------------------
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -711,12 +763,22 @@ export default function Settings() {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setConfirmingDelete(true)}
-            className="press mt-5 w-full rounded-2xl border border-miss/30 py-3 text-sm font-black text-miss/80"
-          >
-            Delete account
-          </button>
+          <>
+            <button
+              onClick={downloadMyData}
+              disabled={exporting}
+              className="press mt-5 w-full rounded-2xl border border-line py-3 text-sm font-black text-fog disabled:opacity-50"
+            >
+              {exporting ? 'Preparing…' : 'Download my data (JSON)'}
+            </button>
+            {exportError && <p className="mt-2 text-center text-xs font-bold text-miss">{exportError}</p>}
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              className="press mt-3 w-full rounded-2xl border border-miss/30 py-3 text-sm font-black text-miss/80"
+            >
+              Delete account
+            </button>
+          </>
         )}
       </section>
     </div>
