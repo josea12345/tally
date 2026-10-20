@@ -6,6 +6,7 @@ import { topicKeyFor } from '../lib/format'
 import { shareDrop } from '../lib/share'
 import { navigate } from '../App'
 import ReportDialog from './ReportDialog'
+import AddToListSheet from './AddToListSheet'
 
 /**
  * ··· menu on someone else's drop: report the drop, or block the author.
@@ -23,6 +24,7 @@ export default function DropMenu({
   const [confirming, setConfirming] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [sharedNote, setSharedNote] = useState(false)
+  const [listing, setListing] = useState(false)
   const [busy, setBusy] = useState(false)
   const author = drop.author
 
@@ -85,6 +87,15 @@ export default function DropMenu({
                 </button>
                 <button
                   onClick={() => {
+                    close()
+                    setListing(true)
+                  }}
+                  className="block w-full border-t border-line px-4 py-3 text-left text-sm font-bold text-fog transition hover:bg-ink-2"
+                >
+                  Add to list…
+                </button>
+                <button
+                  onClick={() => {
                     const key = drop.topic_key ?? topicKeyFor(drop)
                     close()
                     navigate(`/topic/${encodeURIComponent(key)}`)
@@ -141,6 +152,7 @@ export default function DropMenu({
           }}
         />
       )}
+      {listing && <AddToListSheet dropId={drop.id} onClose={() => setListing(false)} />}
     </span>
   )
 }

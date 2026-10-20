@@ -7,6 +7,7 @@ import { navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
 import { useFeedVotes } from '../lib/feedVotes'
+import MyLists from '../components/MyLists'
 
 type Sort = 'recent' | 'oldest' | 'top'
 type Status = 'all' | 'totry' | 'tried'
@@ -114,6 +115,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           <p className="text-sm text-mute">Everything people put you on to.</p>
         </div>
       )}
+      {!bare && <MyLists />}
       {drops.length === 0 ? (
         <EmptyState
           title="Nothing in the vault yet"

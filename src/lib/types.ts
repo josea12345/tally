@@ -121,6 +121,14 @@ export interface Verdict {
   user?: Profile
 }
 
+export interface Collection {
+  id: string
+  owner_id: string
+  name: string
+  is_public: boolean
+  created_at: string
+}
+
 export interface Comment {
   id: string
   drop_id: string

@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import type { Drop, Profile, Verdict } from '../lib/types'
 import { dropMedia } from '../lib/types'
 import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
+import { renderRecapCard } from '../lib/recapcard'
+import { shareTasteCard } from '../lib/tastecard'
 import { Avatar, navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import { hiResArtwork } from '../components/ArtworkImage'
@@ -105,6 +107,7 @@ export default function Profile({ id }: { id?: string }) {
   const [showFormula, setShowFormula] = useState(false)
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
   const [week, setWeek] = useState<{ w: number; l: number; tallies: number; comments: number; followers: number } | null>(null)
+  const [recapBusy, setRecapBusy] = useState(false)
   const [showTrustInfo, setShowTrustInfo] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>([])
@@ -333,6 +336,19 @@ export default function Profile({ id }: { id?: string }) {
     tasteScore != null && trustScore != null
       ? Math.round((tasteScore + trustScore) / 2)
       : (tasteScore ?? trustScore)
+
+  const shareWeek = async () => {
+    if (!week || recapBusy) return
+    setRecapBusy(true)
+    try {
+      const blob = await renderRecapCard(profile, week, tasteScore, trustScore)
+      await shareTasteCard(blob, `tally-week-${profile.username}`)
+    } catch {
+      // card sharing is garnish — never surface an error for it
+    } finally {
+      setRecapBusy(false)
+    }
+  }
 
   return (
     <div className="pb-8">
@@ -607,6 +623,15 @@ export default function Profile({ id }: { id?: string }) {
                   <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">follows</div>
                 </div>
               </div>
+            )}
+            {week.w + week.l + week.tallies + week.comments + week.followers > 0 && (
+              <button
+                onClick={shareWeek}
+                disabled={recapBusy}
+                className="mt-2.5 w-full rounded-full border border-sig/50 py-1.5 text-[11px] font-black text-sig transition hover:bg-sig hover:text-ink disabled:opacity-50"
+              >
+                {recapBusy ? 'Rendering…' : 'Share week card'}
+              </button>
             )}
           </div>
         )}

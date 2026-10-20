@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Notification } from '../lib/notify'
+import type { Notification, NotificationKind } from '../lib/notify'
 import { Avatar, navigate } from '../App'
 import { timeAgo } from '../lib/format'
 import EmptyState from '../components/EmptyState'
@@ -67,6 +67,14 @@ export default function Notifications() {
   const { user } = useAuth()
   const [items, setItems] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'all' | 'verdicts' | 'comments' | 'social'>('all')
+
+  const FILTER_KINDS: Record<string, NotificationKind[]> = {
+    verdicts: ['W', 'L'],
+    comments: ['comment', 'mention', 'like'],
+    social: ['follow', 'approved', 'requested'],
+  }
+  const shownItems = filter === 'all' ? items : items.filter((n) => FILTER_KINDS[filter].includes(n.kind))
 
   useEffect(() => {
     if (!user) {
@@ -119,6 +127,28 @@ export default function Notifications() {
     <div className="pb-8">
       <div className="border-b border-line px-4 pb-3 pt-5">
         <h1 className="text-2xl font-black tracking-tight">Notifications</h1>
+        {items.length > 0 && (
+          <div className="mt-3 flex gap-2">
+            {(
+              [
+                { id: 'all', label: 'All' },
+                { id: 'verdicts', label: 'Verdicts' },
+                { id: 'comments', label: 'Comments' },
+                { id: 'social', label: 'Social' },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={`press rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+                  filter === t.id ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {items.length === 0 ? (
         <EmptyState
@@ -134,9 +164,11 @@ export default function Notifications() {
             </button>
           }
         />
+      ) : shownItems.length === 0 ? (
+        <p className="px-4 py-10 text-center text-sm text-mute">Nothing in this tab yet.</p>
       ) : (
         <ul className="divide-y divide-line/60">
-          {items.map((n) => (
+          {shownItems.map((n) => (
             <li key={n.id}>
               <button onClick={() => open(n)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-ink-2">
                 <Avatar url={n.actor?.avatar_url ?? null} name={n.actor?.display_name ?? n.actor?.username ?? '?'} size={44} />

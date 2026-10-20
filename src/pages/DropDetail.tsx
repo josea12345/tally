@@ -22,6 +22,7 @@ import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
 import MentionText from '../components/MentionText'
 import RelatedDrops from '../components/RelatedDrops'
+import AddToListSheet from '../components/AddToListSheet'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
@@ -44,6 +45,7 @@ export default function DropDetail({ id }: { id: string }) {
   // Receipts: verdicts carrying a proof photo, enriched with voter profiles.
   const [proofs, setProofs] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
   const [proofView, setProofView] = useState<string | null>(null)
+  const [listing, setListing] = useState(false)
   useEffect(() => {
     const withProof = verdicts.filter((v) => v.proof_url)
     if (withProof.length === 0) {
@@ -476,6 +478,12 @@ export default function DropDetail({ id }: { id: string }) {
                 {isPinned ? 'Pinned to profile ✓' : 'Pin to profile'}
               </button>
               <button
+                onClick={() => setListing(true)}
+                className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
+              >
+                Add to list
+              </button>
+              <button
                 onClick={() => navigate(`/edit/${drop.id}`)}
                 className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
               >
@@ -556,6 +564,7 @@ export default function DropDetail({ id }: { id: string }) {
             <img src={proofView} alt="Proof, full size" className="max-h-full max-w-full rounded-2xl object-contain" />
           </div>
         )}
+        {listing && <AddToListSheet dropId={drop.id} onClose={() => setListing(false)} />}
 
         {!user && (
           <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">

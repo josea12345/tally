@@ -24,10 +24,11 @@ import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
 import Leaderboard from './pages/Leaderboard'
+import ListPage from './pages/ListPage'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic' | 'leaderboard'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic' | 'leaderboard' | 'list'
   param?: string
 }
 
@@ -50,6 +51,7 @@ export function parseHash(): Route {
   if (a === 'saved') return { name: 'saved' }
   if (a === 'search') return { name: 'search' }
   if (a === 'leaderboard') return { name: 'leaderboard' }
+  if (a === 'list' && b) return { name: 'list', param: b }
   if (a === 'notifications') return { name: 'notifications' }
   if (a === 'settings') return { name: 'settings' }
   if (a === 'onboarding') return { name: 'onboarding' }
@@ -312,6 +314,8 @@ export default function App() {
         return <Search />
       case 'leaderboard':
         return <Leaderboard />
+      case 'list':
+        return <ListPage id={route.param!} />
       case 'notifications':
         return <Notifications />
       case 'settings':
