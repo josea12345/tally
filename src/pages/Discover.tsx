@@ -14,6 +14,7 @@ import AlertIcon from '../components/AlertIcon'
 import DropCard from '../components/DropCard'
 import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
+import OnboardingChecklist from '../components/OnboardingChecklist'
 import EmptyState from '../components/EmptyState'
 
 type Tab = 'putons' | 'following' | 'near'
@@ -450,6 +451,8 @@ export default function Discover() {
           </div>
         )}
       </div>
+
+      {!loading && tab === 'putons' && <OnboardingChecklist />}
 
       {tastemakers.length > 0 && tab === 'putons' && (
         <div className="border-b border-line px-4 py-3">

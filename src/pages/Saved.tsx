@@ -8,6 +8,7 @@ import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
 
 type Sort = 'recent' | 'oldest' | 'top'
+type Status = 'all' | 'totry' | 'tried'
 
 const SORTS: Array<{ id: Sort; label: string }> = [
   { id: 'recent', label: 'Recent' },
@@ -18,9 +19,11 @@ const SORTS: Array<{ id: Sort; label: string }> = [
 export default function Saved({ bare = false }: { bare?: boolean }) {
   const { user } = useAuth()
   const [drops, setDrops] = useState<Drop[]>([])
+  const [triedIds, setTriedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [group, setGroup] = useState('all')
   const [sort, setSort] = useState<Sort>('recent')
+  const [status, setStatus] = useState<Status>('all')
 
   useEffect(() => {
     if (!user) return
@@ -35,6 +38,23 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       if (!live) return
       const list = ((data ?? []) as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
       setDrops(list)
+      if (list.length > 0) {
+        // Which of my tallies have I actually tried? (verdicts.tried)
+        const { data: vrows } = await supabase
+          .from('verdicts')
+          .select('drop_id,tried')
+          .eq('user_id', user.id)
+          .in('drop_id', list.map((d) => d.id))
+          .limit(1000)
+        if (!live) return
+        setTriedIds(
+          new Set(
+            ((vrows ?? []) as Array<{ drop_id: string; tried: boolean }>)
+              .filter((v) => v.tried)
+              .map((v) => v.drop_id)
+          )
+        )
+      }
       setLoading(false)
     }
     load()
@@ -45,6 +65,8 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
 
   const visible = useMemo(() => {
     let list = drops
+    if (status === 'totry') list = list.filter((d) => !triedIds.has(d.id))
+    else if (status === 'tried') list = list.filter((d) => triedIds.has(d.id))
     if (group !== 'all') {
       const g = CATEGORY_GROUPS.find((x) => x.id === group)
       if (g) list = list.filter((d) => g.categories.includes(d.category))
@@ -54,7 +76,9 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     if (sort === 'oldest') sorted.reverse()
     else sorted.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
     return sorted
-  }, [drops, group, sort])
+  }, [drops, group, sort, status, triedIds])
+
+  const toTryCount = useMemo(() => drops.filter((d) => !triedIds.has(d.id)).length, [drops, triedIds])
 
   if (loading) {
     return (
@@ -86,6 +110,28 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
         />
       ) : (
         <>
+          {/* To try / Tried split — your tallies as a checklist */}
+          <div className="px-4 pt-3">
+            <div className="flex rounded-full border border-line bg-ink-2 p-1">
+              {(
+                [
+                  { id: 'all', label: 'All' },
+                  { id: 'totry', label: `To try${toTryCount > 0 ? ` · ${toTryCount}` : ''}` },
+                  { id: 'tried', label: 'Tried' },
+                ] as Array<{ id: Status; label: string }>
+              ).map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setStatus(s.id)}
+                  className={`press flex-1 rounded-full py-1.5 text-xs font-black transition ${
+                    status === s.id ? 'bg-sig text-ink' : 'text-mute hover:text-fog'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex items-center gap-2 px-4 pb-2 pt-3">
             <div className="no-scrollbar -mx-1 flex flex-1 gap-1.5 overflow-x-auto px-1">
               {[{ id: 'all', label: 'All' }, ...CATEGORY_GROUPS].map((g) => (
@@ -117,7 +163,11 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           </div>
           {visible.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-mute">
-              Nothing here under this filter yet.
+              {status === 'totry'
+                ? 'Nothing waiting. Tally drops from the feed and they queue up here.'
+                : status === 'tried'
+                  ? "Nothing tried yet — your to-try list is waiting."
+                  : 'Nothing here under this filter yet.'}
             </p>
           ) : (
             <DropGrid drops={visible} showScores={sort === 'top'} />
