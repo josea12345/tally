@@ -42,7 +42,7 @@ export default function MediaCarousel({
 
   return (
     <div>
-      <div className={`relative overflow-hidden ${flush ? 'w-full aspect-[9/16]' : 'rounded-2xl border border-line bg-black'}`}>
+      <div className={`relative overflow-hidden ${flush ? 'w-full aspect-[9/16] max-h-[58svh]' : 'rounded-2xl border border-line bg-black'}`}>
         <div
           ref={trackRef}
           onScroll={onScroll}
