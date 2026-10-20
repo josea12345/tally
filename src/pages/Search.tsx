@@ -125,22 +125,48 @@ export default function Search() {
       }
       setBusy(true)
       const like = `%${debounced.replace(/[%_]/g, '')}%`
-      const [pr, dr] = await Promise.all([
+      const DROP_COLS =
+        'id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
+      // Drops: fuzzy RPC (typo-tolerant, similarity-ranked) for real queries,
+      // falling back to the substring match for short queries or RPC errors.
+      const searchDropRows = async (): Promise<DropHit[]> => {
+        const q = debounced.trim()
+        if (q.length >= 3) {
+          try {
+            const { data: hits, error } = await supabase.rpc('search_drops_fuzzy', { q })
+            if (error) throw error
+            const ids = ((hits ?? []) as Array<{ id: string }>).map((h) => h.id)
+            if (ids.length === 0) return []
+            const { data } = await supabase.from('drops').select(DROP_COLS).in('id', ids)
+            const byId = new Map(
+              ((data ?? []) as unknown as DropHit[]).map((d) => [d.id, d]),
+            )
+            return ids
+              .map((id) => byId.get(id))
+              .filter((d): d is DropHit => !!d)
+          } catch {
+            // fall through to substring search
+          }
+        }
+        const { data } = await supabase
+          .from('drops')
+          .select(DROP_COLS)
+          .or(`title.ilike.${like},description.ilike.${like}`)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        return (data ?? []) as unknown as DropHit[]
+      }
+      const [pr, dropRows] = await Promise.all([
         supabase
           .from('profiles')
           .select('*')
           .or(`username.ilike.${like},display_name.ilike.${like}`)
           .limit(20),
-        supabase
-          .from('drops')
-          .select('id, title, description, score, created_at, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)')
-          .or(`title.ilike.${like},description.ilike.${like}`)
-          .order('created_at', { ascending: false })
-          .limit(20),
+        searchDropRows(),
       ])
       if (!live) return
       setPeople(((pr.data ?? []) as Profile[]).filter((p) => p.id !== user?.id))
-      setDrops((dr.data ?? []) as unknown as DropHit[])
+      setDrops(dropRows)
       setBusy(false)
     }
     run()

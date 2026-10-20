@@ -5,6 +5,7 @@ import type { Drop, Profile, Verdict } from '../lib/types'
 import { dropMedia } from '../lib/types'
 import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
 import { renderRecapCard } from '../lib/recapcard'
+import ProfileLists from '../components/ProfileLists'
 import { shareTasteCard } from '../lib/tastecard'
 import { Avatar, navigate } from '../App'
 import DropGrid from '../components/DropGrid'
@@ -635,6 +636,8 @@ export default function Profile({ id }: { id?: string }) {
             )}
           </div>
         )}
+
+        <ProfileLists ownerId={profile.id} />
 
         {/* demoted stats */}
         <div className="mt-5 flex items-center justify-center gap-2 text-sm text-mute">

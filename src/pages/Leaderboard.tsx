@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Drop, Profile, Verdict } from '../lib/types'
-import { buildLeaderboard, LEADERBOARD_MINIMUM, type LeaderboardRow } from '../lib/stats'
+import { CATEGORY_GROUPS } from '../lib/types'
+import { buildLeaderboard, LEADERBOARD_MINIMUM } from '../lib/stats'
 import { fetchTrustBreakdown } from '../lib/trustData'
 import { Avatar, navigate } from '../App'
 
@@ -14,9 +15,23 @@ import { Avatar, navigate } from '../App'
  */
 export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
   const { user } = useAuth()
-  const [rows, setRows] = useState<LeaderboardRow[] | null>(null)
+  const [board, setBoard] = useState<{
+    profById: Map<string, Profile>
+    base: Array<Verdict & { drop: Drop }>
+    since: string
+  } | null>(null)
+  const [group, setGroup] = useState<string>('all')
   const [trust, setTrust] = useState<Map<string, number>>(new Map())
   const [scopedCity, setScopedCity] = useState<string | null>(null)
+
+  const rows = useMemo(() => {
+    if (!board) return null
+    const cats = group === 'all' ? null : CATEGORY_GROUPS.find((g) => g.id === group)?.categories
+    const filtered = cats
+      ? board.base.filter((v) => (cats as readonly string[]).includes(v.drop.category))
+      : board.base
+    return buildLeaderboard(board.profById, filtered, board.since)
+  }, [board, group])
 
   useEffect(() => {
     let live = true
@@ -45,7 +60,7 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
       const cityRows = withDrops.filter((v) => (v.drop.city ?? '').trim().toLowerCase() === cityLower)
       const useCity = cityRows.length > 0
       setScopedCity(useCity ? city : null)
-      setRows(buildLeaderboard(profById, useCity ? cityRows : withDrops, since))
+      setBoard({ profById, base: useCity ? cityRows : withDrops, since })
     }
     load()
     return () => {
@@ -83,11 +98,29 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
       </button>
       <h1 className="mt-3 text-2xl font-black tracking-tight">
         {scopedCity ?? 'Top'} tastemakers
+        {group !== 'all' && (
+          <span className="text-sig"> · {CATEGORY_GROUPS.find((g) => g.id === group)?.label}</span>
+        )}
       </h1>
       <p className="mt-1 text-sm text-mute">
         Ranked by Taste Score from this week's verdicts
         {scopedCity ? ` on ${scopedCity} drops` : ''}. {LEADERBOARD_MINIMUM}+ verdicts to chart.
       </p>
+
+      {/* Category champions: same board, verdicts filtered to the group. */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[{ id: 'all', label: 'All' }, ...CATEGORY_GROUPS].map((g) => (
+          <button
+            key={g.id}
+            onClick={() => setGroup(g.id)}
+            className={`press rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+              group === g.id ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
 
       {rows === null ? (
         <div className="mt-6 animate-pulse space-y-2.5">
