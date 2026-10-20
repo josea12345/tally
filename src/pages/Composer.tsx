@@ -281,7 +281,7 @@ export default function Composer({ editId }: { editId?: string }) {
     setCity(s.city ?? city)
   }
 
-  const canPost = title.trim().length > 0 && description.trim().length > 0 && !busy
+  const canPost = title.trim().length > 0 && description.trim().length > 0 && score != null && !busy
 
   const submit = async () => {
     if (!user || !canPost) return
@@ -497,10 +497,14 @@ export default function Composer({ editId }: { editId?: string }) {
         <div className="text-right text-[11px] text-mute">{description.length}/600</div>
       </div>
 
-      <div className="mt-3 rounded-3xl border-2 border-line bg-ink-2 p-4">
+      <div
+        className={`mt-3 rounded-3xl border-2 bg-ink-2 p-4 transition ${
+          score == null ? 'border-sig/50' : 'border-line'
+        }`}
+      >
         <div className="mb-1 flex items-baseline justify-between">
           <label className="text-xs font-black uppercase tracking-widest text-mute">
-            Your call <span className="text-mute/60">(optional)</span>
+            Your call <span className="text-sig">(required)</span>
             {(category === 'movies' || category === 'tv') && imdbLoading && (
               <span className="ml-2 normal-case tracking-normal text-mute/60">fetching IMDb…</span>
             )}
@@ -508,11 +512,6 @@ export default function Composer({ editId }: { editId?: string }) {
               <span className="ml-2 normal-case tracking-normal text-mute">· IMDb {imdbRating}</span>
             )}
           </label>
-          {score != null && (
-            <button onClick={() => setScore(null)} className="text-[11px] font-bold text-mute hover:text-miss">
-              Clear
-            </button>
-          )}
         </div>
         <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
@@ -653,7 +652,11 @@ export default function Composer({ editId }: { editId?: string }) {
         {busy ? 'Dropping it…' : editId ? 'Save changes' : 'Post — put everyone on'}
       </button>
       {!canPost && (
-        <p className="mt-2 text-center text-xs text-mute">Add a {isPlace ? 'place name' : 'title'} and one line on why it's worth it.</p>
+        <p className="mt-2 text-center text-xs text-mute">
+          {title.trim().length === 0 || description.trim().length === 0
+            ? `Add a ${isPlace ? 'place name' : 'title'} and one line on why it's worth it.`
+            : 'Make your call — pick a score from 1 to 10 to post.'}
+        </p>
       )}
     </div>
   )
