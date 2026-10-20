@@ -18,6 +18,8 @@ import FollowList from './pages/FollowList'
 import Topic from './pages/Topic'
 import InstallBanner from './components/InstallBanner'
 import UpdatePill from './components/UpdatePill'
+import { captureInviteRef, consumeInviteRef, dropInviteRef } from './lib/invite'
+import { isPlaceholderUsername } from './lib/format'
 import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
@@ -224,7 +226,22 @@ export function Avatar({ url, name, size = 40 }: { url: string | null; name: str
 
 export default function App() {
   const route = useRoute()
-  const { user, loading, needsOnboarding } = useAuth()
+  const { user, profile, loading, needsOnboarding } = useAuth()
+
+  // Invite links (?ref=<username>): stash the inviter on arrival; once a
+  // brand-new account finishes onboarding, auto-follow the inviter.
+  useEffect(() => {
+    captureInviteRef()
+  }, [])
+  useEffect(() => {
+    if (!user || !profile || isPlaceholderUsername(profile.username)) return
+    const ageMs = Date.now() - new Date(profile.created_at).getTime()
+    if (ageMs > 14 * 24 * 3600 * 1000) {
+      dropInviteRef() // established account — a stray ref isn't an invite signup
+      return
+    }
+    void consumeInviteRef(user.id)
+  }, [user, profile])
 
   useEffect(() => {
     initTheme()

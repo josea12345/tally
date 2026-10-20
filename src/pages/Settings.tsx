@@ -107,7 +107,10 @@ export default function Settings() {
       }
     }
   }
-  const inviteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tally-rho-ten.vercel.app'
+  const inviteUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/?ref=${encodeURIComponent(profile?.username ?? '')}#/auth`
+      : 'https://tally-rho-ten.vercel.app'
   const inviteText = `I'm on TALLY — good taste deserves a track record. Come get put on: ${inviteUrl}`
 
   const shareInvite = async () => {

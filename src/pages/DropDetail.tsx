@@ -9,6 +9,7 @@ import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
 import MediaCarousel from '../components/MediaCarousel'
+import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
 import { dropMedia } from '../lib/types'
 import { shareDrop } from '../lib/share'
@@ -17,6 +18,7 @@ import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
 import TallyIcon from '../components/TallyIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
+import { fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
 
 export default function DropDetail({ id }: { id: string }) {
@@ -167,7 +169,14 @@ export default function DropDetail({ id }: { id: string }) {
     if (!drop?.author) return
     setCardBusy(true)
     try {
-      const blob = await renderTasteCard(drop, drop.author.display_name ?? drop.author.username, drop.author.username, verdicts)
+      const trust = await fetchTrustBreakdown(drop.author_id)
+      const blob = await renderTasteCard(
+        drop,
+        drop.author.display_name ?? drop.author.username,
+        drop.author.username,
+        verdicts,
+        trust?.score ?? null
+      )
       const how = await shareTasteCard(blob, drop.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase())
       alert(how === 'shared' ? 'Taste card shared — story-sized and ready to post.' : 'Taste card saved — story-sized and ready to post.')
     } catch {
@@ -233,6 +242,8 @@ export default function DropDetail({ id }: { id: string }) {
             renderItem={(it) =>
               it.type === 'video' ? (
                 <video src={it.url} poster={it.posterUrl ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
+              ) : isArtworkUrl(it.url) ? (
+                <ArtworkImage src={it.url} alt={drop.title} className="h-[380px] w-full" />
               ) : (
                 <img src={it.url} alt={drop.title} className="max-h-[420px] w-full object-cover" />
               )

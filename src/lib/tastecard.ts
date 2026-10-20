@@ -38,7 +38,8 @@ export async function renderTasteCard(
   drop: Drop,
   authorName: string,
   authorHandle: string,
-  verdicts: Verdict[]
+  verdicts: Verdict[],
+  trustScore?: number | null
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -132,26 +133,40 @@ export async function renderTasteCard(
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
 
-  // win rate pill (+ author's call when they scored it)
+  // reputation pills: taste (+ trust when the author has earned one)
   const hr = winRateFor(verdicts)
   const pillText =
     hr.rate == null ? 'Record still building' : `Taste Score ${hr.score} · ${hr.total} verdicts`
   const callText = drop.score != null ? `${authorName}'s call: ${drop.score}/10` : null
   ctx.font = '700 40px Inter, sans-serif'
-  const tw = ctx.measureText(pillText).width
   const px = pad
   const py = y
   const ph = 84
+  const tw = ctx.measureText(pillText).width
   ctx.fillStyle = '#45c8ff'
   ctx.beginPath()
   ctx.roundRect(px, py, tw + 80, ph, 42)
   ctx.fill()
   ctx.fillStyle = '#191725'
   ctx.fillText(pillText, px + 40, py + 55)
+  let pillsBottom = py + ph
+  if (trustScore != null) {
+    const tText = `Trust ${Math.round(trustScore)}`
+    const trustW = ctx.measureText(tText).width + 80
+    const sameRow = px + tw + 80 + 24 + trustW <= W - pad
+    const tx = sameRow ? px + tw + 80 + 24 : px
+    const ty = sameRow ? py : py + ph + 24
+    ctx.fillStyle = '#69e7cf'
+    ctx.beginPath()
+    ctx.roundRect(tx, ty, trustW, ph, 42)
+    ctx.fill()
+    ctx.fillStyle = '#191725'
+    ctx.fillText(tText, tx + 40, ty + 55)
+    pillsBottom = Math.max(pillsBottom, ty + ph)
+  }
   if (callText) {
     ctx.fillStyle = '#a49dbb'
-    ctx.fillText(callText, px, py + ph + 58)
-    y += 60
+    ctx.fillText(callText, px, pillsBottom + 58)
   }
 
   // footer

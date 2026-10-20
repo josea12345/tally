@@ -7,6 +7,7 @@ import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
+import ArtworkImage, { isArtworkUrl } from './ArtworkImage'
 import MediaViewer from './MediaViewer'
 import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
@@ -344,6 +345,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                       if (myVote !== 'W') doVote('W')
                     }}
                     onExpand={() => setViewerItem(it)}
+                  />
+                ) : isArtworkUrl(it.url) ? (
+                  <ArtworkImage
+                    src={it.url}
+                    alt={drop.title}
+                    className="h-full w-full"
+                    onClick={() => handleMediaTap(false, undefined, () => setViewerItem(it))}
                   />
                 ) : (
                   <img
