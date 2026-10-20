@@ -216,6 +216,16 @@ export default function Search() {
               </ul>
             </section>
           )}
+          <button
+            onClick={() => navigate('/leaderboard')}
+            className="flex w-full items-center justify-between rounded-2xl border border-line bg-ink-2 p-4 text-left transition hover:border-sig/50"
+          >
+            <span>
+              <span className="block text-sm font-black">Miami leaderboard</span>
+              <span className="block text-xs text-mute">This week's tastemakers, ranked by Taste Score</span>
+            </span>
+            <span className="text-lg font-black text-sig">→</span>
+          </button>
           <section>
             <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Fresh drops</h2>
             {fresh.length === 0 ? (

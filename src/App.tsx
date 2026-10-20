@@ -23,10 +23,11 @@ import { isPlaceholderUsername } from './lib/format'
 import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
+import Leaderboard from './pages/Leaderboard'
 import Camera from './pages/Camera'
 
 export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic'
+  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic' | 'leaderboard'
   param?: string
 }
 
@@ -48,6 +49,7 @@ export function parseHash(): Route {
   if (a === 'camera') return { name: 'camera' }
   if (a === 'saved') return { name: 'saved' }
   if (a === 'search') return { name: 'search' }
+  if (a === 'leaderboard') return { name: 'leaderboard' }
   if (a === 'notifications') return { name: 'notifications' }
   if (a === 'settings') return { name: 'settings' }
   if (a === 'onboarding') return { name: 'onboarding' }
@@ -308,6 +310,8 @@ export default function App() {
         return <Profile id={route.param} />
       case 'search':
         return <Search />
+      case 'leaderboard':
+        return <Leaderboard />
       case 'notifications':
         return <Notifications />
       case 'settings':
@@ -334,7 +338,7 @@ export default function App() {
         </main>
         {showChrome && (
           <aside className="sticky top-0 hidden h-screen w-80 shrink-0 overflow-y-auto p-6 lg:block">
-            <LeaderboardRail />
+            <LeaderboardRail city="Miami" />
           </aside>
         )}
       </div>

@@ -97,6 +97,12 @@ export default function LeaderboardRail({ city }: { city: string }) {
           ))}
         </ol>
       )}
+      <button
+        onClick={() => navigate('/leaderboard')}
+        className="mt-3 text-xs font-black text-sig transition hover:underline"
+      >
+        Full rankings →
+      </button>
     </div>
   )
 }

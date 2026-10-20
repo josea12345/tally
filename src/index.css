@@ -499,3 +499,47 @@ body {
     transform: none;
   }
 }
+
+/* Leaflet map (Near me): dark shell + tally pins. */
+.leaflet-container {
+  background: #12101d;
+  font: inherit;
+  z-index: 0;
+}
+.leaflet-control-attribution {
+  background: rgba(18, 16, 29, 0.75) !important;
+  color: #6f6a85 !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a {
+  color: #6f6a85 !important;
+}
+.leaflet-bar a {
+  background: #1d1a2e !important;
+  color: #e8e6f2 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.tally-pin-wrap {
+  background: transparent;
+  border: none;
+}
+.tally-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: var(--color-sig);
+  color: var(--color-sig-ink, #191725);
+  font-size: 14px;
+  font-weight: 900;
+  border: 2px solid #12101d;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.tally-pin-sel {
+  background: #ffd166;
+  transform: scale(1.25);
+}

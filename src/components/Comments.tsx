@@ -31,6 +31,9 @@ export default function Comments({
   const [replyTo, setReplyTo] = useState<{ topId: string; name: string } | null>(null)
   // @mention autocomplete: the token being typed + matching profiles.
   const [mentionOpts, setMentionOpts] = useState<Profile[]>([])
+  // Comment likes: counts per comment + the set I have liked.
+  const [likeCounts, setLikeCounts] = useState<Map<string, number>>(new Map())
+  const [myLikes, setMyLikes] = useState<Set<string>>(new Set())
   const mentionToken = useRef<{ start: number; end: number; q: string } | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -100,6 +103,24 @@ export default function Comments({
       if (!live) return
       setComments(list)
       onCountChange?.(list.length)
+      // Likes for this thread (counts + which ones are mine).
+      if (list.length > 0) {
+        const { data: likeRows } = await supabase
+          .from('comment_likes')
+          .select('comment_id, user_id')
+          .in('comment_id', list.map((c) => c.id))
+          .limit(2000)
+        if (live && likeRows) {
+          const counts = new Map<string, number>()
+          const mine = new Set<string>()
+          for (const l of likeRows as Array<{ comment_id: string; user_id: string }>) {
+            counts.set(l.comment_id, (counts.get(l.comment_id) ?? 0) + 1)
+            if (l.user_id === user?.id) mine.add(l.comment_id)
+          }
+          setLikeCounts(counts)
+          setMyLikes(mine)
+        }
+      }
       // Prefill the picker from the user's existing rating (once per drop).
       if (!pickedTouched.current && user) {
         const mine = list.find((c) => c.user_id === user.id && c.rating != null)
@@ -179,6 +200,29 @@ export default function Comments({
     }
   }
 
+  const toggleLike = async (c: Comment) => {
+    if (!user || c.user_id === user.id) return
+    const liked = myLikes.has(c.id)
+    const flip = (delta: number) => {
+      setMyLikes((prev) => {
+        const next = new Set(prev)
+        if (delta > 0) next.add(c.id)
+        else next.delete(c.id)
+        return next
+      })
+      setLikeCounts((prev) => {
+        const next = new Map(prev)
+        next.set(c.id, Math.max(0, (next.get(c.id) ?? 0) + delta))
+        return next
+      })
+    }
+    flip(liked ? -1 : 1)
+    const res = liked
+      ? await supabase.from('comment_likes').delete().eq('comment_id', c.id).eq('user_id', user.id)
+      : await supabase.from('comment_likes').insert({ comment_id: c.id, user_id: user.id })
+    if (res.error) flip(liked ? 1 : -1)
+  }
+
   const remove = async (id: string) => {
     if (!user || busy) return
     setBusy(true)
@@ -212,6 +256,30 @@ export default function Comments({
             </span>
           )}
           <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
+          {user && c.user_id !== user.id ? (
+            <button
+              onClick={() => toggleLike(c)}
+              aria-pressed={myLikes.has(c.id)}
+              aria-label="Like comment"
+              className={`flex shrink-0 items-center gap-1 text-[10px] font-bold transition ${
+                myLikes.has(c.id) ? 'text-sig' : 'text-mute hover:text-fog'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={myLikes.has(c.id) ? 3.2 : 2.4} strokeLinecap="round" aria-hidden>
+                <path d="M4 5v14M9.3 5v14M14.6 5v14M19.9 5v14M3 17.5 21 6.5" />
+              </svg>
+              {(likeCounts.get(c.id) ?? 0) > 0 && <span className="tabular-nums">{likeCounts.get(c.id)}</span>}
+            </button>
+          ) : (
+            (likeCounts.get(c.id) ?? 0) > 0 && (
+              <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-mute">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
+                  <path d="M4 5v14M9.3 5v14M14.6 5v14M19.9 5v14M3 17.5 21 6.5" />
+                </svg>
+                <span className="tabular-nums">{likeCounts.get(c.id)}</span>
+              </span>
+            )
+          )}
           {user && c.user_id !== user.id && (
             <button
               onClick={() =>

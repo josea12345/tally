@@ -12,6 +12,7 @@ import { Avatar, navigate } from '../App'
 import { useUnreadCount } from '../lib/useNotifications'
 import AlertIcon from '../components/AlertIcon'
 import DropCard from '../components/DropCard'
+import DropMap from '../components/DropMap'
 import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
 import OnboardingChecklist from '../components/OnboardingChecklist'
@@ -43,6 +44,7 @@ export default function Discover() {
   const { user, profile } = useAuth()
   const { myVotes, setVotesFromRows, mergeVotesFromRows, vote } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
+  const [nearView, setNearView] = useState<'list' | 'map'>('list')
   const [group, setGroup] = useState<string>('all')
   const [sub, setSub] = useState<Category | 'all'>('all')
   const pickGroup = (id: string) => {
@@ -474,6 +476,24 @@ export default function Discover() {
 
       {!loading && tab === 'putons' && <OnboardingChecklist />}
 
+      {!loading && !error && tab === 'near' && visible.length > 0 && (
+        <div className="flex justify-center px-4 pt-3">
+          <div className="flex rounded-full border border-line bg-ink-2 p-1">
+            {(['list', 'map'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setNearView(v)}
+                className={`rounded-full px-5 py-1.5 text-sm font-black capitalize transition ${
+                  nearView === v ? 'bg-sig text-ink' : 'text-mute'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tastemakers.length > 0 && tab === 'putons' && (
         <div className="border-b border-line px-4 py-3">
           <div className="mb-2 flex items-baseline gap-2">
@@ -541,6 +561,8 @@ export default function Discover() {
             </button>
           }
         />
+      ) : tab === 'near' && nearView === 'map' ? (
+        <DropMap drops={visible} center={effective} />
       ) : (
         visible.map((d, i) => (
           <DropCard
