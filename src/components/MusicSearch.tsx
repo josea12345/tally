@@ -3,17 +3,18 @@ import { searchMusic, type MusicTrack } from '../lib/music'
 
 /**
  * Track search for the composer (music), backed by Deezer via the
- * music-search edge function. Picking a track fills the drop title,
- * attaches the album art as the cover, and links the track — the music
- * mirror of the TMDB title search. Renders nothing until the backend
- * answers; manual entry still works.
+ * music-search edge function. Search matches artist, song and album.
+ * Picking a track fills the drop title, attaches the album art as the
+ * cover, and links the track — the music mirror of the TMDB title
+ * search. The box always renders; if search fails it says so inline
+ * and manual entry still works.
  */
 export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => void }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<MusicTrack[]>([])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [unavailable, setUnavailable] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (!q.trim()) {
@@ -26,11 +27,10 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
       try {
         const r = await searchMusic(q)
         setResults(r)
-        setUnavailable(false)
+        setFailed(false)
       } catch {
-        // Backend not configured / keys missing — stay quiet, manual entry works.
         setResults([])
-        setUnavailable(true)
+        setFailed(true)
       } finally {
         setSearching(false)
         setOpen(true)
@@ -39,22 +39,24 @@ export default function MusicSearch({ onPick }: { onPick: (t: MusicTrack) => voi
     return () => clearTimeout(t)
   }, [q])
 
-  if (unavailable && !q.trim()) return null
-
   return (
     <div className="relative mb-3">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Search songs…"
+        placeholder="Search artist, song or album…"
         className="w-full rounded-2xl border border-line bg-ink-2 px-4 py-3.5 text-base font-bold outline-none placeholder:text-mute/60 focus:border-sig"
       />
       {open && (
         <div className="absolute z-40 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-line bg-ink-3 shadow-2xl">
           {searching && <p className="px-4 py-3 text-sm text-mute">Searching…</p>}
           {!searching && results.length === 0 && (
-            <p className="px-4 py-3 text-sm text-mute">No matches — just type the title below.</p>
+            <p className="px-4 py-3 text-sm text-mute">
+              {failed
+                ? 'Search hiccup — check your connection, or just type the title below.'
+                : 'No matches — just type the title below.'}
+            </p>
           )}
           {results.map((r) => (
             <button
