@@ -49,6 +49,21 @@ export function useFeedVotes() {
     [user],
   )
 
+  /** Additive variant for feed pagination: merge a new page's votes in. */
+  const mergeVotesFromRows = useCallback(
+    (rows: Array<{ drop_id: string; verdict: string | null; user_id?: string }>) => {
+      if (!user) return
+      setMyVotes((prev) => {
+        const m = new Map(prev)
+        for (const r of rows) {
+          if (r.user_id === user.id && (r.verdict === 'W' || r.verdict === 'L')) m.set(r.drop_id, r.verdict)
+        }
+        return m
+      })
+    },
+    [user],
+  )
+
   const vote = useCallback(
     async (
       dropId: string,
@@ -107,5 +122,5 @@ export function useFeedVotes() {
     [user, myVotes],
   )
 
-  return { myVotes, setVotesFromRows, vote }
+  return { myVotes, setVotesFromRows, mergeVotesFromRows, vote }
 }

@@ -40,7 +40,7 @@ function AlertsBell() {
 
 export default function Discover() {
   const { user, profile } = useAuth()
-  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
+  const { myVotes, setVotesFromRows, mergeVotesFromRows, vote } = useFeedVotes()
   const [tab, setTab] = useState<Tab>('putons')
   const [group, setGroup] = useState<string>('all')
   const [sub, setSub] = useState<Category | 'all'>('all')
@@ -70,6 +70,12 @@ export default function Discover() {
   const [refreshing, setRefreshing] = useState(false)
   const [pull, setPull] = useState(0)
   const pullStartY = useRef<number | null>(null)
+  // Pagination: pages of PAGE_SIZE replace the old hard 150 cap.
+  const PAGE_SIZE = 40
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const genRef = useRef(0)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const { state: locState, effective, locate, useCity } = useDeviceLocation(profile?.city)
 
   useEffect(() => {
@@ -77,8 +83,61 @@ export default function Discover() {
     return () => clearTimeout(t)
   }, [query])
 
+  /** The drops query for the current filters (shared by page 0 + load-more). */
+  const buildDropsQuery = () => {
+    let q = supabase
+      .from('drops')
+      .select('*, author:profiles(*)')
+      .order('created_at', { ascending: false })
+    if (sub !== 'all') q = q.eq('category', sub)
+    else if (group !== 'all') {
+      const g = CATEGORY_GROUPS.find((x) => x.id === group)
+      if (g) q = q.in('category', g.categories)
+    }
+    if (debounced) {
+      const like = `%${debounced.replace(/[%_]/g, '')}%`
+      q = q.or(`title.ilike.${like},description.ilike.${like},city.ilike.${like},neighborhood.ilike.${like}`)
+    }
+    return q
+  }
+
+  /** Stats + topic counts for one page of drops. */
+  const fetchStatsFor = async (list: Drop[]) => {
+    const ids = list.map((d) => d.id)
+    const tkeys = [...new Set(list.map((d) => d.topic_key).filter(Boolean))] as string[]
+    const [{ data: saves }, { data: verdicts }, { data: cmts }, { data: trows }] = await Promise.all([
+      supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
+      supabase.from('verdicts').select('drop_id,verdict,user_id').in('drop_id', ids).limit(5000),
+      supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
+      // one lightweight query for every visible topic's post count
+      // (RLS hides blocked/private drops, so counts stay honest)
+      tkeys.length > 0
+        ? supabase.from('drops').select('topic_key').in('topic_key', tkeys).limit(5000)
+        : Promise.resolve({ data: [] as Array<{ topic_key: string }> }),
+    ])
+    const tc = new Map<string, number>()
+    for (const r of (trows ?? []) as Array<{ topic_key: string }>) {
+      tc.set(r.topic_key, (tc.get(r.topic_key) ?? 0) + 1)
+    }
+    const m = new Map<string, DropStats>()
+    for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
+    for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
+    for (const v of (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null }>) {
+      const e = m.get(v.drop_id)!
+      if (v.verdict === 'W') e.wins++
+      else if (v.verdict === 'L') e.losses++
+    }
+    for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
+    return {
+      m,
+      tc,
+      verdictRows: (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>,
+    }
+  }
+
   useEffect(() => {
     let live = true
+    genRef.current++
     const load = async () => {
       // First load gets skeletons; later loads (filters, pull-to-refresh)
       // keep the current content and just spin the refresh pill.
@@ -86,56 +145,19 @@ export default function Discover() {
       else setRefreshing(true)
       setError(null)
       try {
-        let q = supabase
-          .from('drops')
-          .select('*, author:profiles(*)')
-          .order('created_at', { ascending: false })
-          .limit(150)
-        if (sub !== 'all') q = q.eq('category', sub)
-        else if (group !== 'all') {
-          const g = CATEGORY_GROUPS.find((x) => x.id === group)
-          if (g) q = q.in('category', g.categories)
-        }
-        if (debounced) {
-          const like = `%${debounced.replace(/[%_]/g, '')}%`
-          q = q.or(`title.ilike.${like},description.ilike.${like},city.ilike.${like},neighborhood.ilike.${like}`)
-        }
-        const { data: dropRows, error: dErr } = await q
+        const { data: dropRows, error: dErr } = await buildDropsQuery().range(0, PAGE_SIZE - 1)
         if (dErr) throw dErr
         const list = (dropRows ?? []) as Drop[]
         if (!live) return
         setDrops(list)
+        setHasMore(list.length === PAGE_SIZE)
 
-        const ids = list.map((d) => d.id)
-        if (ids.length > 0) {
-          const tkeys = [...new Set(list.map((d) => d.topic_key).filter(Boolean))] as string[]
-          const [{ data: saves }, { data: verdicts }, { data: cmts }, { data: trows }] = await Promise.all([
-            supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
-            supabase.from('verdicts').select('drop_id,verdict,user_id').in('drop_id', ids).limit(5000),
-            supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
-            // one lightweight query for every visible topic's post count
-            // (RLS hides blocked/private drops, so counts stay honest)
-            tkeys.length > 0
-              ? supabase.from('drops').select('topic_key').in('topic_key', tkeys).limit(5000)
-              : Promise.resolve({ data: [] as Array<{ topic_key: string }> }),
-          ])
+        if (list.length > 0) {
+          const { m, tc, verdictRows } = await fetchStatsFor(list)
           if (!live) return
-          const tc = new Map<string, number>()
-          for (const r of (trows ?? []) as Array<{ topic_key: string }>) {
-            tc.set(r.topic_key, (tc.get(r.topic_key) ?? 0) + 1)
-          }
           setTopicCounts(tc)
-          const m = new Map<string, DropStats>()
-          for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
-          for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
-          for (const v of (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; tried?: boolean }>) {
-            const e = m.get(v.drop_id)!
-            if (v.verdict === 'W') e.wins++
-            else if (v.verdict === 'L') e.losses++
-          }
-          for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
           setStats(m)
-          setVotesFromRows((verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>)
+          setVotesFromRows(verdictRows)
         } else {
           setStats(new Map())
           setTopicCounts(new Map())
@@ -209,6 +231,49 @@ export default function Discover() {
       live = false
     }
   }, [group, sub, debounced, user, refreshNonce])
+
+  /** Append the next page of drops (deduped) with its stats merged in. */
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || loading) return
+    const gen = genRef.current
+    setLoadingMore(true)
+    try {
+      const offset = drops.length
+      const { data: rows, error: lErr } = await buildDropsQuery().range(offset, offset + PAGE_SIZE - 1)
+      if (lErr) throw lErr
+      if (gen !== genRef.current) return // a fresh main load superseded this page
+      const page = (rows ?? []) as Drop[]
+      setHasMore(page.length === PAGE_SIZE)
+      const fresh = page.filter((d) => !drops.some((x) => x.id === d.id))
+      if (fresh.length > 0) {
+        const { m, tc, verdictRows } = await fetchStatsFor(fresh)
+        if (gen !== genRef.current) return
+        setDrops((prev) => [...prev, ...fresh.filter((d) => !prev.some((x) => x.id === d.id))])
+        setStats((prev) => new Map([...prev, ...m]))
+        setTopicCounts((prev) => new Map([...prev, ...tc]))
+        mergeVotesFromRows(verdictRows)
+      }
+    } catch {
+      /* keep what's loaded; scrolling again retries */
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+  const loadMoreRef = useRef(loadMore)
+  loadMoreRef.current = loadMore
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void loadMoreRef.current()
+      },
+      { rootMargin: '600px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loading, drops.length])
 
   const visible = useMemo(() => {
     let list = drops
@@ -324,7 +389,18 @@ export default function Discover() {
             {tabs.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
+                onClick={() => {
+                  if (tab === t.id) {
+                    // Tapping the active tab: back to the top — or refresh if already there.
+                    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+                    else {
+                      tapHaptic()
+                      setRefreshNonce((n) => n + 1)
+                    }
+                  } else {
+                    setTab(t.id)
+                  }
+                }}
                 className={`relative px-1 py-1 text-[16px] transition ${
                   tab === t.id ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                 }`}
@@ -457,6 +533,21 @@ export default function Discover() {
             topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}
           />
         ))
+      )}
+
+      {hasMore && !loading && visible.length > 0 && (
+        <div ref={sentinelRef} className="flex justify-center py-8">
+          {loadingMore ? (
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-sig/30 border-t-sig" />
+          ) : (
+            <button
+              onClick={() => void loadMore()}
+              className="press rounded-full border border-line px-6 py-2.5 text-sm font-bold text-fog"
+            >
+              Load more
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

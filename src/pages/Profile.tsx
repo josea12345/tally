@@ -63,6 +63,7 @@ export default function Profile({ id }: { id?: string }) {
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
   const [showFormula, setShowFormula] = useState(false)
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
+  const [week, setWeek] = useState<{ w: number; l: number; tallies: number; comments: number; followers: number } | null>(null)
   const [showTrustInfo, setShowTrustInfo] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [dismissed, setDismissed] = useState<string[]>([])
@@ -137,17 +138,19 @@ export default function Profile({ id }: { id?: string }) {
 
       const ids = list.map((d) => d.id)
       let savedByOthers = 0
+      let savesCache: Array<{ drop_id: string; created_at: string }> = []
       let verdictsReceived: Verdict[] = []
       let commentCount = 0
       let communityByDrop = new Map<string, number[]>()
       if (ids.length > 0) {
         const [{ data: saves }, { data: vts }, { count: cc }, { data: rated }] = await Promise.all([
-          supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
+          supabase.from('saves').select('drop_id,created_at').in('drop_id', ids).limit(5000),
           supabase.from('verdicts').select('*').in('drop_id', ids).limit(5000),
           supabase.from('comments').select('id', { count: 'exact', head: true }).in('drop_id', ids),
           supabase.from('comments').select('drop_id,user_id,rating').in('drop_id', ids).not('rating', 'is', null).limit(2000),
         ])
         savedByOthers = (saves ?? []).length
+        savesCache = (saves ?? []) as Array<{ drop_id: string; created_at: string }>
         verdictsReceived = (vts ?? []) as Verdict[]
         commentCount = cc ?? 0
         for (const rc of (rated ?? []) as Array<{ drop_id: string; user_id: string; rating: number }>) {
@@ -172,6 +175,36 @@ export default function Profile({ id }: { id?: string }) {
             verdictsReceived.length + commentCount + savedByOthers
           )
         )
+      }
+
+      // "This week" recap — own profile only: new verdicts, tallies,
+      // comments, and followers in the last 7 days.
+      if (live && user && user.id === profileId) {
+        const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
+        const wv = verdictsReceived.filter((v) => v.created_at >= weekAgo)
+        const [{ count: cw }, { count: fw }] = await Promise.all([
+          ids.length > 0
+            ? supabase
+                .from('comments')
+                .select('id', { count: 'exact', head: true })
+                .in('drop_id', ids)
+                .gte('created_at', weekAgo)
+            : Promise.resolve({ count: 0 }),
+          supabase
+            .from('follows')
+            .select('id', { count: 'exact', head: true })
+            .eq('followee_id', profileId)
+            .gte('created_at', weekAgo),
+        ])
+        if (live) {
+          setWeek({
+            w: wv.filter((v) => v.verdict === 'W').length,
+            l: wv.filter((v) => v.verdict === 'L').length,
+            tallies: savesCache.filter((s) => s.created_at >= weekAgo).length,
+            comments: cw ?? 0,
+            followers: fw ?? 0,
+          })
+        }
       }
 
       setLoading(false)
@@ -499,6 +532,43 @@ export default function Profile({ id }: { id?: string }) {
             </p>
           )}
         </div>
+
+        {/* this week recap — own profile only */}
+        {week && (
+          <div className="mx-auto mt-5 w-full max-w-[430px] rounded-2xl border border-line bg-ink-2 px-4 py-3">
+            <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.25em] text-mute">
+              This week
+            </div>
+            {week.w + week.l + week.tallies + week.comments + week.followers === 0 ? (
+              <p className="text-center text-xs text-mute">
+                Quiet so far — no new action on your drops yet.
+              </p>
+            ) : (
+              <div className="flex items-start justify-center gap-5 text-center">
+                <div>
+                  <div className="text-base font-black tabular-nums">
+                    <span className="text-win">{week.w} W</span>
+                    <span className="text-mute"> · </span>
+                    <span className="text-miss">{week.l} L</span>
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">verdicts</div>
+                </div>
+                <div>
+                  <div className="text-base font-black tabular-nums text-fog">{week.tallies}</div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">new tallies</div>
+                </div>
+                <div>
+                  <div className="text-base font-black tabular-nums text-fog">{week.comments}</div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">comments</div>
+                </div>
+                <div>
+                  <div className="text-base font-black tabular-nums text-fog">{week.followers}</div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-mute">new follows</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* demoted stats */}
         <div className="mt-5 flex items-center justify-center gap-2 text-sm text-mute">
