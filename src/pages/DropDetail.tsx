@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, DropStats, Verdict } from '../lib/types'
+import type { Drop, DropStats, Profile, Verdict } from '../lib/types'
 import { timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import VerdictBox from '../components/VerdictBox'
@@ -21,6 +21,7 @@ import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
 import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
 import MentionText from '../components/MentionText'
+import RelatedDrops from '../components/RelatedDrops'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
@@ -40,6 +41,29 @@ export default function DropDetail({ id }: { id: string }) {
   const [relatedCount, setRelatedCount] = useState<number | null>(null)
   const [pinBusy, setPinBusy] = useState(false)
   const [pinError, setPinError] = useState(false)
+  // Receipts: verdicts carrying a proof photo, enriched with voter profiles.
+  const [proofs, setProofs] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
+  const [proofView, setProofView] = useState<string | null>(null)
+  useEffect(() => {
+    const withProof = verdicts.filter((v) => v.proof_url)
+    if (withProof.length === 0) {
+      setProofs([])
+      return
+    }
+    let live = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', [...new Set(withProof.map((v) => v.user_id))])
+      if (!live) return
+      const byId = new Map(((data ?? []) as Profile[]).map((p) => [p.id, p]))
+      setProofs(withProof.map((v) => ({ verdict: v, profile: byId.get(v.user_id) ?? null })))
+    })()
+    return () => {
+      live = false
+    }
+  }, [verdicts])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -477,6 +501,38 @@ export default function DropDetail({ id }: { id: string }) {
           )}
         </div>
 
+        {proofs.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-lg font-black">Receipts</h2>
+            <div className="rail-scroll flex gap-3 overflow-x-auto pb-1">
+              {proofs.map(({ verdict: v, profile: p }) => (
+                <div key={v.id} className="w-[104px] shrink-0">
+                  <button onClick={() => setProofView(v.proof_url)} className="block">
+                    <img
+                      src={v.proof_url ?? ''}
+                      alt={`Proof from @${p?.username ?? 'a voter'}`}
+                      loading="lazy"
+                      className="h-[104px] w-[104px] rounded-2xl object-cover"
+                    />
+                  </button>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                    {v.verdict && (
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 font-black ${
+                          v.verdict === 'W' ? 'bg-win text-ink' : 'bg-miss text-white'
+                        }`}
+                      >
+                        {v.verdict}
+                      </span>
+                    )}
+                    <span className="truncate text-mute">@{p?.username ?? '?'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-6">
           <Comments
             dropId={drop.id}
@@ -489,6 +545,17 @@ export default function DropDetail({ id }: { id: string }) {
           <h2 className="mb-3 text-lg font-black">The put-on chain</h2>
           <PutOnChain drop={drop} />
         </div>
+
+        <RelatedDrops drop={drop} />
+
+        {proofView && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setProofView(null)}
+          >
+            <img src={proofView} alt="Proof, full size" className="max-h-full max-w-full rounded-2xl object-contain" />
+          </div>
+        )}
 
         {!user && (
           <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">

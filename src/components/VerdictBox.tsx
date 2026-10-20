@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Verdict } from '../lib/types'
@@ -29,6 +29,59 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
   const { user } = useAuth()
   const [busy, setBusy] = useState(false)
   const [justVoted, setJustVoted] = useState<'W' | 'L' | null>(null)
+  // Proof photo ("the receipt") attached to my verdict row.
+  const [proofUrl, setProofUrl] = useState<string | null>(null)
+  const [proofBusy, setProofBusy] = useState(false)
+  const proofInput = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    setProofUrl(myVerdict?.proof_url ?? null)
+  }, [myVerdict?.proof_url, drop.id])
+
+  const attachProof = async (file: File) => {
+    if (!user || proofBusy) return
+    if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024) return
+    setProofBusy(true)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5)
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('drop-media')
+        .upload(path, file, { contentType: file.type, upsert: false })
+      if (upErr) throw upErr
+      const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
+      const { error } = await supabase.from('verdicts').upsert(
+        { user_id: user.id, drop_id: drop.id, tried: true, proof_url: data.publicUrl },
+        { onConflict: 'user_id,drop_id' },
+      )
+      if (error) throw error
+      setProofUrl(data.publicUrl)
+      onChanged()
+    } catch {
+      // Proof is optional garnish — a failed upload never blocks the verdict.
+    } finally {
+      setProofBusy(false)
+    }
+  }
+
+  const removeProof = async () => {
+    if (!user || proofBusy || !proofUrl) return
+    setProofBusy(true)
+    try {
+      const { error } = await supabase.from('verdicts').upsert(
+        { user_id: user.id, drop_id: drop.id, tried: true, proof_url: null },
+        { onConflict: 'user_id,drop_id' },
+      )
+      if (error) throw error
+      const path = proofUrl.split('/drop-media/')[1]
+      if (path) void supabase.storage.from('drop-media').remove([decodeURIComponent(path)])
+      setProofUrl(null)
+      onChanged()
+    } catch {
+      // leave the proof in place on failure
+    } finally {
+      setProofBusy(false)
+    }
+  }
 
   const total = stats.wins + stats.losses
   const winPct = total === 0 ? 50 : Math.round((stats.wins / total) * 100)
@@ -75,7 +128,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       } else {
         // Tried-gate: must be tried before a verdict counts.
         const { error } = await supabase.from('verdicts').upsert(
-          { user_id: user.id, drop_id: drop.id, tried: true, verdict },
+          { user_id: user.id, drop_id: drop.id, tried: true, verdict, proof_url: proofUrl },
           { onConflict: 'user_id,drop_id' }
         )
         if (error) throw error
@@ -159,6 +212,44 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
             </div>
           )}
           {tried && <p className="mt-2 text-center text-[11px] text-mute">You can change your verdict anytime.</p>}
+          {tried && (
+            <div className="mt-3 flex items-center justify-center gap-3">
+              {proofUrl ? (
+                <>
+                  <img src={proofUrl} alt="Your proof" className="h-10 w-10 rounded-lg object-cover" />
+                  <span className="text-xs font-bold text-win">Proof attached</span>
+                  <button
+                    onClick={removeProof}
+                    disabled={proofBusy}
+                    className="text-xs font-bold text-mute transition hover:text-miss disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => proofInput.current?.click()}
+                    disabled={proofBusy}
+                    className="text-xs font-bold text-sig transition hover:underline disabled:opacity-50"
+                  >
+                    {proofBusy ? 'Uploading…' : '+ Add proof photo — show the receipt'}
+                  </button>
+                  <input
+                    ref={proofInput}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) void attachProof(f)
+                      e.target.value = ''
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

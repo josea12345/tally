@@ -30,6 +30,14 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
       )
     case 'mention':
       return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>@</span>
+    case 'like':
+      return (
+        <span className={`${base} bg-butter text-[#191725]`} aria-hidden>
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
+            <path d="M4 5v14M9.3 5v14M14.6 5v14M19.9 5v14M3 17.5 21 6.5" />
+          </svg>
+        </span>
+      )
   }
 }
 
@@ -46,6 +54,8 @@ function textFor(n: Notification): string {
       return `${name} commented on your drop`
     case 'mention':
       return `${name} mentioned you in a comment`
+    case 'like':
+      return `${name} liked your comment`
     case 'approved':
       return `${name} approved your follow request`
     case 'requested':

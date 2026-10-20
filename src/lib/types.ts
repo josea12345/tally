@@ -115,6 +115,7 @@ export interface Verdict {
   drop_id: string
   tried: boolean
   verdict: 'W' | 'L' | null
+  proof_url: string | null
   created_at: string
   updated_at: string
   user?: Profile
