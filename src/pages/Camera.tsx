@@ -10,6 +10,7 @@ type Facing = 'environment' | 'user'
 const TAP_MS = 350 // a quicker press counts as a photo tap
 const RING_R = 44
 const RING_CIRC = 2 * Math.PI * RING_R
+const ZOOM_MAX = 8 // software pinch zoom range: 1x–8x
 
 function stopTracks(stream: MediaStream | null) {
   stream?.getTracks().forEach((t) => t.stop())
@@ -42,10 +43,23 @@ export default function Camera() {
   const [error, setError] = useState<string | null>(null)
   const [flash, setFlash] = useState(false)
   const flashTimer = useRef<number | null>(null)
+  // pinch zoom (software — iOS Safari exposes no hardware zoom control)
+  const [zoom, setZoom] = useState(1)
+  const [zoomFlash, setZoomFlash] = useState(false)
+  const zoomRef = useRef(1)
+  const zoomHideTimer = useRef<number | null>(null)
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>())
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null)
+  // zoom-aware record pipeline: canvas crops the zoomed cover region so the
+  // recording matches the preview; mic audio is grafted onto the pipe
+  const pipeCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const pipeStreamRef = useRef<MediaStream | null>(null)
+  const pipeRafRef = useRef(0)
 
   facingRef.current = facing
 
   const startStream = async (mode: Facing) => {
+    teardownPipe() // the old stream's audio track (grafted into the pipe) is dying
     stopTracks(streamRef.current)
     streamRef.current = null
     setCamState('starting')
@@ -111,7 +125,9 @@ export default function Camera() {
       stopTracks(streamRef.current)
       streamRef.current = null
       cancelAnimationFrame(rafRef.current)
+      teardownPipe()
       if (flashTimer.current) clearTimeout(flashTimer.current)
+      if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, user])
@@ -126,6 +142,109 @@ export default function Camera() {
     rafRef.current = requestAnimationFrame(tick)
   }
 
+  /**
+   * The WYSIWYG crop: the part of the camera frame the preview actually
+   * shows (object-cover), zoomed around the center. Photos capture this
+   * region; the record pipe draws it every frame. Falls back to the full
+   * frame if layout numbers aren't ready.
+   */
+  const getCoverCrop = () => {
+    const video = videoRef.current
+    const vw = video?.videoWidth ?? 0
+    const vh = video?.videoHeight ?? 0
+    const bw = video?.clientWidth ?? 0
+    const bh = video?.clientHeight ?? 0
+    if (!video || vw === 0 || vh === 0 || bw === 0 || bh === 0) {
+      return { sx: 0, sy: 0, sw: Math.max(vw, 2), sh: Math.max(vh, 2), dw: Math.max(vw, 2), dh: Math.max(vh, 2) }
+    }
+    const scale = Math.max(bw / vw, bh / vh)
+    const baseW = bw / scale // visible frame width at 1x
+    const baseH = bh / scale
+    const z = zoomRef.current
+    const sw = baseW / z
+    const sh = baseH / z
+    return { sx: (vw - sw) / 2, sy: (vh - sh) / 2, sw, sh, dw: baseW, dh: baseH }
+  }
+
+  const setZoomLevel = (z: number) => {
+    const cz = Math.min(ZOOM_MAX, Math.max(1, z))
+    zoomRef.current = cz
+    setZoom(cz)
+    setZoomFlash(true)
+    if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current)
+    zoomHideTimer.current = window.setTimeout(() => setZoomFlash(false), 900)
+  }
+
+  // Two-finger pinch on the viewfinder.
+  const onViewfinderDown = (e: React.PointerEvent) => {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()]
+      pinchRef.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: zoomRef.current }
+    }
+  }
+  const onViewfinderMove = (e: React.PointerEvent) => {
+    if (!pointersRef.current.has(e.pointerId)) return
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const p = pinchRef.current
+    if (pointersRef.current.size === 2 && p && p.dist > 0) {
+      const [a, b] = [...pointersRef.current.values()]
+      setZoomLevel(p.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / p.dist))
+    }
+  }
+  const onViewfinderUp = (e: React.PointerEvent) => {
+    pointersRef.current.delete(e.pointerId)
+    if (pointersRef.current.size < 2) pinchRef.current = null
+  }
+
+  /** Build the record pipe: cover-crop canvas -> captureStream + mic audio. */
+  const buildPipeStream = (): MediaStream | null => {
+    const video = videoRef.current
+    const stream = streamRef.current
+    if (!video || !stream || video.videoWidth === 0) return null
+    try {
+      const { dw, dh } = getCoverCrop()
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(2, Math.round(dw))
+      canvas.height = Math.max(2, Math.round(dh))
+      const ctx = canvas.getContext('2d')
+      if (!ctx || typeof canvas.captureStream !== 'function') return null
+      pipeCanvasRef.current = canvas
+      const draw = () => {
+        if (!pipeCanvasRef.current) return
+        const v = videoRef.current
+        if (v && v.videoWidth > 0) {
+          const { sx, sy, sw, sh } = getCoverCrop()
+          const W = canvas.width
+          const H = canvas.height
+          if (facingRef.current === 'user') {
+            ctx.save()
+            ctx.translate(W, 0)
+            ctx.scale(-1, 1)
+            ctx.drawImage(v, sx, sy, sw, sh, 0, 0, W, H)
+            ctx.restore()
+          } else {
+            ctx.drawImage(v, sx, sy, sw, sh, 0, 0, W, H)
+          }
+        }
+        pipeRafRef.current = requestAnimationFrame(draw)
+      }
+      draw()
+      const cs = canvas.captureStream(30)
+      const audio = stream.getAudioTracks()[0]
+      if (audio) cs.addTrack(audio)
+      return cs
+    } catch {
+      return null
+    }
+  }
+
+  const teardownPipe = () => {
+    cancelAnimationFrame(pipeRafRef.current)
+    pipeCanvasRef.current = null
+    pipeStreamRef.current = null
+  }
+
   /** Get (or create) the segment recorder. One recorder spans all segments via pause/resume. */
   const ensureRecorder = (): MediaRecorder | null => {
     if (recRef.current) return recRef.current
@@ -133,8 +252,13 @@ export default function Camera() {
     if (!stream) return null
     try {
       const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : undefined
-      // Cap bitrate so a full-length clip stays upload-friendly (~19MB/min).
-      const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 })
+      // Record through the zoom pipe so the clip matches the framed preview;
+      // fall back to the raw stream if the pipe can't be built.
+      if (!pipeStreamRef.current) pipeStreamRef.current = buildPipeStream()
+      const rec = new MediaRecorder(pipeStreamRef.current ?? stream, {
+        mimeType,
+        videoBitsPerSecond: 2_500_000,
+      })
       chunksRef.current = []
       discardRef.current = false
       rec.ondataavailable = (e) => {
@@ -182,19 +306,19 @@ export default function Camera() {
   const takePhoto = () => {
     const video = videoRef.current
     if (!video || video.videoWidth === 0) return
-    const w = video.videoWidth
-    const h = video.videoHeight
+    // Capture exactly what's framed: the zoomed cover region, not the raw frame.
+    const { sx, sy, sw, sh, dw, dh } = getCoverCrop()
     const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
+    canvas.width = Math.max(2, Math.round(dw))
+    canvas.height = Math.max(2, Math.round(dh))
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     // mirror the front camera so the photo matches the preview
     if (facingRef.current === 'user') {
-      ctx.translate(w, 0)
+      ctx.translate(canvas.width, 0)
       ctx.scale(-1, 1)
     }
-    ctx.drawImage(video, 0, 0, w, h)
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
     canvas.toBlob(
       (b) => {
         if (b) {
@@ -273,10 +397,19 @@ export default function Camera() {
         autoPlay
         playsInline
         muted
+        onPointerDown={onViewfinderDown}
+        onPointerMove={onViewfinderMove}
+        onPointerUp={onViewfinderUp}
+        onPointerCancel={onViewfinderUp}
         className={`absolute inset-0 h-full w-full object-cover ${camState === 'live' ? '' : 'invisible'}`}
-        style={facing === 'user' ? { transform: 'scaleX(-1)' } : undefined}
+        style={{ transform: `${facing === 'user' ? 'scaleX(-1) ' : ''}scale(${zoom})` }}
       />
       {flash && <div className="flash-out pointer-events-none absolute inset-0 z-20 bg-white" />}
+      {zoomFlash && zoom > 1.01 && (
+        <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-black text-white backdrop-blur-sm">
+          {zoom.toFixed(1)}×
+        </div>
+      )}
 
       {/* top bar */}
       <div className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
