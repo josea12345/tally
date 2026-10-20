@@ -2,6 +2,48 @@ import { useEffect, useRef, useState } from 'react'
 import { SoundOnIcon, SoundOffIcon } from './MediaViewer'
 
 /**
+ * One active video at a time across the whole feed (the TikTok rule):
+ * every FeedVideo registers its element; the most-visible one plays and
+ * the rest pause, instead of every on-screen clip playing at once.
+ */
+type VideoEntry = { wrap: HTMLElement; vid: HTMLVideoElement; ratio: number }
+const videoEntries = new Set<VideoEntry>()
+let sharedIo: IntersectionObserver | null = null
+
+function pickActiveVideo() {
+  let best: VideoEntry | null = null
+  for (const e of videoEntries) {
+    if (e.ratio >= 0.45 && (!best || e.ratio > best.ratio)) best = e
+  }
+  for (const e of videoEntries) {
+    if (e === best) {
+      // Warm the cache: the viewer reuses this URL, so preload the full
+      // clip once it's the active one instead of just metadata.
+      if (e.vid.preload !== 'auto') e.vid.preload = 'auto'
+      e.vid.play().catch(() => {})
+    } else if (!e.vid.paused) {
+      e.vid.pause()
+    }
+  }
+}
+
+function ensureVideoIo(): IntersectionObserver | null {
+  if (sharedIo || typeof IntersectionObserver === 'undefined') return sharedIo
+  sharedIo = new IntersectionObserver(
+    (list) => {
+      for (const item of list) {
+        for (const e of videoEntries) {
+          if (e.wrap === item.target) e.ratio = item.intersectionRatio
+        }
+      }
+      pickActiveVideo()
+    },
+    { threshold: [0, 0.25, 0.45, 0.6, 0.8, 1] },
+  )
+  return sharedIo
+}
+
+/**
  * TikTok-style feed clip: autoplays muted when on screen, pauses off screen.
  * Tap the video → in-app fullscreen viewer (MediaViewer). Tap the badge → sound.
  * Respects the poster's cover frame. Preload upgrades to full once visible so
@@ -31,23 +73,17 @@ export default function FeedVideo({
   useEffect(() => {
     const vid = ref.current
     const wrap = wrapRef.current
-    if (!vid || !wrap || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      (entries) => {
-        const vis = entries[0]?.isIntersecting ?? false
-        if (vis) {
-          // Warm the cache: the viewer reuses this URL, so preload the full
-          // clip once it's actually on screen instead of just metadata.
-          if (vid.preload !== 'auto') vid.preload = 'auto'
-          vid.play().catch(() => {})
-        } else {
-          vid.pause()
-        }
-      },
-      { threshold: 0.45 },
-    )
+    const io = ensureVideoIo()
+    if (!vid || !wrap || !io) return
+    const entry: VideoEntry = { wrap, vid, ratio: 0 }
+    videoEntries.add(entry)
     io.observe(wrap)
-    return () => io.disconnect()
+    return () => {
+      videoEntries.delete(entry)
+      io.unobserve(wrap)
+      vid.pause()
+      pickActiveVideo()
+    }
   }, [src])
 
   /** Open the in-app fullscreen viewer (replaces the old native player). */
@@ -98,7 +134,6 @@ export default function FeedVideo({
         playsInline
         muted
         loop
-        autoPlay
         preload="metadata"
         onError={() => setFailed(true)}
         onClick={handleTap}

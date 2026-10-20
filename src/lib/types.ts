@@ -56,6 +56,8 @@ export interface Profile {
   notify_wl: boolean
   notify_follows: boolean
   notify_comments: boolean
+  /** The author's signature put-on, showcased on their profile (0036). */
+  pinned_drop_id: string | null
   created_at: string
   updated_at: string
 }
@@ -125,6 +127,8 @@ export interface Comment {
   body: string
   /** Optional 1–10 rating attached via the composer picker (one per user per drop). */
   rating: number | null
+  /** Top-level comment this reply hangs off (0036); null = top-level. */
+  parent_id: string | null
   created_at: string
   updated_at: string
   user?: Profile

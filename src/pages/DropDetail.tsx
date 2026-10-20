@@ -22,7 +22,7 @@ import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
 import { WIN_RATE_MINIMUM } from '../lib/stats'
 
 export default function DropDetail({ id }: { id: string }) {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [drop, setDrop] = useState<Drop | null>(null)
   const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
   const [myVerdict, setMyVerdict] = useState<Verdict | null>(null)
@@ -222,6 +222,26 @@ export default function DropDetail({ id }: { id: string }) {
 
   const author = drop.author
   const isOwner = user?.id === drop.author_id
+  const [pinBusy, setPinBusy] = useState(false)
+  const isPinned = !!profile && profile.pinned_drop_id === drop.id
+  const [pinError, setPinError] = useState(false)
+  const togglePin = async () => {
+    if (!user || pinBusy) return
+    setPinBusy(true)
+    setPinError(false)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ pinned_drop_id: isPinned ? null : drop.id })
+        .eq('id', user.id)
+      if (error) throw error
+      await refreshProfile()
+    } catch {
+      setPinError(true)
+    } finally {
+      setPinBusy(false)
+    }
+  }
 
   return (
     <div className="pb-8">
@@ -245,7 +265,7 @@ export default function DropDetail({ id }: { id: string }) {
             items={dropMedia(drop)}
             renderItem={(it) =>
               it.type === 'video' ? (
-                <video src={it.url} poster={it.posterUrl ?? undefined} controls playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
+                <video src={it.url} poster={it.posterUrl ?? undefined} controls autoPlay muted loop playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
               ) : isArtworkUrl(it.url) ? (
                 <ArtworkImage
                   src={it.url}
@@ -401,6 +421,9 @@ export default function DropDetail({ id }: { id: string }) {
             {saved ? 'Tallied' : 'Tally'} · {stats.saves}
           </button>
           {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
+          {pinError && (
+            <p className="w-full text-xs font-bold text-miss">Could not update your pin — try again.</p>
+          )}
           <button
             onClick={copyLink}
             className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"
@@ -416,6 +439,17 @@ export default function DropDetail({ id }: { id: string }) {
           </button>
           {isOwner && (
             <>
+              <button
+                onClick={togglePin}
+                disabled={pinBusy}
+                className={`rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50 ${
+                  isPinned
+                    ? 'border-sig bg-sig/15 text-sig'
+                    : 'border-line bg-ink-2 text-fog hover:border-sig'
+                }`}
+              >
+                {isPinned ? 'Pinned to profile ✓' : 'Pin to profile'}
+              </button>
               <button
                 onClick={() => navigate(`/edit/${drop.id}`)}
                 className="rounded-full border border-line bg-ink-2 px-4 py-2 text-sm font-bold text-fog hover:border-sig"

@@ -43,7 +43,46 @@ function DropsList({
       />
     )
   }
-  return <DropGrid drops={drops} />
+  const pinned = profile.pinned_drop_id
+    ? drops.find((d) => d.id === profile.pinned_drop_id)
+    : undefined
+  const pinnedMedia = pinned ? dropMedia(pinned)[0] : undefined
+  return (
+    <div>
+      {pinned && (
+        <button
+          onClick={() => navigate(`/drop/${pinned.id}`)}
+          className="block w-full px-4 pb-1 pt-3 text-left"
+        >
+          <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-sig">
+            Signature put-on
+          </span>
+          <span className="relative block overflow-hidden rounded-3xl border border-line bg-ink-3">
+            {pinnedMedia && (
+              <img
+                src={
+                  pinnedMedia.type === 'video'
+                    ? (pinnedMedia.posterUrl ?? '')
+                    : pinnedMedia.url
+                }
+                alt=""
+                loading="lazy"
+                className="h-44 w-full object-cover"
+              />
+            )}
+            <span className="absolute inset-x-0 bottom-0 block bg-gradient-to-t from-black/80 via-black/35 to-transparent p-4 pt-12">
+              <span className="block truncate text-lg font-black text-white">{pinned.title}</span>
+              <span className="block text-xs font-bold text-white/80">
+                {pinned.score != null ? `Their call: ${pinned.score}/10` : 'No score given'}
+                {pinned.city ? ` · ${pinned.city}` : ''}
+              </span>
+            </span>
+          </span>
+        </button>
+      )}
+      <DropGrid drops={drops} />
+    </div>
+  )
 }
 
 export default function Profile({ id }: { id?: string }) {

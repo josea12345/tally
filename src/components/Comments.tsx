@@ -26,6 +26,8 @@ export default function Comments({
   const [picked, setPicked] = useState<number | null>(null)
   const [rateOpen, setRateOpen] = useState(false)
   const pickedTouched = useRef(false)
+  // Reply target: replies hang off the TOP-LEVEL comment (one level deep).
+  const [replyTo, setReplyTo] = useState<{ topId: string; name: string } | null>(null)
 
   const isAuthor = !!user && !!authorId && user.id === authorId
   const myRated = comments.find((c) => user && c.user_id === user.id && c.rating != null)
@@ -58,7 +60,7 @@ export default function Comments({
         if (mine?.rating != null) setPicked(mine.rating)
       }
     })()
-    return () => {
+  return () => {
       live = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,9 +72,10 @@ export default function Comments({
     setBusy(true)
     setError(null)
     try {
-      // One rating per user per drop: clear the old rated comment first, then
-      // attach the new rating to this comment.
-      if (picked != null && !isAuthor) {
+      // Replies never carry the drop rating — the rating belongs to your
+      // top-level take. One rating per user per drop: clear the old rated
+      // comment first, then attach the new rating to this comment.
+      if (!replyTo && picked != null && !isAuthor) {
         await supabase
           .from('comments')
           .update({ rating: null })
@@ -80,16 +83,29 @@ export default function Comments({
           .eq('user_id', user.id)
           .not('rating', 'is', null)
       }
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          drop_id: dropId,
-          user_id: user.id,
-          body: text.slice(0, 500),
-          rating: picked != null && !isAuthor ? picked : null,
-        })
-        .select('*')
-        .single()
+      const payload = {
+        drop_id: dropId,
+        user_id: user.id,
+        body: text.slice(0, 500),
+        rating: !replyTo && picked != null && !isAuthor ? picked : null,
+        parent_id: replyTo?.topId ?? null,
+      }
+      let res = await supabase.from('comments').insert(payload).select('*').single()
+      if (res.error && replyTo && /parent_id/.test(res.error.message)) {
+        // Schema lag (0036 not applied yet): land it as a top-level comment
+        // instead of failing the post outright.
+        res = await supabase
+          .from('comments')
+          .insert({
+            drop_id: payload.drop_id,
+            user_id: payload.user_id,
+            body: payload.body,
+            rating: payload.rating,
+          })
+          .select('*')
+          .single()
+      }
+      const { data, error } = res
       if (error) throw error
       const c = data as Comment
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
@@ -98,6 +114,7 @@ export default function Comments({
       setComments(next)
       onCountChange?.(next.length)
       setBody('')
+      setReplyTo(null)
       if (authorId) void notify(authorId, user.id, 'comment', dropId)
     } catch {
       // Draft is preserved above (setBody only runs on success).
@@ -114,7 +131,8 @@ export default function Comments({
     try {
       const { error } = await supabase.from('comments').delete().eq('id', id).eq('user_id', user.id)
       if (error) throw error
-      const next = comments.filter((c) => c.id !== id)
+      // Deleting a top-level comment cascade-deletes its replies (FK).
+      const next = comments.filter((c) => c.id !== id && c.parent_id !== id)
       setComments(next)
       onCountChange?.(next.length)
     } catch {
@@ -123,6 +141,50 @@ export default function Comments({
       setBusy(false)
     }
   }
+
+  /** One comment row; replies reuse it, hanging off their top-level parent. */
+  const commentRow = (c: Comment, topId: string) => (
+    <div className="flex gap-2.5">
+      <Avatar url={c.user?.avatar_url ?? null} name={c.user?.display_name ?? c.user?.username ?? '?'} size={32} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="truncate text-xs font-black">
+            {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
+          </span>
+          {c.rating != null && (
+            <span className="shrink-0 rounded-full bg-sig/15 px-1.5 py-px text-[10px] font-black text-sig">
+              ★ {c.rating}
+            </span>
+          )}
+          <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
+          {user && c.user_id !== user.id && (
+            <button
+              onClick={() =>
+                setReplyTo({
+                  topId,
+                  name: c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone'),
+                })
+              }
+              className="ml-auto shrink-0 text-[10px] font-bold text-mute hover:text-sig"
+            >
+              Reply
+            </button>
+          )}
+          {user && c.user_id === user.id && (
+            <button
+              onClick={() => remove(c.id)}
+              disabled={busy}
+              aria-label="Delete comment"
+              className="ml-auto shrink-0 text-[10px] font-bold text-mute hover:text-miss"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+        <p className="mt-0.5 break-words text-sm">{c.body}</p>
+      </div>
+    </div>
+  )
 
   return (
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
@@ -142,35 +204,20 @@ export default function Comments({
         <p className="mb-3 text-xs text-mute">No comments yet — say the thing everyone's thinking.</p>
       ) : (
         <div className="mb-3 flex flex-col gap-3">
-          {comments.map((c) => (
-            <div key={c.id} className="flex gap-2.5">
-              <Avatar url={c.user?.avatar_url ?? null} name={c.user?.display_name ?? c.user?.username ?? '?'} size={32} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="truncate text-xs font-black">
-                    {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
-                  </span>
-                  {c.rating != null && (
-                    <span className="shrink-0 rounded-full bg-sig/15 px-1.5 py-px text-[10px] font-black text-sig">
-                      ★ {c.rating}
-                    </span>
-                  )}
-                  <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
-                  {user && c.user_id === user.id && (
-                    <button
-                      onClick={() => remove(c.id)}
-                      disabled={busy}
-                      aria-label="Delete comment"
-                      className="ml-auto shrink-0 text-[10px] font-bold text-mute hover:text-miss"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-                <p className="mt-0.5 break-words text-sm">{c.body}</p>
+          {comments
+            .filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
+            .map((c) => (
+              <div key={c.id}>
+                {commentRow(c, c.id)}
+                {comments
+                  .filter((r) => r.parent_id === c.id)
+                  .map((r) => (
+                    <div key={r.id} className="ml-10 mt-3">
+                      {commentRow(r, c.id)}
+                    </div>
+                  ))}
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
 
@@ -178,8 +225,20 @@ export default function Comments({
 
       {user ? (
         <div>
+          {replyTo && (
+            <div className="mb-2 flex items-center justify-between rounded-full bg-sig/10 px-3.5 py-1.5 text-xs font-bold text-sig">
+              <span className="truncate">Replying to {replyTo.name}</span>
+              <button
+                onClick={() => setReplyTo(null)}
+                aria-label="Cancel reply"
+                className="ml-2 shrink-0 text-sm font-black text-sig"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="flex gap-2">
-            {!isAuthor && (
+            {!isAuthor && !replyTo && (
               <div className="relative shrink-0">
                 <button
                   onClick={() => setRateOpen((o) => !o)}
@@ -243,7 +302,7 @@ export default function Comments({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') post()
               }}
-              placeholder="Add a comment…"
+              placeholder={replyTo ? `Reply to ${replyTo.name}…` : 'Add a comment…'}
               maxLength={500}
               disabled={busy}
               className="min-w-0 flex-1 rounded-full border border-line bg-ink-3 px-4 py-2.5 text-sm outline-none placeholder:text-mute focus:border-sig"
