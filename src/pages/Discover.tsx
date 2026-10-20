@@ -64,6 +64,48 @@ export default function Discover() {
   const [topicCounts, setTopicCounts] = useState<Map<string, number>>(new Map())
   const [mySaves, setMySaves] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState<Set<string>>(new Set())
+  const [topicDrops, setTopicDrops] = useState<Drop[]>([])
+  const [yday, setYday] = useState<{ drop: Drop; wins: number; losses: number } | null>(null)
+
+  // Yesterday's top call: the drop with yesterday's best verdict record.
+  useEffect(() => {
+    let live = true
+    ;(async () => {
+      const now = new Date()
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const startYday = new Date(startToday)
+      startYday.setDate(startYday.getDate() - 1)
+      const { data: rows } = await supabase
+        .from('verdicts')
+        .select('verdict, drop_id')
+        .not('verdict', 'is', null)
+        .gte('created_at', startYday.toISOString())
+        .lt('created_at', startToday.toISOString())
+        .limit(2000)
+      if (!live) return
+      const agg = new Map<string, { w: number; l: number }>()
+      for (const r of (rows ?? []) as Array<{ verdict: 'W' | 'L'; drop_id: string }>) {
+        const e = agg.get(r.drop_id) ?? { w: 0, l: 0 }
+        if (r.verdict === 'W') e.w += 1
+        else e.l += 1
+        agg.set(r.drop_id, e)
+      }
+      const best = [...agg.entries()]
+        .filter(([, e]) => e.w + e.l >= 2)
+        .sort((a, b) => b[1].w - b[1].l - (a[1].w - a[1].l) || b[1].w - a[1].w)[0]
+      if (!best) return
+      const { data: d } = await supabase
+        .from('drops')
+        .select('*, author:profiles!drops_author_id_fkey(*)')
+        .eq('id', best[0])
+        .maybeSingle()
+      if (!live || !d) return
+      setYday({ drop: d as Drop, wins: best[1].w, losses: best[1].l })
+    })()
+    return () => {
+      live = false
+    }
+  }, [])
   const [tastemakers, setTastemakers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -176,6 +218,33 @@ export default function Discover() {
           setMySaves(new Set(((mine ?? []) as Array<{ drop_id: string }>).map((s) => s.drop_id)))
           followingIds = new Set(((follows ?? []) as Array<{ followee_id: string }>).map((f) => f.followee_id))
           setFollowing(followingIds)
+
+          // Topics I follow: their recent drops join the Following tab.
+          const { data: tFollows } = await supabase
+            .from('topic_follows')
+            .select('topic_key')
+            .eq('user_id', user.id)
+            .limit(200)
+          const keys = ((tFollows ?? []) as Array<{ topic_key: string }>).map((t) => t.topic_key)
+          if (!live) return
+          if (keys.length > 0) {
+            const { data: tDrops } = await supabase
+              .from('drops')
+              .select('*, author:profiles!drops_author_id_fkey(*)')
+              .in('topic_key', keys)
+              .order('created_at', { ascending: false })
+              .limit(40)
+            const tList = (tDrops ?? []) as Drop[]
+            if (!live) return
+            setTopicDrops(tList)
+            if (tList.length > 0) {
+              const extra = await fetchStatsFor(tList)
+              if (!live) return
+              setStats((prev) => new Map([...prev, ...extra.m]))
+              setTopicCounts((prev) => new Map([...prev, ...extra.tc]))
+              mergeVotesFromRows(extra.verdictRows)
+            }
+          }
         }
 
         // Tastemaker rail: authors with a real win rate, top 10.
@@ -282,9 +351,23 @@ export default function Discover() {
     return () => io.disconnect()
   }, [hasMore, loading, drops.length])
 
+  // Drops that are in the Following tab ONLY because of a topic follow
+  // (author not followed) — those get the "from a topic you follow" badge.
+  const viaTopicIds = useMemo(() => {
+    if (tab !== 'following') return new Set<string>()
+    return new Set(
+      topicDrops.filter((d) => !following.has(d.author_id)).map((d) => d.id),
+    )
+  }, [tab, topicDrops, following])
+
   const visible = useMemo(() => {
     let list = drops
-    if (tab === 'following') list = list.filter((d) => following.has(d.author_id))
+    if (tab === 'following') {
+      const byId = new Map<string, Drop>()
+      for (const d of list) if (following.has(d.author_id)) byId.set(d.id, d)
+      for (const d of topicDrops) if (!byId.has(d.id)) byId.set(d.id, d)
+      list = [...byId.values()].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    }
     if (tab === 'near') {
       list = list.filter((d) => {
         if (MEDIA_CATEGORIES.includes(d.category)) return true
@@ -311,7 +394,7 @@ export default function Discover() {
       )
     }
     return list
-  }, [drops, tab, following, effective, stats, debounced])
+  }, [drops, tab, following, topicDrops, effective, stats, debounced])
 
   const toggleSave = async (dropId: string) => {
     if (!user) {
@@ -513,6 +596,28 @@ export default function Discover() {
         </div>
       )}
 
+      {tab === 'putons' && !debounced && yday && (
+        <button
+          onClick={() => navigate(`/drop/${yday.drop.id}`)}
+          className="block w-full border-b border-line bg-ink-2 px-4 py-3 text-left transition hover:border-sig/50"
+        >
+          <span className="text-[10px] font-black uppercase tracking-[0.22em] text-butter">
+            Yesterday's top call
+          </span>
+          <span className="mt-0.5 block truncate text-[15px] font-bold">
+            {yday.drop.title}
+            <span className="ml-2 text-sm font-black">
+              <span className="text-win">{yday.wins} W</span>
+              <span className="text-mute"> · </span>
+              <span className="text-miss">{yday.losses} L</span>
+            </span>
+          </span>
+          <span className="block text-xs text-mute">
+            by @{yday.drop.author?.username ?? '?'} — see why it landed
+          </span>
+        </button>
+      )}
+
       {loading ? (
         <div className="space-y-0">
           {[0, 1, 2].map((i) => (
@@ -576,6 +681,7 @@ export default function Discover() {
             revealDelay={(i % 6) * 70}
             onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
             topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}
+            viaTopic={viaTopicIds.has(d.id)}
           />
         ))
       )}

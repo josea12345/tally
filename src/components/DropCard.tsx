@@ -32,9 +32,11 @@ interface Props {
   onAuthorBlocked?: (authorId: string) => void
   /** How many visible put-ons share this drop's topic (null = not loaded yet). */
   topicCount?: number | null
+  /** True when this card is in the feed only because of a topic follow. */
+  viaTopic?: boolean
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked, topicCount = null }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -301,6 +303,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
               You can't call W/L on your own drop
             </span>
           </div>
+        )}
+        {viaTopic && (
+          <p className="px-4 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-butter">
+            From a topic you follow
+          </p>
         )}
         {/* header: who, when, their call, menu */}
         <div className="flex items-center gap-3 px-4">

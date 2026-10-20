@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import type { Drop } from '../lib/types'
 import DropGrid from '../components/DropGrid'
@@ -11,8 +12,50 @@ import DropGrid from '../components/DropGrid'
  * blocked/private drops automatically.
  */
 export default function Topic({ topicKey }: { topicKey: string }) {
+  const { user } = useAuth()
   const [drops, setDrops] = useState<Drop[]>([])
   const [loading, setLoading] = useState(true)
+  const [topicFollowing, setTopicFollowing] = useState(false)
+  const [followBusy, setFollowBusy] = useState(false)
+
+  useEffect(() => {
+    if (!user) {
+      setTopicFollowing(false)
+      return
+    }
+    let live = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('topic_follows')
+        .select('topic_key')
+        .eq('user_id', user.id)
+        .eq('topic_key', topicKey)
+        .maybeSingle()
+      if (live) setTopicFollowing(!!data)
+    })()
+    return () => {
+      live = false
+    }
+  }, [user?.id, topicKey])
+
+  const toggleTopicFollow = async () => {
+    if (!user || followBusy) return
+    setFollowBusy(true)
+    if (topicFollowing) {
+      const { error } = await supabase
+        .from('topic_follows')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('topic_key', topicKey)
+      if (!error) setTopicFollowing(false)
+    } else {
+      const { error } = await supabase
+        .from('topic_follows')
+        .insert({ user_id: user.id, topic_key: topicKey })
+      if (!error) setTopicFollowing(true)
+    }
+    setFollowBusy(false)
+  }
 
   useEffect(() => {
     let live = true
@@ -97,6 +140,17 @@ export default function Topic({ topicKey }: { topicKey: string }) {
             >
               Directions ↗
             </a>
+          )}
+          {user && (
+            <button
+              onClick={toggleTopicFollow}
+              disabled={followBusy}
+              className={`press rounded-full px-4 py-2 text-xs font-black disabled:opacity-50 ${
+                mapsUrl ? '' : 'ml-auto'
+              } ${topicFollowing ? 'bg-sig text-ink' : 'border border-sig/60 text-sig'}`}
+            >
+              {topicFollowing ? 'Following topic ✓' : 'Follow topic'}
+            </button>
           )}
         </div>
       </div>
