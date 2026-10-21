@@ -31,6 +31,7 @@ export async function renderRecapCard(
   week: RecapStats,
   tasteScore: number | null,
   trustScore: number | null,
+  streak = 0,
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -122,6 +123,7 @@ export async function renderRecapCard(
   const pills: Array<[string, string]> = []
   if (tasteScore != null) pills.push([`TASTE SCORE ${tasteScore}`, '#45C8FF'])
   if (trustScore != null) pills.push([`TRUST ${trustScore}`, '#69e7cf'])
+  if (streak >= 2) pills.push([`STREAK ${streak} WK`, '#FFD166'])
   if (pills.length > 0) {
     ctx.font = '800 40px Inter, sans-serif'
     const widths = pills.map(([t]) => ctx.measureText(t).width + 72)

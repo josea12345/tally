@@ -19,6 +19,7 @@ import Topic from './pages/Topic'
 import InstallBanner from './components/InstallBanner'
 import UpdatePill from './components/UpdatePill'
 import { captureInviteRef, consumeInviteRef, dropInviteRef } from './lib/invite'
+import { captureSharedContent } from './lib/shareTarget'
 import { isPlaceholderUsername } from './lib/format'
 import TallyIcon from './components/TallyIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
@@ -236,6 +237,15 @@ export default function App() {
   // brand-new account finishes onboarding, auto-follow the inviter.
   useEffect(() => {
     captureInviteRef()
+  }, [])
+
+  // Web Share Target: another app shared content to /share — send the
+  // user straight to the composer, which prefills from the stash.
+  useEffect(() => {
+    if (captureSharedContent()) {
+      window.history.replaceState(null, '', '/')
+      navigate('/create')
+    }
   }, [])
   useEffect(() => {
     if (!user || !profile || isPlaceholderUsername(profile.username)) return

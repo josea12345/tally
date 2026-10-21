@@ -5,6 +5,7 @@ import type { Drop, Profile, Verdict } from '../lib/types'
 import { dropMedia } from '../lib/types'
 import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
 import { renderRecapCard } from '../lib/recapcard'
+import { fetchStreak } from '../lib/streak'
 import ProfileLists from '../components/ProfileLists'
 import { shareTasteCard } from '../lib/tastecard'
 import { Avatar, navigate } from '../App'
@@ -159,6 +160,7 @@ export default function Profile({ id }: { id?: string }) {
   const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
   const [showFormula, setShowFormula] = useState(false)
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
+  const [streak, setStreak] = useState(0)
   const [week, setWeek] = useState<{ w: number; l: number; tallies: number; comments: number; followers: number } | null>(null)
   const [recapBusy, setRecapBusy] = useState(false)
   const [profileCopied, setProfileCopied] = useState(false)
@@ -274,6 +276,11 @@ export default function Profile({ id }: { id?: string }) {
           )
         )
       }
+      fetchStreak(profileId)
+        .then((s) => {
+          if (live) setStreak(s)
+        })
+        .catch(() => {})
 
       // "This week" recap — own profile only: new verdicts, tallies,
       // comments, and followers in the last 7 days.
@@ -395,7 +402,7 @@ export default function Profile({ id }: { id?: string }) {
     if (!week || recapBusy) return
     setRecapBusy(true)
     try {
-      const blob = await renderRecapCard(profile, week, tasteScore, trustScore)
+      const blob = await renderRecapCard(profile, week, tasteScore, trustScore, streak)
       await shareTasteCard(blob, `tally-week-${profile.username}`)
     } catch {
       // card sharing is garnish — never surface an error for it
@@ -450,6 +457,14 @@ export default function Profile({ id }: { id?: string }) {
               </span>
             </div>
             <p className="text-sm text-mute">@{profile.username}{profile.city ? ` · ${profile.city}` : ''}</p>
+            {streak >= 2 && (
+              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-butter/50 bg-butter/10 px-2.5 py-1 text-[11px] font-black text-butter">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" aria-hidden>
+                  <path d="M4 5v14M9.3 5v14M14.6 5v14M19.9 5v14M3 17.5 21 6.5" />
+                </svg>
+                {streak}-week streak
+              </span>
+            )}
           </div>
           {isOwn ? (
             <div className="flex shrink-0 items-center gap-2">

@@ -1,1 +1,39 @@
-{"background_color":"#0a0a0b","description":"Good taste deserves a track record. Find places worth knowing. Put your friends onto something great.","display":"standalone","icons":[{"purpose":"any","sizes":"192x192","src":"/icons/icon-192.png","type":"image/png"},{"purpose":"any","sizes":"512x512","src":"/icons/icon-512.png","type":"image/png"},{"purpose":"maskable","sizes":"512x512","src":"/icons/icon-maskable-512.png","type":"image/png"}],"name":"TALLY — Good taste deserves a track record.","short_name":"TALLY","start_url":"/","theme_color":"#0a0a0b"}
+{
+ "background_color": "#0a0a0b",
+ "description": "Good taste deserves a track record. Find places worth knowing. Put your friends onto something great.",
+ "display": "standalone",
+ "icons": [
+  {
+   "purpose": "any",
+   "sizes": "192x192",
+   "src": "/icons/icon-192.png",
+   "type": "image/png"
+  },
+  {
+   "purpose": "any",
+   "sizes": "512x512",
+   "src": "/icons/icon-512.png",
+   "type": "image/png"
+  },
+  {
+   "purpose": "maskable",
+   "sizes": "512x512",
+   "src": "/icons/icon-maskable-512.png",
+   "type": "image/png"
+  }
+ ],
+ "name": "TALLY \u2014 Good taste deserves a track record.",
+ "short_name": "TALLY",
+ "start_url": "/",
+ "theme_color": "#0a0a0b",
+ "share_target": {
+  "action": "/share",
+  "method": "GET",
+  "enctype": "application/x-www-form-urlencoded",
+  "params": {
+   "title": "title",
+   "text": "text",
+   "url": "url"
+  }
+ }
+}

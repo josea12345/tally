@@ -104,7 +104,7 @@ export default function Comments({
   // Top-level order: chronological by default; "Top" floats the most
   // liked (then highest-rated) takes. Replies always stay nested.
   const topLevel = comments.filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
-  const orderedTop =
+  const baseOrdered =
     sortMode === 'top'
       ? [...topLevel].sort(
           (a, b) =>
@@ -113,6 +113,29 @@ export default function Comments({
             b.created_at.localeCompare(a.created_at),
         )
       : topLevel
+  // The author's pinned comment always leads the thread.
+  const orderedTop = [...baseOrdered].sort(
+    (a, b) => Number(b.pinned ?? false) - Number(a.pinned ?? false),
+  )
+
+  const [pinBusy, setPinBusy] = useState<string | null>(null)
+  const togglePin = async (c: Comment) => {
+    if (pinBusy) return
+    setPinBusy(c.id)
+    const { data, error } = await supabase.rpc('set_comment_pin', {
+      p_comment: c.id,
+      p_pinned: !c.pinned,
+    })
+    setPinBusy(null)
+    if (!error && data === true) {
+      setComments((prev) =>
+        prev.map((x) => ({
+          ...x,
+          pinned: x.id === c.id ? !c.pinned : c.pinned ? x.pinned : false,
+        })),
+      )
+    }
+  }
 
   useEffect(() => {
     let live = true
@@ -277,6 +300,11 @@ export default function Comments({
     <div className="flex gap-2.5">
       <Avatar url={c.user?.avatar_url ?? null} name={c.user?.display_name ?? c.user?.username ?? '?'} size={32} />
       <div className="min-w-0 flex-1">
+        {c.pinned && (
+          <p className="mb-0.5 text-[10px] font-black uppercase tracking-wider text-butter">
+            Pinned by the author
+          </p>
+        )}
         <div className="flex items-baseline gap-2">
           <span className="truncate text-xs font-black">
             {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
@@ -344,6 +372,17 @@ export default function Comments({
               className="ml-auto shrink-0 text-[10px] font-bold text-mute hover:text-miss"
             >
               Delete
+            </button>
+          )}
+          {isAuthor && !c.parent_id && (
+            <button
+              onClick={() => togglePin(c)}
+              disabled={pinBusy === c.id}
+              className={`shrink-0 text-[10px] font-bold disabled:opacity-50 ${
+                c.pinned ? 'text-butter' : 'text-mute hover:text-butter'
+              }`}
+            >
+              {c.pinned ? 'Unpin' : 'Pin'}
             </button>
           )}
         </div>

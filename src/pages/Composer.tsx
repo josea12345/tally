@@ -16,6 +16,7 @@ import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
 import { successHaptic } from '../lib/haptics'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
+import { takeSharedContent } from '../lib/shareTarget'
 import { topicKeyFor } from '../lib/format'
 import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
 import EmptyState from '../components/EmptyState'
@@ -129,10 +130,24 @@ export default function Composer({ editId }: { editId?: string }) {
     setCity((c) => c || profile?.city || 'Miami')
   }, [user, profile])
 
+  const sharedPrefillRef = useRef(false)
   // Camera flow: a filtered photo or trimmed clip waiting from the camera screens.
   // Appended to the draft so the carousel survives the camera round-trip.
   useEffect(() => {
     if (editId) return
+    // Shared from another app (Web Share Target): prefill title + link.
+    const shared = takeSharedContent()
+    if (shared) {
+      sharedPrefillRef.current = true
+      const textIsUrl = /^https?:\/\/\S+$/i.test(shared.text.trim())
+      const sharedUrl = shared.url || (textIsUrl ? shared.text.trim() : '')
+      const sharedTitle = (shared.title || (textIsUrl ? '' : shared.text)).trim()
+      if (sharedTitle) setTitle(sharedTitle.slice(0, 120))
+      if (sharedUrl) {
+        setSiteUrl(sharedUrl)
+        setLinkKind('paste')
+      }
+    }
     const draft = getDraftMedia()
     const p = takePendingUpload()
     const next = [...draft]
@@ -248,7 +263,7 @@ export default function Composer({ editId }: { editId?: string }) {
         instructionsText?: string
       }
       if (d.category) setCategory(d.category)
-      if (d.title) setTitle(d.title)
+      if (d.title && !sharedPrefillRef.current) setTitle(d.title)
       if (d.description) setDescription(d.description)
       if (d.score != null) setScore(d.score)
       if (d.city) setCity(d.city)

@@ -141,6 +141,8 @@ export interface Comment {
   rating: number | null
   /** Top-level comment this reply hangs off (0036); null = top-level. */
   parent_id: string | null
+  /** Pinned to the top of the thread by the drop's author (0048). */
+  pinned: boolean
   created_at: string
   updated_at: string
   user?: Profile
