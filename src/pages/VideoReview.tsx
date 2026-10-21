@@ -9,7 +9,7 @@ import WaveformTrimmer from '../components/WaveformTrimmer'
 import FilmTrim from '../components/FilmTrim'
 import type { MusicTrack } from '../lib/music'
 import { isCurrentSound, pauseSound, playSound, stopSound } from '../lib/sound'
-import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration } from '../lib/video'
+import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration, probeTrueEnd } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
   PHOTO_FILTERS,
@@ -65,6 +65,7 @@ export default function VideoReview() {
   const [filterIntensity, setFilterIntensity] = useState(1)
   const [origVol, setOrigVol] = useState(1)
   const [soundVol, setSoundVol] = useState(1)
+  const [phantomTail, setPhantomTail] = useState<number | null>(null)
   const [texts, setTexts] = useState<TextOverlay[]>([])
   const [selText, setSelText] = useState<string | null>(null)
   const previewRef = useRef<HTMLVideoElement | null>(null)
@@ -94,6 +95,18 @@ export default function VideoReview() {
         setDuration(d)
         // over-long clips start pre-trimmed to the cap — the handles fix the rest
         setTrimEnd(d > CLIP_MAX_SECONDS + 0.5 ? CLIP_MAX_SECONDS : d)
+        // Phantom-tail repair: if the frames end well before the
+        // container says the clip ends, clamp the trim to the true end.
+        probeTrueEnd(url, d)
+          .then((t) => {
+            if (t != null && d - t > 0.35) {
+              setPhantomTail(t)
+              setTrimEnd((cur) =>
+                cur == null || cur > t ? Math.round(t * 100) / 100 : cur,
+              )
+            }
+          })
+          .catch(() => {})
       })
       .catch(() => setDuration(null))
     return () => URL.revokeObjectURL(url)
@@ -535,6 +548,12 @@ export default function VideoReview() {
               <p className="pt-2 text-center text-xs text-mute">
                 Drag the end handles to trim. Drag the middle to scrub — where you stop is the cover frame.
               </p>
+              {phantomTail != null && (
+                <p className="pt-1.5 text-center text-xs font-bold text-butter">
+                  Phantom tail cut at {formatDuration(phantomTail)} — the file claimed{' '}
+                  {formatDuration(duration)} but its frames end there. Drag the handle if you want it back.
+                </p>
+              )}
             </div>
           )}
 

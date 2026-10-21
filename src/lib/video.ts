@@ -25,6 +25,53 @@ export function getVideoDuration(blob: Blob): Promise<number> {
   })
 }
 
+interface RVFCVideo extends HTMLVideoElement {
+  requestVideoFrameCallback?: (cb: (now: number, meta: { mediaTime: number }) => void) => number
+}
+
+/**
+ * iOS Safari's MediaRecorder stamps the track with the full
+ * wall-clock session (pauses included) while the frames stop when
+ * recording does — leaving a "phantom tail" where players hold the
+ * last frame for seconds. This plays the clip fast on a throwaway
+ * element and reports the mediaTime of the last frame that actually
+ * exists, or null when it can't tell.
+ */
+export function probeTrueEnd(url: string, containerDuration: number): Promise<number | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video') as RVFCVideo
+    if (typeof v.requestVideoFrameCallback !== 'function') return resolve(null)
+    v.muted = true
+    v.playsInline = true
+    v.preload = 'auto'
+    v.src = url
+    let last = 0
+    let done = false
+    const finish = (val: number | null) => {
+      if (done) return
+      done = true
+      try {
+        v.pause()
+      } catch {
+        /* already gone */
+      }
+      v.removeAttribute('src')
+      resolve(val)
+    }
+    const cb = (_now: number, meta: { mediaTime: number }) => {
+      last = meta.mediaTime
+      if (!done) v.requestVideoFrameCallback?.(cb)
+    }
+    v.requestVideoFrameCallback(cb)
+    v.addEventListener('ended', () => finish(last > 0 ? last : null), { once: true })
+    v.addEventListener('error', () => finish(null), { once: true })
+    const rate = Math.min(16, Math.max(4, containerDuration / 1.2))
+    window.setTimeout(() => finish(last > 0 ? last : null), (containerDuration / rate + 4) * 1000)
+    v.playbackRate = rate
+    v.play().catch(() => finish(null))
+  })
+}
+
 export function canTrimVideo(): boolean {
   if (typeof MediaRecorder === 'undefined') return false
   try {
