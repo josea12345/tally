@@ -11,6 +11,18 @@ export interface PendingUpload {
   type: 'photo' | 'video'
   posterUrl?: string
   edit?: import('./types').MediaEdit | null
+  sound?: SoundAttachment | null
+}
+
+/** A soundtrack chosen in the media editors or the composer. */
+export interface SoundAttachment {
+  title: string
+  artist: string
+  previewUrl: string
+  coverUrl: string | null
+  /** Which part of the preview plays: [start, end) seconds. */
+  start: number
+  end: number | null
 }
 
 let raw: PendingRawMedia | null = null
@@ -57,4 +69,19 @@ export function setDraftMedia(d: DraftMediaItem[]) {
 
 export function clearDraftMedia() {
   draft = []
+}
+
+/** The composer's soundtrack survives the same round-trip as draft media. */
+let draftSound: SoundAttachment | null = null
+
+export function getDraftSound(): SoundAttachment | null {
+  return draftSound
+}
+
+export function setDraftSound(s: SoundAttachment | null) {
+  draftSound = s
+}
+
+export function clearDraftSound() {
+  draftSound = null
 }

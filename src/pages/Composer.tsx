@@ -15,7 +15,7 @@ import type { TmdbTitle } from '../lib/tmdb'
 import { fetchImdbId } from '../lib/tmdb'
 import { fetchOmdbRating } from '../lib/omdb'
 import { successHaptic } from '../lib/haptics'
-import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
+import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia, getDraftSound, setDraftSound, clearDraftSound } from '../lib/pendingMedia'
 import { takeSharedContent } from '../lib/shareTarget'
 import SoundTrimmer from '../components/SoundTrimmer'
 import { topicKeyFor } from '../lib/format'
@@ -64,9 +64,6 @@ export default function Composer({ editId }: { editId?: string }) {
   const [linkKind, setLinkKind] = useState<LinkKind>('auto')
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [mediaList, setMediaList] = useState<UploadedMedia[]>([])
-  // Soundtracks live on videos (Jose's rule): the picker and the saved
-  // sound fields both turn on a video being in the carousel.
-  const hasVideo = mediaList.some((m) => m.type === 'video')
   const [ingredientsText, setIngredientsText] = useState('')
   const [instructionsText, setInstructionsText] = useState('')
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
@@ -124,8 +121,9 @@ export default function Composer({ editId }: { editId?: string }) {
   }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
-  // Optional soundtrack for a video drop: a Deezer track preview, with
-  // the part of the song that plays (start/end within the preview).
+  // Optional soundtrack: a Deezer track preview, with the part of the
+  // song that plays (start/end within the preview). Also picked inside
+  // the photo/video editors — it arrives via the pending upload.
   const [sound, setSound] = useState<{ title: string; artist: string; previewUrl: string; coverUrl: string | null; start: number; end: number | null } | null>(null)
   const [soundOpen, setSoundOpen] = useState(false)
   const [soundHint, setSoundHint] = useState<string | null>(null)
@@ -173,6 +171,13 @@ export default function Composer({ editId }: { editId?: string }) {
       next.push({ url: p.url, type: p.type, posterUrl: p.posterUrl, edit: p.edit ?? null })
     }
     if (next.length > 0) setMediaList(next.slice(0, MAX_CAROUSEL_ITEMS))
+    // A song picked inside the photo/video editor arrives with the upload;
+    // otherwise restore the soundtrack from the round-trip draft.
+    if (p?.sound) setSound(p.sound)
+    else {
+      const ds = getDraftSound()
+      if (ds) setSound(ds)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId])
 
@@ -181,6 +186,11 @@ export default function Composer({ editId }: { editId?: string }) {
     if (editId) return
     setDraftMedia(mediaList)
   }, [mediaList, editId])
+
+  useEffect(() => {
+    if (editId) return
+    setDraftSound(sound)
+  }, [sound, editId])
 
   // Edit mode: load the drop.
   useEffect(() => {
@@ -390,12 +400,12 @@ export default function Composer({ editId }: { editId?: string }) {
         media_types: mediaList.map((m) => m.type),
         media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
         media_edits: mediaList.map((m) => m.edit ?? null),
-        sound_title: hasVideo ? (sound?.title ?? null) : null,
-        sound_artist: hasVideo ? (sound?.artist ?? null) : null,
-        sound_preview_url: hasVideo ? (sound?.previewUrl ?? null) : null,
-        sound_cover_url: hasVideo ? (sound?.coverUrl ?? null) : null,
-        sound_start_sec: hasVideo ? (sound?.start ?? 0) : 0,
-        sound_end_sec: hasVideo ? (sound?.end ?? null) : null,
+        sound_title: sound?.title ?? null,
+        sound_artist: sound?.artist ?? null,
+        sound_preview_url: sound?.previewUrl ?? null,
+        sound_cover_url: sound?.coverUrl ?? null,
+        sound_start_sec: sound?.start ?? 0,
+        sound_end_sec: sound?.end ?? null,
         ingredients: category === 'recipes' ? parseLines(ingredientsText) : [],
         instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,
@@ -422,6 +432,7 @@ export default function Composer({ editId }: { editId?: string }) {
         const { data, error: insErr } = await supabase.from('drops').insert(row).select('id').single()
         if (insErr) throw insErr
         clearDraftMedia()
+        clearDraftSound()
         try {
           localStorage.removeItem(DRAFT_KEY)
         } catch {
@@ -601,7 +612,7 @@ export default function Composer({ editId }: { editId?: string }) {
         />
       </div>
 
-      {category !== 'music' && hasVideo && (
+      {category !== 'music' && (
         <div className="mt-3">
           {sound ? (
             <>

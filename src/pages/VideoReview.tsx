@@ -3,7 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import { SoundOffIcon, SoundOnIcon } from '../components/MediaViewer'
-import { takePendingRawMedia, setPendingUpload } from '../lib/pendingMedia'
+import { takePendingRawMedia, setPendingUpload, type SoundAttachment } from '../lib/pendingMedia'
+import MusicSearch from '../components/MusicSearch'
+import SoundTrimmer from '../components/SoundTrimmer'
+import type { MusicTrack } from '../lib/music'
 import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
@@ -14,7 +17,7 @@ import {
 import type { MediaEdit } from '../lib/types'
 
 const SPEEDS = [0.5, 1, 1.5, 2]
-type EditorTab = 'trim' | 'speed' | 'filter' | 'text'
+type EditorTab = 'trim' | 'speed' | 'filter' | 'text' | 'sound'
 
 /**
  * Clip editor — one clean panel at a time (Trim / Speed / Filter /
@@ -33,6 +36,17 @@ export default function VideoReview() {
   const [playing, setPlaying] = useState(true)
   const [muted, setMuted] = useState(true)
   const [tab, setTab] = useState<EditorTab>('trim')
+  // Soundtrack picked inside the editor; rides the pending upload.
+  const [sound, setSound] = useState<SoundAttachment | null>(null)
+  const [soundHint, setSoundHint] = useState<string | null>(null)
+  const pickSound = (t: MusicTrack) => {
+    if (t.kind !== 'track' || !t.preview) {
+      setSoundHint('Pick a song — albums and artists don\'t have previews.')
+      return
+    }
+    setSoundHint(null)
+    setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image, start: 0, end: null })
+  }
   // --- edit state ---
   const [trimStart, setTrimStart] = useState(0)
   const [trimEnd, setTrimEnd] = useState<number | null>(null)
@@ -228,7 +242,7 @@ export default function VideoReview() {
         .upload(path, blob, { contentType: blob.type || 'video/mp4', upsert: false })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
-      setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl, edit })
+      setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl, edit, sound })
       navigate('/create')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
@@ -244,6 +258,7 @@ export default function VideoReview() {
     { id: 'speed', label: 'Speed' },
     { id: 'filter', label: 'Filter' },
     { id: 'text', label: 'Text' },
+    { id: 'sound', label: 'Song' },
   ]
 
   return (
@@ -498,6 +513,43 @@ export default function VideoReview() {
             )}
           </div>
         )}
+
+        {tab === 'sound' && (
+          <div>
+            {sound ? (
+              <>
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+                  {sound.coverUrl && <img src={sound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold">{sound.title}</span>
+                    <span className="block truncate text-xs text-mute">{sound.artist} · Soundtrack</span>
+                  </span>
+                  <button
+                    onClick={() => setSound(null)}
+                    aria-label="Remove soundtrack"
+                    className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute hover:text-miss"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <SoundTrimmer
+                  previewUrl={sound.previewUrl}
+                  start={sound.start}
+                  end={sound.end}
+                  onChange={(start, end) => setSound((s) => (s ? { ...s, start, end } : s))}
+                />
+              </>
+            ) : (
+              <>
+                <MusicSearch onPick={pickSound} />
+                {soundHint && <p className="mt-1.5 text-xs font-bold text-butter">{soundHint}</p>}
+                <p className="pt-2 text-center text-xs text-mute">
+                  Put a song on it — then trim the part that plays.
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* editor tab bar */}
@@ -512,6 +564,7 @@ export default function VideoReview() {
           >
             {t.label}
             {t.id === 'text' && cleanTexts.length > 0 ? ` · ${cleanTexts.length}` : ''}
+            {t.id === 'sound' && sound ? ' · ♪' : ''}
           </button>
         ))}
       </div>

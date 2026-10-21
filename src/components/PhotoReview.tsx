@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { PHOTO_FILTERS, OVERLAY_COLORS, applyFilterToBlob, type TextOverlay } from '../lib/filters'
-import { setPendingUpload } from '../lib/pendingMedia'
+import { setPendingUpload, type SoundAttachment } from '../lib/pendingMedia'
+import MusicSearch from './MusicSearch'
+import SoundTrimmer from './SoundTrimmer'
+import type { MusicTrack } from '../lib/music'
 
 /**
  * Full-bleed photo review: the shot fills the screen with a live filter,
@@ -25,6 +28,18 @@ export default function PhotoReview({
   const [error, setError] = useState<string | null>(null)
   const [texts, setTexts] = useState<TextOverlay[]>([])
   const [selText, setSelText] = useState<string | null>(null)
+  // Soundtrack picked inside the editor; rides the pending upload.
+  const [sound, setSound] = useState<SoundAttachment | null>(null)
+  const [songOpen, setSongOpen] = useState(false)
+  const [soundHint, setSoundHint] = useState<string | null>(null)
+  const pickSound = (t: MusicTrack) => {
+    if (t.kind !== 'track' || !t.preview) {
+      setSoundHint('Pick a song — albums and artists don\'t have previews.')
+      return
+    }
+    setSoundHint(null)
+    setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image, start: 0, end: null })
+  }
   const imgRef = useRef<HTMLImageElement | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<string | null>(null)
@@ -108,7 +123,7 @@ export default function PhotoReview({
         .upload(path, filtered, { contentType: 'image/jpeg', upsert: false })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
-      setPendingUpload({ url: data.publicUrl, type: 'photo' })
+      setPendingUpload({ url: data.publicUrl, type: 'photo', sound })
       onDone()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
@@ -174,6 +189,16 @@ export default function PhotoReview({
           Aa — Add text
         </button>
         <button
+          onClick={() => setSongOpen((o) => !o)}
+          disabled={busy}
+          aria-pressed={songOpen || !!sound}
+          className={`press rounded-full px-4 py-2 text-sm font-black backdrop-blur-sm disabled:opacity-40 ${
+            sound ? 'bg-sig text-ink' : 'bg-black/40 text-fog'
+          }`}
+        >
+          ♪ Song{sound ? ' ✓' : ''}
+        </button>
+        <button
           onClick={next}
           disabled={busy}
           className="press rounded-full bg-sig px-6 py-2.5 text-sm font-black text-ink shadow-[0_4px_20px_rgba(69,200,255,0.4)] disabled:opacity-50"
@@ -184,6 +209,41 @@ export default function PhotoReview({
 
       {error && (
         <p className="relative z-20 px-6 pt-3 text-center text-xs font-bold text-red-400">{error}</p>
+      )}
+
+      {/* song picker panel */}
+      {songOpen && (
+        <div className="relative z-20 mx-4 mt-3 max-h-[46vh] overflow-y-auto rounded-2xl border border-white/15 bg-black/80 p-3 backdrop-blur-md">
+          {sound ? (
+            <>
+              <div className="flex items-center gap-3">
+                {sound.coverUrl && <img src={sound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold text-white">{sound.title}</span>
+                  <span className="block truncate text-xs text-white/60">{sound.artist} · Soundtrack</span>
+                </span>
+                <button
+                  onClick={() => setSound(null)}
+                  aria-label="Remove soundtrack"
+                  className="shrink-0 rounded-full border border-white/25 px-3 py-1.5 text-xs font-black text-white/70 hover:text-miss"
+                >
+                  ✕
+                </button>
+              </div>
+              <SoundTrimmer
+                previewUrl={sound.previewUrl}
+                start={sound.start}
+                end={sound.end}
+                onChange={(start, end) => setSound((s) => (s ? { ...s, start, end } : s))}
+              />
+            </>
+          ) : (
+            <>
+              <MusicSearch onPick={pickSound} />
+              {soundHint && <p className="mt-1.5 text-xs font-bold text-butter">{soundHint}</p>}
+            </>
+          )}
+        </div>
       )}
 
       {/* selected text editor */}

@@ -7,6 +7,8 @@ function fmt(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+import { stopSound } from '../lib/sound'
+
 /**
  * Pick which part of a song's preview plays over the video: IN/OUT
  * sliders over the preview track, with a live segment preview.
@@ -23,6 +25,8 @@ export default function SoundTrimmer({
   onChange: (start: number, end: number | null) => void
 }) {
   const [duration, setDuration] = useState(30)
+  // Leaving the editor/composer shouldn't strand a playing preview.
+  useEffect(() => () => stopSound(), [])
   useEffect(() => {
     const a = new Audio()
     a.preload = 'metadata'
