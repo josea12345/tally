@@ -31,7 +31,7 @@ export default async function handler(request) {
   if (UUID.test(id) && sbUrl && sbKey) {
     try {
       const res = await fetch(
-        `${sbUrl}/rest/v1/drops?select=title,description,score,media_urls,media_types,media_poster_urls,media_url,media_type,media_poster_url,author:profiles(display_name,username)&id=eq.${id}`,
+        `${sbUrl}/rest/v1/drops?select=title,description,score,media_urls,media_types,media_poster_urls,media_url,media_type,media_poster_url,author:profiles!drops_author_id_fkey(display_name,username)&id=eq.${id}`,
         { headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` } }
       )
       if (res.ok) {
