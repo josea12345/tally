@@ -9,6 +9,8 @@ import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
 import SoundChip from '../components/SoundChip'
+import SoundPill from '../components/SoundPill'
+import { getSoundSnapshot, isCurrentSound, pauseSound, playSound } from '../lib/sound'
 import MediaCarousel from '../components/MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
@@ -320,6 +322,9 @@ export default function DropDetail({ id }: { id: string }) {
   }
 
   const author = drop.author
+  const soundSeg = drop.sound_preview_url
+    ? { start: drop.sound_start_sec ?? 0, end: drop.sound_end_sec }
+    : null
   const isOwner = user?.id === drop.author_id
   const isPinned = !!profile && profile.pinned_drop_id === drop.id
   const togglePin = async () => {
@@ -357,7 +362,19 @@ export default function DropDetail({ id }: { id: string }) {
       )}
 
       {dropMedia(drop).length > 0 && (
-        <div className="border-b border-line px-4 py-3">
+        <div className="relative border-b border-line px-4 py-3">
+          {drop.sound_preview_url && (
+            <div className="absolute bottom-6 left-6 z-20">
+              <SoundPill
+                title={drop.sound_title ?? 'Soundtrack'}
+                artist={drop.sound_artist}
+                coverUrl={drop.sound_cover_url}
+                previewUrl={drop.sound_preview_url}
+                start={drop.sound_start_sec ?? 0}
+                end={drop.sound_end_sec}
+              />
+            </div>
+          )}
           <MediaCarousel
             items={dropMedia(drop)}
             renderItem={(it) =>
@@ -381,10 +398,34 @@ export default function DropDetail({ id }: { id: string }) {
                         v.currentTime = it.edit?.trimStart ?? 0
                       }
                     }}
+                    onPlay={(e) => {
+                      if (soundSeg) {
+                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)))
+                      }
+                    }}
+                    onPause={() => {
+                      if (soundSeg && isCurrentSound(drop.sound_preview_url!, soundSeg)) pauseSound()
+                    }}
+                    onSeeked={(e) => {
+                      if (soundSeg && isCurrentSound(drop.sound_preview_url!, soundSeg) && getSoundSnapshot().playing) {
+                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)))
+                      }
+                    }}
                     onTimeUpdate={(e) => {
                       const v = e.currentTarget
                       if (it.edit?.trimEnd != null && v.currentTime >= it.edit.trimEnd) {
                         v.currentTime = it.edit.trimStart ?? 0
+                        if (soundSeg && getSoundSnapshot().playing) {
+                          playSound(drop.sound_preview_url!, soundSeg, 0)
+                        }
+                      }
+                    }}
+                    onEnded={(e) => {
+                      const v = e.currentTarget
+                      v.currentTime = it.edit?.trimStart ?? 0
+                      v.play().catch(() => {})
+                      if (soundSeg && getSoundSnapshot().playing) {
+                        playSound(drop.sound_preview_url!, soundSeg, 0)
                       }
                     }}
                   />
@@ -544,7 +585,7 @@ export default function DropDetail({ id }: { id: string }) {
 
         <LinkChips drop={drop} />
 
-        {drop.sound_preview_url && (
+        {drop.sound_preview_url && dropMedia(drop).length === 0 && (
           <div className="mt-3">
             <SoundChip
               title={drop.sound_title ?? 'Soundtrack'}

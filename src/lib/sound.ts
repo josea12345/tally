@@ -189,8 +189,7 @@ export function useSoundState(url: string | null, seg?: SoundSegment | null): bo
   return !!url && currentKey === keyFor(url, seg) && playing
 }
 
-export function useSoundMuted(): boolean {
-  const [, setTick] = useState(0)
+export function useSoundMuted(): boolean {  const [, setTick] = useState(0)
   useEffect(() => {
     const fn = () => setTick((n) => n + 1)
     listeners.add(fn)
@@ -199,4 +198,19 @@ export function useSoundMuted(): boolean {
     }
   }, [])
   return mutedFlag
+}
+
+/** Imperative snapshot for UI that polls (waveform playheads). */
+export function getSoundSnapshot(): {
+  url: string | null
+  playing: boolean
+  currentTime: number
+  segment: SoundSegment | null
+} {
+  return {
+    url: currentUrl,
+    playing,
+    currentTime: audio?.currentTime ?? 0,
+    segment,
+  }
 }

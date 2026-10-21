@@ -5,8 +5,9 @@ import { navigate } from '../App'
 import { SoundOffIcon, SoundOnIcon } from '../components/MediaViewer'
 import { takePendingRawMedia, setPendingUpload, type SoundAttachment } from '../lib/pendingMedia'
 import MusicSearch from '../components/MusicSearch'
-import SoundTrimmer from '../components/SoundTrimmer'
+import WaveformTrimmer from '../components/WaveformTrimmer'
 import type { MusicTrack } from '../lib/music'
+import { isCurrentSound, pauseSound, playSound, stopSound } from '../lib/sound'
 import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
@@ -46,6 +47,11 @@ export default function VideoReview() {
     }
     setSoundHint(null)
     setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image, start: 0, end: null })
+    // Hear it with the picture right away if the preview is rolling.
+    const vid = previewRef.current
+    if (vid && !vid.paused) {
+      playSound(t.preview, { start: 0, end: null }, Math.max(0, vid.currentTime - trimStart))
+    }
   }
   // --- edit state ---
   const [trimStart, setTrimStart] = useState(0)
@@ -150,6 +156,10 @@ export default function VideoReview() {
     if (!vid) return
     if (!vid.paused && vid.currentTime >= end - 0.02 && duration != null) {
       vid.currentTime = trimStart
+      // Loop point: the song restarts its part with the picture.
+      if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) {
+        playSound(sound.previewUrl, { start: sound.start, end: sound.end }, 0)
+      }
     }
     if (!vid.paused && !scrubbingRef.current) {
       // Progress state at ~5fps is plenty for the scrubber — pushing it
@@ -311,8 +321,18 @@ export default function VideoReview() {
             autoPlay
             muted
             onClick={togglePlay}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
+            onPlay={() => {
+              setPlaying(true)
+              // The picked song is the preview's audio: it starts with
+              // the picture, positioned inside the trimmed region.
+              if (sound) {
+                playSound(sound.previewUrl, { start: sound.start, end: sound.end }, Math.max(0, (previewRef.current?.currentTime ?? trimStart) - trimStart))
+              }
+            }}
+            onPause={() => {
+              setPlaying(false)
+              if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) pauseSound()
+            }}
             onTimeUpdate={onTimeUpdate}
             className="max-h-[50vh] w-auto rounded-xl"
             style={{ filter: filter.css === 'none' ? undefined : filter.css }}
@@ -542,17 +562,20 @@ export default function VideoReview() {
                     <span className="block truncate text-xs text-mute">{sound.artist} · Soundtrack</span>
                   </span>
                   <button
-                    onClick={() => setSound(null)}
+                    onClick={() => {
+                      if (isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) stopSound()
+                      setSound(null)
+                    }}
                     aria-label="Remove soundtrack"
                     className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute hover:text-miss"
                   >
                     ✕
                   </button>
                 </div>
-                <SoundTrimmer
+                <WaveformTrimmer
                   previewUrl={sound.previewUrl}
+                  clipLength={Math.max(1, (duration != null ? end - trimStart : 15))}
                   start={sound.start}
-                  end={sound.end}
                   onChange={(start, end) => setSound((s) => (s ? { ...s, start, end } : s))}
                 />
               </>
