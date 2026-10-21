@@ -9,7 +9,7 @@ import WaveformTrimmer from '../components/WaveformTrimmer'
 import FilmTrim from '../components/FilmTrim'
 import type { MusicTrack } from '../lib/music'
 import { isCurrentSound, pauseSound, playSound, stopSound } from '../lib/sound'
-import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration, probeTrueEnd } from '../lib/video'
+import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration, probeHasAudio, probeTrueEnd } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
   PHOTO_FILTERS,
@@ -66,6 +66,8 @@ export default function VideoReview() {
   const [origVol, setOrigVol] = useState(1)
   const [soundVol, setSoundVol] = useState(1)
   const [phantomTail, setPhantomTail] = useState<number | null>(null)
+  /** Whether the clip really contains an audio track (null = can't tell). */
+  const [hasAudio, setHasAudio] = useState<boolean | null>(null)
   const [texts, setTexts] = useState<TextOverlay[]>([])
   const [selText, setSelText] = useState<string | null>(null)
   const previewRef = useRef<HTMLVideoElement | null>(null)
@@ -90,6 +92,9 @@ export default function VideoReview() {
     setBlob(pending.blob)
     setName(pending.name)
     setObjectUrl(url)
+    probeHasAudio(url)
+      .then(setHasAudio)
+      .catch(() => {})
     getVideoDuration(pending.blob)
       .then((d) => {
         setDuration(d)
@@ -479,7 +484,7 @@ export default function VideoReview() {
               </svg>,
               filterId !== 'normal',
             )}
-            {railBtn('volume', 'Volume', <SoundOnIcon />, origVol !== 1 || soundVol !== 1)}
+            {railBtn('volume', 'Audio', <SoundOnIcon />, origVol !== 1 || soundVol !== 1)}
           </div>
         )}
 
@@ -520,7 +525,7 @@ export default function VideoReview() {
               {tray === 'filter' && 'Filters'}
               {tray === 'text' && 'Text'}
               {tray === 'sound' && 'Sound'}
-              {tray === 'volume' && 'Volume'}
+              {tray === 'volume' && 'Audio'}
             </span>
             <button
               onClick={() => setTray(null)}
@@ -767,6 +772,52 @@ export default function VideoReview() {
 
           {tray === 'volume' && (
             <div className="space-y-4 pt-1">
+              {sound &&
+                (() => {
+                  const mode = soundVol === 0 ? 'original' : origVol === 0 ? 'song' : 'both'
+                  const setMode = (m: 'original' | 'both' | 'song') => {
+                    const o = m === 'song' ? 0 : m === 'both' ? 0.5 : 1
+                    const s = m === 'original' ? 0 : 1
+                    setOrigVol(o)
+                    setSoundVol(s)
+                    const vid = previewRef.current
+                    if (vid && !muted) vid.volume = o
+                    if (isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) {
+                      playSound(sound.previewUrl, { start: sound.start, end: sound.end }, -1, s)
+                    }
+                  }
+                  return (
+                    <div>
+                      <div className="mb-1.5 text-[11px] font-black uppercase tracking-widest text-mute">
+                        What plays
+                      </div>
+                      <div className="flex rounded-full border border-line p-1">
+                        {(
+                          [
+                            ['original', 'Original'],
+                            ['both', 'Both'],
+                            ['song', 'Song only'],
+                          ] as const
+                        ).map(([m, label]) => (
+                          <button
+                            key={m}
+                            onClick={() => setMode(m)}
+                            className={`flex-1 rounded-full py-2 text-xs font-black transition ${
+                              mode === m ? 'bg-sig text-ink' : 'text-mute hover:text-fog'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="pt-1.5 text-[11px] text-mute">
+                        {mode === 'original' && 'Just your clip’s own audio — the song stays off.'}
+                        {mode === 'both' && 'Both play: original at half, song full. Fine-tune below.'}
+                        {mode === 'song' && 'Just the song — your clip’s audio is muted.'}
+                      </p>
+                    </div>
+                  )
+                })()}
               <div>
                 <div className="mb-1 flex justify-between text-[11px] font-black uppercase tracking-widest text-mute">
                   <span>Original sound</span>
@@ -778,16 +829,21 @@ export default function VideoReview() {
                   max={100}
                   step={1}
                   value={Math.round(origVol * 100)}
+                  disabled={hasAudio === false}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10) / 100
                     setOrigVol(v)
                     const vid = previewRef.current
                     if (vid && !muted) vid.volume = v
                   }}
-                  className="w-full accent-sig"
+                  className="w-full accent-sig disabled:opacity-40"
                   aria-label="Original sound volume"
                 />
-                <p className="text-[11px] text-mute">Your clip's own audio. Unmute the preview to hear it.</p>
+                <p className="text-[11px] text-mute">
+                  {hasAudio === false
+                    ? 'No original audio in this clip — the mic didn’t come through when it was recorded.'
+                    : 'Your clip’s own audio. Unmute the preview to hear it.'}
+                </p>
               </div>
               <div>
                 <div className="mb-1 flex justify-between text-[11px] font-black uppercase tracking-widest text-mute">

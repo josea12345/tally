@@ -260,6 +260,7 @@ export default function MediaViewer({
             }}
             onLoadedMetadata={(e) => {
               const v = e.currentTarget
+              v.volume = edit?.origVolume ?? 1
               if (edit?.speed) v.playbackRate = edit.speed
               if (regionStart > 0 && v.currentTime < regionStart) v.currentTime = regionStart
             }}

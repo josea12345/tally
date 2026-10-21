@@ -61,6 +61,7 @@ export default function Camera() {
   const countdownIvRef = useRef<number | null>(null)
   const pressTimerRef = useRef<number | null>(null)
   const toggleRecRef = useRef(false) // recording started by countdown: tap again to stop
+  const wantRecordRef = useRef(false) // press still held: gates the async recorder start
   // pinch zoom (software — iOS Safari exposes no hardware zoom control)
   const [zoom, setZoom] = useState(1)
   const [zoomFlash, setZoomFlash] = useState(false)
@@ -81,6 +82,10 @@ export default function Camera() {
   const pipeCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pipeStreamRef = useRef<MediaStream | null>(null)
   const pipeRafRef = useRef(0)
+  // a dedicated mic stream, requested on its own when the camera stream
+  // came up without audio (the fallback constraints drop it silently)
+  const micRef = useRef<MediaStream | null>(null)
+  const micTriedRef = useRef(false)
 
   facingRef.current = facing
 
@@ -150,6 +155,8 @@ export default function Camera() {
     return () => {
       stopTracks(streamRef.current)
       streamRef.current = null
+      stopTracks(micRef.current)
+      micRef.current = null
       cancelAnimationFrame(rafRef.current)
       teardownPipe()
       if (flashTimer.current) clearTimeout(flashTimer.current)
@@ -225,8 +232,25 @@ export default function Camera() {
     if (pointersRef.current.size < 2) pinchRef.current = null
   }
 
+  /** The live mic track, from the camera stream or a dedicated request. */
+  const ensureMicTrack = async (): Promise<MediaStreamTrack | null> => {
+    const fromCam = streamRef.current?.getAudioTracks().find((t) => t.readyState === 'live')
+    if (fromCam) return fromCam
+    const existing = micRef.current?.getAudioTracks().find((t) => t.readyState === 'live')
+    if (existing) return existing
+    if (micTriedRef.current) return null
+    micTriedRef.current = true
+    try {
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true })
+      micRef.current = mic
+      return mic.getAudioTracks()[0] ?? null
+    } catch {
+      return null
+    }
+  }
+
   /** Build the record pipe: cover-crop canvas -> captureStream + mic audio. */
-  const buildPipeStream = (): MediaStream | null => {
+  const buildPipeStream = async (): Promise<MediaStream | null> => {
     const video = videoRef.current
     const stream = streamRef.current
     if (!video || !stream || video.videoWidth === 0) return null
@@ -259,9 +283,14 @@ export default function Camera() {
       }
       draw()
       const cs = canvas.captureStream(30)
-      const audio = stream.getAudioTracks()[0]
-      if (audio) cs.addTrack(audio)
-      return cs
+      // Compose the record stream explicitly: pipe video + a live mic
+      // track (re-requested on its own if the camera stream has none).
+      const videoTrack = cs.getVideoTracks()[0]
+      const mic = await ensureMicTrack()
+      const tracks: MediaStreamTrack[] = []
+      if (videoTrack) tracks.push(videoTrack)
+      if (mic) tracks.push(mic)
+      return tracks.length > 0 ? new MediaStream(tracks) : cs
     } catch {
       return null
     }
@@ -274,7 +303,7 @@ export default function Camera() {
   }
 
   /** Get (or create) the segment recorder. One recorder spans all segments via pause/resume. */
-  const ensureRecorder = (): MediaRecorder | null => {
+  const ensureRecorder = async (): Promise<MediaRecorder | null> => {
     if (recRef.current) return recRef.current
     const stream = streamRef.current
     if (!stream) return null
@@ -282,10 +311,13 @@ export default function Camera() {
       const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : undefined
       // Record through the zoom pipe so the clip matches the framed preview;
       // fall back to the raw stream if the pipe can't be built.
-      if (!pipeStreamRef.current) pipeStreamRef.current = buildPipeStream()
+      if (!pipeStreamRef.current) pipeStreamRef.current = await buildPipeStream()
       const rec = new MediaRecorder(pipeStreamRef.current ?? stream, {
         mimeType,
         videoBitsPerSecond: 1_500_000,
+        // Set both bitrates: on some iOS builds a video-only bitrate
+        // makes the recorder drop the audio track from the file.
+        audioBitsPerSecond: 128_000,
       })
       chunksRef.current = []
       discardRef.current = false
@@ -386,9 +418,12 @@ export default function Camera() {
   }
 
   /** Start (or resume) the segment recorder and the progress ring. */
-  const startSegmentRecording = () => {
-    const rec = ensureRecorder()
+  const startSegmentRecording = async (): Promise<boolean> => {
+    const rec = await ensureRecorder()
     if (!rec) return false
+    // The start is async now (mic request): if the press already ended
+    // and this isn't a countdown recording, don't ghost-start.
+    if (!wantRecordRef.current && !toggleRecRef.current) return false
     try {
       segStartRef.current = Date.now()
       if (rec.state === 'paused') rec.resume()
@@ -440,26 +475,20 @@ export default function Camera() {
         pressTimerRef.current = null
         runCountdown(timerSec, () => {
           toggleRecRef.current = true
-          if (!startSegmentRecording()) toggleRecRef.current = false
+          void startSegmentRecording().then((ok) => {
+            if (!ok) toggleRecRef.current = false
+          })
         })
       }, TAP_MS)
       return
     }
     pressStartRef.current = Date.now()
-    segStartRef.current = Date.now()
-    const rec = ensureRecorder()
-    if (!rec) return
-    try {
-      if (rec.state === 'paused') rec.resume()
-      else if (rec.state === 'inactive') rec.start(250)
-      setRecording(true)
-      rafRef.current = requestAnimationFrame(tick)
-    } catch {
-      setError('Video recording is not supported here — try a photo instead.')
-    }
+    wantRecordRef.current = true
+    void startSegmentRecording()
   }
 
   const onPressUp = () => {
+    wantRecordRef.current = false
     if (counting != null) return
     if (pressTimerRef.current) {
       // released before the hold threshold in timer mode: photo countdown
@@ -469,7 +498,12 @@ export default function Camera() {
       return
     }
     if (toggleRecRef.current) return // countdown recording stops on the next press
-    if (!recording) return
+    if (!recording) {
+      // The recorder start is async (mic request): a quick tap that
+      // beat it is a photo; the pending start aborts itself.
+      if (segments.length === 0 && Date.now() - pressStartRef.current < TAP_MS) takePhoto()
+      return
+    }
     const pressMs = Date.now() - pressStartRef.current
     const rec = recRef.current
     cancelAnimationFrame(rafRef.current)

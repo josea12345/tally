@@ -30,6 +30,59 @@ type RVFCHost = {
 }
 
 /**
+ * Does this clip actually contain an audio track? Safari exposes
+ * `audioTracks` on media elements; elsewhere we play a moment at
+ * volume 0 and watch the decoded-byte counter. Returns null when the
+ * browser offers neither signal (unknown — don't claim silence).
+ */
+export function probeHasAudio(url: string): Promise<boolean | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video') as HTMLVideoElement & {
+      audioTracks?: { length: number }
+      webkitAudioDecodedByteCount?: number
+      mozHasAudio?: boolean
+    }
+    v.preload = 'metadata'
+    v.playsInline = true
+    let done = false
+    const finish = (val: boolean | null) => {
+      if (done) return
+      done = true
+      try {
+        v.pause()
+      } catch {
+        /* gone */
+      }
+      v.removeAttribute('src')
+      resolve(val)
+    }
+    v.addEventListener('error', () => finish(null), { once: true })
+    v.addEventListener(
+      'loadedmetadata',
+      () => {
+        if (v.audioTracks) return finish(v.audioTracks.length > 0)
+        if (typeof v.mozHasAudio === 'boolean') return finish(v.mozHasAudio)
+        // Last resort: brief silent play and check the decode counter.
+        v.volume = 0
+        const startedAt = Date.now()
+        const check = () => {
+          if (done) return
+          if ((v.webkitAudioDecodedByteCount ?? 0) > 0) return finish(true)
+          if (Date.now() - startedAt > 2000) return finish(null)
+          window.setTimeout(check, 200)
+        }
+        v.play()
+          .then(check)
+          .catch(() => finish(null))
+      },
+      { once: true },
+    )
+    v.src = url
+    window.setTimeout(() => finish(null), 5000)
+  })
+}
+
+/**
  * iOS Safari's MediaRecorder stamps the track with the full
  * wall-clock session (pauses included) while the frames stop when
  * recording does — leaving a "phantom tail" where players hold the
