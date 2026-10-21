@@ -369,6 +369,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                       if (myVote !== 'W') doVote('W')
                     }}
                     onExpand={() => setViewerItem(it)}
+                    edit={it.edit}
                   />
                 ) : isArtworkUrl(it.url) ? (
                   <ArtworkImage

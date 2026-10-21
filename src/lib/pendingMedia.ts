@@ -10,6 +10,7 @@ export interface PendingUpload {
   url: string
   type: 'photo' | 'video'
   posterUrl?: string
+  edit?: import('./types').MediaEdit | null
 }
 
 let raw: PendingRawMedia | null = null
@@ -41,6 +42,7 @@ export interface DraftMediaItem {
   url: string
   type: 'photo' | 'video'
   posterUrl?: string
+  edit?: import('./types').MediaEdit | null
 }
 
 let draft: DraftMediaItem[] = []

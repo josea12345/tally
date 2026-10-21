@@ -346,7 +346,48 @@ export default function DropDetail({ id }: { id: string }) {
             items={dropMedia(drop)}
             renderItem={(it) =>
               it.type === 'video' ? (
-                <video src={it.url} poster={it.posterUrl ?? undefined} controls autoPlay muted loop playsInline preload="metadata" className="max-h-[420px] w-full bg-black" />
+                <span className="relative block h-full w-full" style={{ containerType: 'inline-size' }}>
+                  <video
+                    src={it.url}
+                    poster={it.posterUrl ?? undefined}
+                    controls
+                    autoPlay
+                    muted
+                    loop={!(it.edit?.trimStart || it.edit?.trimEnd)}
+                    playsInline
+                    preload="metadata"
+                    className="h-full max-h-[420px] w-full bg-black"
+                    style={{ filter: it.edit?.filterCss || undefined }}
+                    onLoadedMetadata={(e) => {
+                      const v = e.currentTarget
+                      if (it.edit?.speed) v.playbackRate = it.edit.speed
+                      if ((it.edit?.trimStart ?? 0) > 0 && v.currentTime < (it.edit?.trimStart ?? 0)) {
+                        v.currentTime = it.edit?.trimStart ?? 0
+                      }
+                    }}
+                    onTimeUpdate={(e) => {
+                      const v = e.currentTarget
+                      if (it.edit?.trimEnd != null && v.currentTime >= it.edit.trimEnd) {
+                        v.currentTime = it.edit.trimStart ?? 0
+                      }
+                    }}
+                  />
+                  {(it.edit?.texts ?? []).map((t) => (
+                    <span
+                      key={t.id}
+                      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black"
+                      style={{
+                        left: `${t.x * 100}%`,
+                        top: `${t.y * 100}%`,
+                        color: t.color,
+                        fontSize: `${7 * t.scale}cqw`,
+                        textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+                      }}
+                    >
+                      {t.text}
+                    </span>
+                  ))}
+                </span>
               ) : isArtworkUrl(it.url) ? (
                 <ArtworkImage
                   src={it.url}

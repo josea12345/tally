@@ -46,6 +46,11 @@ export default function MediaViewer({
 
   const justSwiped = () => Date.now() - swipeAt.current < 500
 
+  // Live-rendered edit region (trim) — the scrubber and loop live inside it.
+  const edit = item.edit ?? null
+  const regionStart = edit?.trimStart ?? 0
+  const regionEnd = (v: HTMLVideoElement) => edit?.trimEnd ?? v.duration ?? 0
+
   // Scrubber: drag the knob (or tap the bar) to seek.
   const seekToClientX = (clientX: number) => {
     const bar = barRef.current
@@ -53,7 +58,8 @@ export default function MediaViewer({
     if (!bar || !vid || !vid.duration) return
     const r = bar.getBoundingClientRect()
     const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
-    vid.currentTime = ratio * vid.duration
+    const end = regionEnd(vid)
+    vid.currentTime = regionStart + ratio * Math.max(end - regionStart, 0)
     setProgress(ratio)
   }
 
@@ -133,6 +139,7 @@ export default function MediaViewer({
     const vid = vidRef.current
     if (!vid) return
     if (vid.paused) {
+      if (vid.currentTime >= regionEnd(vid) - 0.05) vid.currentTime = regionStart
       vid.play().catch(() => {})
       setPlaying(true)
       showFlash('play')
@@ -200,26 +207,53 @@ export default function MediaViewer({
       }}
     >
       {isVideo ? (
-        <video
-          key={item.url}
-          ref={vidRef}
-          src={item.url}
-          poster={item.posterUrl ?? undefined}
-          playsInline
-          loop
-          preload="auto"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleTap()
-          }}
-          onTimeUpdate={(e) => {
-            const v = e.currentTarget
-            setProgress(v.duration > 0 ? v.currentTime / v.duration : 0)
-          }}
-          onError={() => setFailed(true)}
-          style={mediaStyle}
-          className="h-full w-full object-contain"
-        />
+        <span className="relative block h-full w-full" style={{ containerType: 'inline-size' }}>
+          <video
+            key={item.url}
+            ref={vidRef}
+            src={item.url}
+            poster={item.posterUrl ?? undefined}
+            playsInline
+            loop={!edit?.trimStart && !edit?.trimEnd}
+            preload="auto"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleTap()
+            }}
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget
+              if (edit?.speed) v.playbackRate = edit.speed
+              if (regionStart > 0 && v.currentTime < regionStart) v.currentTime = regionStart
+            }}
+            onTimeUpdate={(e) => {
+              const v = e.currentTarget
+              const end = regionEnd(v)
+              if (end > regionStart && v.currentTime >= end - 0.02 && !v.paused) {
+                v.currentTime = regionStart
+              }
+              const span = Math.max(end - regionStart, 0.01)
+              setProgress(Math.min(1, Math.max(0, (v.currentTime - regionStart) / span)))
+            }}
+            onError={() => setFailed(true)}
+            style={{ ...mediaStyle, filter: edit?.filterCss || undefined }}
+            className="h-full w-full object-contain"
+          />
+          {(edit?.texts ?? []).map((t) => (
+            <span
+              key={t.id}
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black text-white"
+              style={{
+                left: `${t.x * 100}%`,
+                top: `${t.y * 100}%`,
+                color: t.color,
+                fontSize: `${7 * t.scale}cqw`,
+                textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+              }}
+            >
+              {t.text}
+            </span>
+          ))}
+        </span>
       ) : (
         <img
           src={hiResArtwork(item.url)}

@@ -11,6 +11,7 @@ export interface UploadedMedia {
   url: string
   type: 'photo' | 'video'
   posterUrl?: string
+  edit?: import('../lib/types').MediaEdit | null
 }
 
 /**

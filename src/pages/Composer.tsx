@@ -137,7 +137,7 @@ export default function Composer({ editId }: { editId?: string }) {
     const p = takePendingUpload()
     const next = [...draft]
     if (p) {
-      next.push({ url: p.url, type: p.type, posterUrl: p.posterUrl })
+      next.push({ url: p.url, type: p.type, posterUrl: p.posterUrl, edit: p.edit ?? null })
     }
     if (next.length > 0) setMediaList(next.slice(0, MAX_CAROUSEL_ITEMS))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,7 +185,12 @@ export default function Composer({ editId }: { editId?: string }) {
         if (d.imdb_rating != null) setImdbRating(Number(d.imdb_rating))
         if (d.media_url || (d.media_urls?.length ?? 0) > 0) {
           setMediaList(
-            dropMedia(d).map((m) => ({ url: m.url, type: m.type, posterUrl: m.posterUrl ?? undefined })),
+            dropMedia(d).map((m) => ({
+              url: m.url,
+              type: m.type,
+              posterUrl: m.posterUrl ?? undefined,
+              edit: m.edit ?? null,
+            })),
           )
         }
         if (d.score != null) setScore(d.score)
@@ -341,6 +346,7 @@ export default function Composer({ editId }: { editId?: string }) {
         media_urls: mediaList.map((m) => m.url),
         media_types: mediaList.map((m) => m.type),
         media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
+        media_edits: mediaList.map((m) => m.edit ?? null),
         ingredients: category === 'recipes' ? parseLines(ingredientsText) : [],
         instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,

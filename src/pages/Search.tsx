@@ -10,7 +10,7 @@ import { timeAgo } from '../lib/format'
 
 type Tab = 'people' | 'drops'
 
-interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'category' | 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_type' | 'media_poster_url' | 'media_url'> {
+interface DropHit extends Pick<Drop, 'id' | 'title' | 'description' | 'score' | 'created_at' | 'category' | 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_type' | 'media_poster_url' | 'media_url' | 'media_edits'> {
   author: Pick<Profile, 'username' | 'display_name' | 'avatar_url'> | null
 }
 
@@ -177,7 +177,7 @@ export default function Search() {
       setBusy(true)
       const like = `%${debounced.replace(/[%_]/g, '')}%`
       const DROP_COLS =
-        'id, title, description, score, created_at, category, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
+        'id, title, description, score, created_at, category, media_urls, media_types, media_poster_urls, media_type, media_poster_url, media_url, media_edits, author:profiles!drops_author_id_fkey(username, display_name, avatar_url)'
       // Drops: fuzzy RPC (typo-tolerant, similarity-ranked) for real queries,
       // falling back to the substring match for short queries or RPC errors.
       const searchDropRows = async (): Promise<DropHit[]> => {

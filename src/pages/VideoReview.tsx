@@ -1,29 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import { SoundOffIcon, SoundOnIcon } from '../components/MediaViewer'
 import { takePendingRawMedia, setPendingUpload } from '../lib/pendingMedia'
-import {
-  CLIP_MAX_SECONDS,
-  formatDuration,
-  getVideoDuration,
-  exportEditedVideo,
-} from '../lib/video'
+import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
   PHOTO_FILTERS,
   OVERLAY_COLORS,
-  canvasFilterSupported,
   type TextOverlay,
 } from '../lib/filters'
+import type { MediaEdit } from '../lib/types'
 
 const SPEEDS = [0.5, 1, 1.5, 2]
+type EditorTab = 'trim' | 'speed' | 'filter' | 'text'
 
 /**
- * Clip editor: preview with trim handles, speed, filters and text
- * stickers. Edits bake into the uploaded file (one re-record pass),
- * so what you see here is exactly what posts.
+ * Clip editor — one clean panel at a time (Trim / Speed / Filter /
+ * Text). Edits are stored as data and rendered live by the players,
+ * so Next is instant: no export wait, ever.
  */
 export default function VideoReview() {
   const { user } = useAuth()
@@ -32,11 +28,11 @@ export default function VideoReview() {
   const [name, setName] = useState('clip.mp4')
   const [duration, setDuration] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
-  const [busyLabel, setBusyLabel] = useState('Next')
   const [error, setError] = useState<string | null>(null)
   const [scrub, setScrub] = useState(0)
   const [playing, setPlaying] = useState(true)
   const [muted, setMuted] = useState(true)
+  const [tab, setTab] = useState<EditorTab>('trim')
   // --- edit state ---
   const [trimStart, setTrimStart] = useState(0)
   const [trimEnd, setTrimEnd] = useState<number | null>(null)
@@ -49,7 +45,6 @@ export default function VideoReview() {
   const scrubbingRef = useRef(false)
   const dragRef = useRef<string | null>(null)
 
-  const canFilter = useMemo(() => canvasFilterSupported(), [])
   const filter = PHOTO_FILTERS.find((f) => f.id === filterId) ?? PHOTO_FILTERS[0]!
 
   useEffect(() => {
@@ -79,12 +74,13 @@ export default function VideoReview() {
   const end = trimEnd ?? duration ?? 0
   const outLen = duration != null ? (end - trimStart) / speed : 0
   const outTooLong = outLen > CLIP_MAX_SECONDS + 0.5
+  const cleanTexts = texts.filter((t) => t.text.trim().length > 0)
   const dirty =
     trimStart > 0.05 ||
     (duration != null && end < duration - 0.05) ||
     speed !== 1 ||
     filterId !== 'normal' ||
-    texts.some((t) => t.text.trim().length > 0)
+    cleanTexts.length > 0
 
   useEffect(() => {
     const vid = previewRef.current
@@ -127,7 +123,6 @@ export default function VideoReview() {
     const vid = previewRef.current
     if (!vid) return
     if (!vid.paused && vid.currentTime >= end - 0.02 && duration != null) {
-      // loop inside the trim region while editing
       vid.currentTime = trimStart
     }
     if (!vid.paused && !scrubbingRef.current) {
@@ -168,6 +163,7 @@ export default function VideoReview() {
     }
     setTexts((prev) => [...prev, t])
     setSelText(t.id)
+    setTab('text')
   }
   const patchText = (id: string, patch: Partial<TextOverlay>) =>
     setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
@@ -182,9 +178,10 @@ export default function VideoReview() {
     const wrap = wrapRef.current
     if (!id || !wrap) return
     const r = wrap.getBoundingClientRect()
-    const x = Math.min(0.95, Math.max(0.05, (e.clientX - r.left) / Math.max(r.width, 1)))
-    const y = Math.min(0.95, Math.max(0.05, (e.clientY - r.top) / Math.max(r.height, 1)))
-    patchText(id, { x, y })
+    patchText(id, {
+      x: Math.min(0.95, Math.max(0.05, (e.clientX - r.left) / Math.max(r.width, 1))),
+      y: Math.min(0.95, Math.max(0.05, (e.clientY - r.top) / Math.max(r.height, 1))),
+    })
   }
   const selected = texts.find((t) => t.id === selText) ?? null
 
@@ -207,53 +204,47 @@ export default function VideoReview() {
     }
   }
 
-  const uploadBlob = async (b: Blob, fileName: string) => {
-    if (!user) return
-    const posterUrl = await captureCover()
-    const ext = (fileName.split('.').pop() || 'mp4').toLowerCase().slice(0, 5)
-    const path = `${user.id}/${crypto.randomUUID()}.${ext}`
-    const { error: upErr } = await supabase.storage
-      .from('drop-media')
-      .upload(path, b, { contentType: b.type || 'video/mp4', upsert: false })
-    if (upErr) throw upErr
-    const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
-    setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl })
-    navigate('/create')
-  }
-
   const next = async () => {
-    if (!blob || !user || outTooLong) return
+    if (!blob || !user || outTooLong || busy) return
     setBusy(true)
     setError(null)
     try {
-      if (dirty) {
-        setBusyLabel('Editing… 0%')
-        const edited = await exportEditedVideo(
-          blob,
-          {
-            start: trimStart,
-            end,
-            speed,
-            filterCss: filter.css,
-            texts: texts.filter((t) => t.text.trim().length > 0),
-          },
-          (p) => setBusyLabel(`Editing… ${Math.round(p * 100)}%`),
-        )
-        setBusyLabel('Uploading…')
-        await uploadBlob(edited, 'clip.mp4')
-      } else {
-        setBusyLabel('Uploading…')
-        await uploadBlob(blob, name)
-      }
+      const edit: MediaEdit | null = dirty
+        ? {
+            ...(trimStart > 0.05 ? { trimStart: Math.round(trimStart * 100) / 100 } : {}),
+            ...(duration != null && end < duration - 0.05
+              ? { trimEnd: Math.round(end * 100) / 100 }
+              : {}),
+            ...(speed !== 1 ? { speed } : {}),
+            ...(filter.css !== 'none' ? { filterCss: filter.css } : {}),
+            ...(cleanTexts.length > 0 ? { texts: cleanTexts } : {}),
+          }
+        : null
+      const posterUrl = await captureCover()
+      const ext = (name.split('.').pop() || 'mp4').toLowerCase().slice(0, 5)
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('drop-media')
+        .upload(path, blob, { contentType: blob.type || 'video/mp4', upsert: false })
+      if (upErr) throw upErr
+      const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
+      setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl, edit })
+      navigate('/create')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed — try again.')
     } finally {
       setBusy(false)
-      setBusyLabel('Next')
     }
   }
 
   if (!objectUrl) return null
+
+  const TABS: Array<{ id: EditorTab; label: string }> = [
+    { id: 'trim', label: 'Trim' },
+    { id: 'speed', label: 'Speed' },
+    { id: 'filter', label: 'Filter' },
+    { id: 'text', label: 'Text' },
+  ]
 
   return (
     <div className="screen-in flex min-h-screen flex-col bg-ink">
@@ -267,11 +258,11 @@ export default function VideoReview() {
           disabled={busy || outTooLong}
           className="rounded-full bg-sig px-5 py-2 text-sm font-black text-ink disabled:opacity-50"
         >
-          {busy ? busyLabel : 'Next'}
+          {busy ? 'Uploading…' : 'Next'}
         </button>
       </div>
 
-      <div className="flex items-center justify-center bg-black px-4 py-4">
+      <div className="flex flex-1 items-center justify-center bg-black px-4 py-3">
         <div
           ref={wrapRef}
           className="relative"
@@ -291,7 +282,7 @@ export default function VideoReview() {
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
             onTimeUpdate={onTimeUpdate}
-            className="max-h-[46vh] w-auto rounded-xl"
+            className="max-h-[50vh] w-auto rounded-xl"
             style={{ filter: filter.css === 'none' ? undefined : filter.css }}
           />
           {texts.map((t) => (
@@ -330,8 +321,7 @@ export default function VideoReview() {
         </div>
       </div>
 
-      {/* output summary */}
-      <div className="flex items-center justify-center gap-2 px-4 pt-3">
+      <div className="flex items-center justify-center gap-2 px-4 pt-2">
         <span
           className={`rounded-full px-3 py-1 text-xs font-black ${
             outTooLong ? 'bg-miss/15 text-miss' : 'bg-sig/15 text-sig'
@@ -340,39 +330,31 @@ export default function VideoReview() {
           {duration != null ? `Out ${formatDuration(outLen)}` : '…'} / 1:00 max
           {speed !== 1 ? ` · ${speed}×` : ''}
         </span>
-        {outTooLong && (
-          <span className="text-xs font-bold text-miss">Trim it or speed it up to post.</span>
-        )}
+        {outTooLong && <span className="text-xs font-bold text-miss">Trim it or speed it up.</span>}
       </div>
 
-      {duration != null && duration > 0 && (
-        <div className="space-y-4 px-4 pt-4">
-          {/* cover picker */}
-          <div>
-            <div className="mb-1.5 text-center text-[11px] font-black uppercase tracking-widest text-mute">
-              Cover frame — drag to pick
-            </div>
-            <input
-              type="range"
-              min={trimStart}
-              max={Math.max(end, trimStart + 0.1)}
-              step={0.1}
-              value={Math.min(Math.max(scrub, trimStart), end)}
-              onPointerDown={() => (scrubbingRef.current = true)}
-              onPointerUp={() => (scrubbingRef.current = false)}
-              onChange={(e) => onScrub(parseFloat(e.target.value))}
-              disabled={busy}
-              className="w-full accent-sig"
-              aria-label="Pick the cover frame"
-            />
-          </div>
-          {/* trim handles */}
-          <div>
-            <div className="mb-1.5 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-mute">
-              <span>Trim</span>
-              <span className="tabular-nums normal-case tracking-normal">
-                {formatDuration(trimStart)} → {formatDuration(end)}
-              </span>
+      {/* one panel at a time */}
+      <div className="px-4 pt-3" style={{ minHeight: 148 }}>
+        {tab === 'trim' && duration != null && duration > 0 && (
+          <div className="space-y-3">
+            <div>
+              <div className="mb-1 flex justify-between text-[11px] font-black uppercase tracking-widest text-mute">
+                <span>Cover frame</span>
+                <span className="tabular-nums normal-case tracking-normal">{formatDuration(Math.min(Math.max(scrub, trimStart), end))}</span>
+              </div>
+              <input
+                type="range"
+                min={trimStart}
+                max={Math.max(end, trimStart + 0.1)}
+                step={0.1}
+                value={Math.min(Math.max(scrub, trimStart), end)}
+                onPointerDown={() => (scrubbingRef.current = true)}
+                onPointerUp={() => (scrubbingRef.current = false)}
+                onChange={(e) => onScrub(parseFloat(e.target.value))}
+                disabled={busy}
+                className="w-full accent-sig"
+                aria-label="Pick the cover frame"
+              />
             </div>
             <div className="flex items-center gap-2">
               <span className="w-8 text-[10px] font-black text-mute">IN</span>
@@ -382,16 +364,14 @@ export default function VideoReview() {
                 max={duration}
                 step={0.1}
                 value={trimStart}
-                onChange={(e) => {
-                  const v = Math.min(parseFloat(e.target.value), end - 0.5)
-                  setTrimStart(Math.max(0, v))
-                }}
+                onChange={(e) => setTrimStart(Math.max(0, Math.min(parseFloat(e.target.value), end - 0.5)))}
                 disabled={busy}
                 className="w-full accent-butter"
                 aria-label="Trim start"
               />
+              <span className="w-10 text-right text-xs font-bold tabular-nums text-mute">{formatDuration(trimStart)}</span>
             </div>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span className="w-8 text-[10px] font-black text-mute">OUT</span>
               <input
                 type="range"
@@ -399,47 +379,47 @@ export default function VideoReview() {
                 max={duration}
                 step={0.1}
                 value={end}
-                onChange={(e) => {
-                  const v = Math.max(parseFloat(e.target.value), trimStart + 0.5)
-                  setTrimEnd(Math.min(duration, v))
-                }}
+                onChange={(e) => setTrimEnd(Math.min(duration, Math.max(parseFloat(e.target.value), trimStart + 0.5)))}
                 disabled={busy}
                 className="w-full accent-butter"
                 aria-label="Trim end"
               />
+              <span className="w-10 text-right text-xs font-bold tabular-nums text-mute">{formatDuration(end)}</span>
             </div>
           </div>
-          {/* speed + filters + text */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-[11px] font-black uppercase tracking-widest text-mute">Speed</span>
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`rounded-full px-3 py-1.5 text-xs font-black transition ${
-                  speed === s ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
-                }`}
-              >
-                {s}×
-              </button>
-            ))}
-            <button
-              onClick={addText}
-              className="ml-auto rounded-full border border-butter/60 px-3 py-1.5 text-xs font-black text-butter transition hover:bg-butter/10"
-            >
-              Aa — Add text
-            </button>
-          </div>
+        )}
+        {tab === 'speed' && (
           <div>
-            <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
+            <div className="flex justify-center gap-2 pt-2">
+              {SPEEDS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSpeed(s)}
+                  className={`rounded-full px-5 py-3 text-sm font-black transition ${
+                    speed === s ? 'bg-sig text-ink' : 'border border-line text-mute hover:text-fog'
+                  }`}
+                >
+                  {s}×
+                </button>
+              ))}
+            </div>
+            <p className="pt-3 text-center text-xs text-mute">
+              {speed === 0.5 && 'Slow-mo — the moment, stretched.'}
+              {speed === 1 && 'Original speed.'}
+              {speed === 1.5 && 'Brisk — trims the output length too.'}
+              {speed === 2 && 'Double time — half the output length.'}
+            </p>
+          </div>
+        )}
+        {tab === 'filter' && (
+          <div>
+            <div className="flex flex-wrap justify-center gap-1.5 pt-2">
               {PHOTO_FILTERS.map((f) => {
-                const disabled = !canFilter && f.id !== 'normal'
                 return (
                   <button
                     key={f.id}
-                    onClick={() => !disabled && setFilterId(f.id)}
-                    disabled={disabled}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition disabled:opacity-35 ${
+                    onClick={() => setFilterId(f.id)}
+                    className={`rounded-full px-4 py-2.5 text-xs font-black transition ${
                       filterId === f.id ? 'bg-lilac text-ink' : 'border border-line text-mute hover:text-fog'
                     }`}
                   >
@@ -448,64 +428,95 @@ export default function VideoReview() {
                 )
               })}
             </div>
-            {!canFilter && (
-              <p className="mt-1 text-[11px] text-mute">Filters need a newer browser on this device — everything else works.</p>
+          </div>
+        )}
+        {tab === 'text' && (
+          <div>
+            {!selected ? (
+              <div className="pt-2 text-center">
+                <button
+                  onClick={addText}
+                  className="rounded-full border border-butter/60 px-5 py-2.5 text-sm font-black text-butter transition hover:bg-butter/10"
+                >
+                  Aa — Add text
+                </button>
+                <p className="pt-3 text-xs text-mute">Drag it anywhere on the clip.</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-line bg-ink-2 p-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={selected.text}
+                    onChange={(e) => patchText(selected.id, { text: e.target.value.slice(0, 60) })}
+                    placeholder="Say something"
+                    autoFocus
+                    className="min-w-0 flex-1 rounded-full border border-line bg-ink px-3.5 py-2 text-sm font-bold outline-none focus:border-sig"
+                  />
+                  <button
+                    onClick={addText}
+                    className="shrink-0 rounded-full border border-line px-3 py-2 text-xs font-black text-fog"
+                  >
+                    + Another
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTexts((prev) => prev.filter((t) => t.id !== selected.id))
+                      setSelText(null)
+                    }}
+                    className="shrink-0 rounded-full border border-miss/40 px-3 py-2 text-xs font-black text-miss"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <div className="mt-2.5 flex items-center gap-2">
+                  {OVERLAY_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => patchText(selected.id, { color: c })}
+                      aria-label={`Text color ${c}`}
+                      className={`h-7 w-7 rounded-full border-2 ${
+                        selected.color === c ? 'border-sig' : 'border-white/25'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <span className="ml-auto flex gap-1">
+                    {[0.75, 1, 1.4].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => patchText(selected.id, { scale: s })}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                          selected.scale === s ? 'bg-sig text-ink' : 'border border-line text-mute'
+                        }`}
+                      >
+                        {s === 0.75 ? 'S' : s === 1 ? 'M' : 'L'}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
-          {/* selected text editor */}
-          {selected && (
-            <div className="rounded-2xl border border-line bg-ink-2 p-3">
-              <div className="flex items-center gap-2">
-                <input
-                  value={selected.text}
-                  onChange={(e) => patchText(selected.id, { text: e.target.value.slice(0, 60) })}
-                  placeholder="Say something"
-                  className="min-w-0 flex-1 rounded-full border border-line bg-ink px-3.5 py-2 text-sm font-bold outline-none focus:border-sig"
-                />
-                <button
-                  onClick={() => {
-                    setTexts((prev) => prev.filter((t) => t.id !== selected.id))
-                    setSelText(null)
-                  }}
-                  className="shrink-0 rounded-full border border-miss/40 px-3 py-2 text-xs font-black text-miss"
-                >
-                  Delete
-                </button>
-              </div>
-              <div className="mt-2.5 flex items-center gap-2">
-                {OVERLAY_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => patchText(selected.id, { color: c })}
-                    aria-label={`Text color ${c}`}
-                    className={`h-7 w-7 rounded-full border-2 ${
-                      selected.color === c ? 'border-sig' : 'border-white/25'
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-                <span className="ml-auto flex gap-1">
-                  {[0.75, 1, 1.4].map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => patchText(selected.id, { scale: s })}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                        selected.scale === s ? 'bg-sig text-ink' : 'border border-line text-mute'
-                      }`}
-                    >
-                      {s === 0.75 ? 'S' : s === 1 ? 'M' : 'L'}
-                    </button>
-                  ))}
-                </span>
-              </div>
-              <p className="mt-2 text-[11px] text-mute">Drag the text on the video to place it.</p>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
-      {error && <p className="px-4 pt-2 text-center text-xs font-bold text-miss">{error}</p>}
-      <div className="pb-6" />
+      {/* editor tab bar */}
+      <div className="flex items-stretch justify-center gap-1 px-4 pb-7 pt-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-full px-5 py-2.5 text-sm font-black transition ${
+              tab === t.id ? 'bg-ink-3 text-fog shadow-inner' : 'text-mute hover:text-fog'
+            }`}
+          >
+            {t.label}
+            {t.id === 'text' && cleanTexts.length > 0 ? ` · ${cleanTexts.length}` : ''}
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="px-4 pb-3 text-center text-xs font-bold text-miss">{error}</p>}
     </div>
   )
 }

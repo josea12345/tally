@@ -81,6 +81,8 @@ export interface Drop {
   media_urls: string[]
   media_types: ('photo' | 'video')[]
   media_poster_urls: (string | null)[]
+  /** Per-item video edits (trim/speed/filter/text), parallel to the media arrays. */
+  media_edits: (MediaEdit | null)[] | null
   /** Recipes: one ingredient per line, one step per line. */
   ingredients: string[]
   instructions: string[]
@@ -182,10 +184,20 @@ export type LocationState =
   | { status: 'unavailable' }
   | { status: 'timeout' }
 
+/** A video edit rendered live by the players (nothing is re-encoded). */
+export interface MediaEdit {
+  trimStart?: number
+  trimEnd?: number
+  speed?: number
+  filterCss?: string
+  texts?: import('./filters').TextOverlay[]
+}
+
 export interface CarouselItem {
   url: string
   type: 'photo' | 'video'
   posterUrl?: string | null
+  edit?: MediaEdit | null
 }
 
 /**
@@ -193,13 +205,14 @@ export interface CarouselItem {
  * falls back to the legacy single-media columns for rows written before the
  * carousel migration — so the feed never breaks mid-rollout.
  */
-export function dropMedia(d: Pick<Drop, 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_url' | 'media_type' | 'media_poster_url'>): CarouselItem[] {
+export function dropMedia(d: Pick<Drop, 'media_urls' | 'media_types' | 'media_poster_urls' | 'media_url' | 'media_type' | 'media_poster_url' | 'media_edits'>): CarouselItem[] {
   const urls = d.media_urls ?? []
   if (urls.length > 0) {
     return urls.map((url, i) => ({
       url,
       type: d.media_types?.[i] ?? 'photo',
       posterUrl: d.media_poster_urls?.[i] ?? null,
+      edit: d.media_edits?.[i] ?? null,
     }))
   }
   if (d.media_url) {

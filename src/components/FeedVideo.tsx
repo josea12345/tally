@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SoundOnIcon, SoundOffIcon } from './MediaViewer'
+import type { MediaEdit } from '../lib/types'
 
 /**
  * One active video at a time across the whole feed (the TikTok rule):
@@ -55,6 +56,7 @@ export default function FeedVideo({
   className = '',
   onDoubleTap,
   onExpand,
+  edit,
 }: {
   src: string
   poster?: string | null
@@ -63,6 +65,8 @@ export default function FeedVideo({
   onDoubleTap?: () => void
   /** Open the in-app fullscreen viewer instead of the native player. */
   onExpand?: () => void
+  /** Live-rendered edit (trim / speed / filter / text) from the clip editor. */
+  edit?: MediaEdit | null
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -122,8 +126,11 @@ export default function FeedVideo({
 
   if (failed) return null
 
+  const trimStart = edit?.trimStart ?? 0
+  const trimEnd = edit?.trimEnd ?? null
+
   return (
-    <div ref={wrapRef} className={`feed-video relative h-full ${className}`}>
+    <div ref={wrapRef} className={`feed-video relative h-full ${className}`} style={{ containerType: 'inline-size' }}>
       <video
         ref={(el) => {
           ref.current = el
@@ -133,12 +140,45 @@ export default function FeedVideo({
         poster={poster ?? undefined}
         playsInline
         muted
-        loop
+        loop={!(trimStart > 0 || trimEnd != null)}
         preload="metadata"
         onError={() => setFailed(true)}
         onClick={handleTap}
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget
+          if (edit?.speed) v.playbackRate = edit.speed
+          if (trimStart > 0 && v.currentTime < trimStart) v.currentTime = trimStart
+        }}
+        onTimeUpdate={(e) => {
+          const v = e.currentTarget
+          if (trimEnd != null && v.currentTime >= trimEnd) {
+            v.currentTime = trimStart
+          }
+        }}
+        onEnded={(e) => {
+          if (trimStart > 0) {
+            e.currentTarget.currentTime = trimStart
+            e.currentTarget.play().catch(() => {})
+          }
+        }}
         className="h-full w-full bg-black object-cover"
+        style={{ filter: edit?.filterCss || undefined }}
       />
+      {(edit?.texts ?? []).map((t) => (
+        <span
+          key={t.id}
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black"
+          style={{
+            left: `${t.x * 100}%`,
+            top: `${t.y * 100}%`,
+            color: t.color,
+            fontSize: `${7 * t.scale}cqw`,
+            textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+          }}
+        >
+          {t.text}
+        </span>
+      ))}
       <button
         onClick={toggleSound}
         aria-label={muted ? 'Unmute' : 'Mute'}
