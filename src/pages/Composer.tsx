@@ -120,6 +120,19 @@ export default function Composer({ editId }: { editId?: string }) {
   }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
+  // Optional soundtrack (any non-music drop): a Deezer track preview.
+  const [sound, setSound] = useState<{ title: string; artist: string; previewUrl: string; coverUrl: string | null } | null>(null)
+  const [soundOpen, setSoundOpen] = useState(false)
+  const [soundHint, setSoundHint] = useState<string | null>(null)
+  const pickSound = (t: MusicTrack) => {
+    if (t.kind !== 'track' || !t.preview) {
+      setSoundHint('Pick a song — albums and artists don\'t have previews.')
+      return
+    }
+    setSoundHint(null)
+    setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image })
+    setSoundOpen(false)
+  }
   const { state: locState, effective, locate } = useDeviceLocation(profile?.city)
 
   const isPlace = isPlaceCategory(category)
@@ -207,6 +220,14 @@ export default function Composer({ editId }: { editId?: string }) {
               edit: m.edit ?? null,
             })),
           )
+        }
+        if (d.sound_preview_url) {
+          setSound({
+            title: d.sound_title ?? 'Soundtrack',
+            artist: d.sound_artist ?? '',
+            previewUrl: d.sound_preview_url,
+            coverUrl: d.sound_cover_url,
+          })
         }
         if (d.score != null) setScore(d.score)
         if ((d.ingredients?.length ?? 0) > 0) setIngredientsText(d.ingredients.join('\n'))
@@ -362,6 +383,10 @@ export default function Composer({ editId }: { editId?: string }) {
         media_types: mediaList.map((m) => m.type),
         media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
         media_edits: mediaList.map((m) => m.edit ?? null),
+        sound_title: sound?.title ?? null,
+        sound_artist: sound?.artist ?? null,
+        sound_preview_url: sound?.previewUrl ?? null,
+        sound_cover_url: sound?.coverUrl ?? null,
         ingredients: category === 'recipes' ? parseLines(ingredientsText) : [],
         instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,
@@ -566,6 +591,40 @@ export default function Composer({ editId }: { editId?: string }) {
           }
         />
       </div>
+
+      {category !== 'music' && (
+        <div className="mt-3">
+          {sound ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+              {sound.coverUrl && <img src={sound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold">{sound.title}</span>
+                <span className="block truncate text-xs text-mute">{sound.artist} · Soundtrack</span>
+              </span>
+              <button
+                onClick={() => setSound(null)}
+                aria-label="Remove soundtrack"
+                className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute hover:text-miss"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSoundOpen((o) => !o)}
+              className="text-sm font-black text-sig"
+            >
+              {soundOpen ? '▴ Hide music search' : '♪ Add a soundtrack'}
+            </button>
+          )}
+          {soundOpen && !sound && (
+            <div className="mt-2">
+              <MusicSearch onPick={pickSound} />
+              {soundHint && <p className="mt-1.5 text-xs font-bold text-butter">{soundHint}</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         onClick={() => setDetailsOpen((o) => !o)}

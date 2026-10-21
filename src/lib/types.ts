@@ -83,6 +83,11 @@ export interface Drop {
   media_poster_urls: (string | null)[]
   /** Per-item video edits (trim/speed/filter/text), parallel to the media arrays. */
   media_edits: (MediaEdit | null)[] | null
+  /** Optional soundtrack: a Deezer track preview attached to the drop (0049). */
+  sound_title: string | null
+  sound_artist: string | null
+  sound_preview_url: string | null
+  sound_cover_url: string | null
   /** Recipes: one ingredient per line, one step per line. */
   ingredients: string[]
   instructions: string[]

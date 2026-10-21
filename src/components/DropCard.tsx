@@ -422,6 +422,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {viewerItem && (
           <MediaViewer
             item={viewerItem}
+            sound={
+              drop.sound_preview_url
+                ? { previewUrl: drop.sound_preview_url, title: drop.sound_title ?? 'Soundtrack' }
+                : null
+            }
             onClose={() => setViewerItem(null)}
             onDoubleTap={() => {
               if (myVote !== 'W') doVote('W')

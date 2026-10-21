@@ -14,6 +14,8 @@ export interface MusicTrack {
   popularity: number | null
   /** Canonical deezer.com link for the track, album or artist. */
   url: string
+  /** 30-second MP3 preview (tracks only; null otherwise). */
+  preview: string | null
 }
 
 /**

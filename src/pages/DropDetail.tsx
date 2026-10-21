@@ -8,6 +8,7 @@ import VerdictBox from '../components/VerdictBox'
 import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
+import SoundChip from '../components/SoundChip'
 import MediaCarousel from '../components/MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
@@ -51,6 +52,7 @@ export default function DropDetail({ id }: { id: string }) {
   // Verdict notes ("the calls") + author-only view count.
   const [callNotes, setCallNotes] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
   const [viewCount, setViewCount] = useState<number | null>(null)
+  const [talliers, setTalliers] = useState<Profile[]>([])
   useEffect(() => {
     const withNote = verdicts.filter((v) => v.note)
     if (withNote.length === 0) {
@@ -232,6 +234,20 @@ export default function DropDetail({ id }: { id: string }) {
           .select('id', { count: 'exact', head: true })
           .eq('drop_id', drop.id)
         if (live) setViewCount(count ?? 0)
+        const { data: saveRows } = await supabase
+          .from('saves')
+          .select('user:profiles!saves_user_id_fkey(id, username, display_name, avatar_url)')
+          .eq('drop_id', drop.id)
+          .order('created_at', { ascending: false })
+          .limit(30)
+        if (live && saveRows) {
+          const people = (
+            saveRows as unknown as Array<{ user: Profile | null }>
+          )
+            .map((r) => r.user)
+            .filter((p): p is Profile => !!p && p.id !== drop.author_id)
+          setTalliers(people)
+        }
       })()
       return () => {
         live = false
@@ -528,6 +544,17 @@ export default function DropDetail({ id }: { id: string }) {
 
         <LinkChips drop={drop} />
 
+        {drop.sound_preview_url && (
+          <div className="mt-3">
+            <SoundChip
+              title={drop.sound_title ?? 'Soundtrack'}
+              artist={drop.sound_artist}
+              coverUrl={drop.sound_cover_url}
+              previewUrl={drop.sound_preview_url}
+            />
+          </div>
+        )}
+
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             onClick={() => {
@@ -622,6 +649,21 @@ export default function DropDetail({ id }: { id: string }) {
               </span>
             </div>
             <p className="mt-1 text-[10px] text-mute">Views count from today onward — only you see this.</p>
+            {talliers.length > 0 && (
+              <div className="mt-2.5 flex items-center justify-center gap-2">
+                <div className="flex -space-x-2">
+                  {talliers.slice(0, 10).map((p) => (
+                    <button key={p.id} onClick={() => navigate(`/profile/${p.id}`)} aria-label={`@${p.username}`} className="rounded-full ring-2 ring-ink-2">
+                      <Avatar url={p.avatar_url} name={p.display_name ?? p.username} size={26} />
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-bold text-mute">
+                  Tallied by {talliers.slice(0, 2).map((p) => `@${p.username}`).join(', ')}
+                  {talliers.length > 2 ? ` +${talliers.length - 2}` : ''}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

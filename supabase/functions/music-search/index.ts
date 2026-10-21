@@ -100,6 +100,7 @@ serve(async (req) => {
         image: t.album?.cover_xl ?? t.album?.cover_big ?? t.album?.cover_medium ?? null,
         popularity: Math.min(100, Math.round((t.rank ?? 0) / 10000)),
         url: t.link,
+        preview: t.preview ?? null,
       }
     })
     return json({ tracks })

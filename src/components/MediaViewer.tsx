@@ -3,6 +3,7 @@ import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
 import { hiResArtwork } from './ArtworkImage'
+import { playSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
 
 /**
  * TikTok-style fullscreen media viewer. One viewer for both photos and video:
@@ -17,10 +18,13 @@ export default function MediaViewer({
   item,
   onClose,
   onDoubleTap,
+  sound,
 }: {
   item: CarouselItem
   onClose: () => void
   onDoubleTap: () => void
+  /** The drop's soundtrack preview, when it has one (0049). */
+  sound?: { previewUrl: string; title: string } | null
 }) {
   const isVideo = item.type === 'video'
   const vidRef = useRef<HTMLVideoElement | null>(null)
@@ -97,6 +101,16 @@ export default function MediaViewer({
       setDragY(0)
     }
   }
+
+  // Soundtrack: auto-play the drop's preview while the viewer is open;
+  // stop it when the viewer closes.
+  const soundPlaying = useSoundState(sound?.previewUrl ?? null)
+  useEffect(() => {
+    if (!sound) return
+    playSound(sound.previewUrl)
+    return () => stopSound()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sound?.previewUrl])
 
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
@@ -206,6 +220,28 @@ export default function MediaViewer({
         onClose()
       }}
     >
+      {sound && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            togglePreview(sound.previewUrl)
+          }}
+          aria-label={soundPlaying ? 'Mute soundtrack' : 'Play soundtrack'}
+          className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-xs font-black text-white backdrop-blur-md"
+        >
+          {soundPlaying ? (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+              <rect x="6" y="5" width="4" height="14" rx="1" />
+              <rect x="14" y="5" width="4" height="14" rx="1" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+              <path d="M8 5.5v13l11-6.5z" />
+            </svg>
+          )}
+          <span className="max-w-[140px] truncate">{sound.title}</span>
+        </button>
+      )}
       {isVideo ? (
         <span className="relative block h-full w-full" style={{ containerType: 'inline-size' }}>
           <video
