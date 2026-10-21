@@ -58,6 +58,7 @@ export default function FeedVideo({
   onDoubleTap,
   onExpand,
   edit,
+  hasSound = false,
 }: {
   src: string
   poster?: string | null
@@ -68,6 +69,8 @@ export default function FeedVideo({
   onExpand?: () => void
   /** Live-rendered edit (trim / speed / filter / text) from the clip editor. */
   edit?: MediaEdit | null
+  /** The drop has a soundtrack — it IS the audio; no native unmute badge. */
+  hasSound?: boolean
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -198,13 +201,15 @@ export default function FeedVideo({
           {t.text}
         </span>
       ))}
-      <button
-        onClick={toggleSound}
-        aria-label={muted ? 'Unmute' : 'Mute'}
-        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
-      >
-        {muted ? <SoundOffIcon className="h-3.5 w-3.5" /> : <SoundOnIcon className="h-3.5 w-3.5" />}
-      </button>
+      {!hasSound && (
+        <button
+          onClick={toggleSound}
+          aria-label={muted ? 'Unmute' : 'Mute'}
+          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
+        >
+          {muted ? <SoundOffIcon className="h-3.5 w-3.5" /> : <SoundOnIcon className="h-3.5 w-3.5" />}
+        </button>
+      )}
     </div>
   )
 }
