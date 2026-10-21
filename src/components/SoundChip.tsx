@@ -6,17 +6,24 @@ export default function SoundChip({
   artist,
   coverUrl,
   previewUrl,
+  start = 0,
+  end = null,
 }: {
   title: string
   artist: string | null
   coverUrl: string | null
   previewUrl: string
+  start?: number
+  end?: number | null
 }) {
-  const isPlaying = useSoundState(previewUrl)
+  const seg = { start, end }
+  const isPlaying = useSoundState(previewUrl, seg)
+  const trimmed = start > 0 || end != null
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
       <button
-        onClick={() => toggleSound(previewUrl)}
+        onClick={() => toggleSound(previewUrl, seg)}
         aria-label={isPlaying ? `Pause ${title}` : `Play ${title}`}
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
           isPlaying ? 'bg-sig text-ink' : 'bg-ink-3 text-fog hover:text-sig'
@@ -40,6 +47,7 @@ export default function SoundChip({
         <span className="block truncate text-sm font-bold">{title}</span>
         <span className="block truncate text-xs text-mute">
           {artist ? `${artist} · ` : ''}Soundtrack · Deezer preview
+          {trimmed ? ` · plays ${fmt(start)}${end != null ? `–${fmt(end)}` : '+'}` : ''}
         </span>
       </span>
       {isPlaying && (

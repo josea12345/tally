@@ -551,6 +551,8 @@ export default function DropDetail({ id }: { id: string }) {
               artist={drop.sound_artist}
               coverUrl={drop.sound_cover_url}
               previewUrl={drop.sound_preview_url}
+              start={drop.sound_start_sec ?? 0}
+              end={drop.sound_end_sec}
             />
           </div>
         )}

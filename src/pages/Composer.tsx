@@ -17,6 +17,7 @@ import { fetchOmdbRating } from '../lib/omdb'
 import { successHaptic } from '../lib/haptics'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia } from '../lib/pendingMedia'
 import { takeSharedContent } from '../lib/shareTarget'
+import SoundTrimmer from '../components/SoundTrimmer'
 import { topicKeyFor } from '../lib/format'
 import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
 import EmptyState from '../components/EmptyState'
@@ -63,6 +64,9 @@ export default function Composer({ editId }: { editId?: string }) {
   const [linkKind, setLinkKind] = useState<LinkKind>('auto')
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [mediaList, setMediaList] = useState<UploadedMedia[]>([])
+  // Soundtracks live on videos (Jose's rule): the picker and the saved
+  // sound fields both turn on a video being in the carousel.
+  const hasVideo = mediaList.some((m) => m.type === 'video')
   const [ingredientsText, setIngredientsText] = useState('')
   const [instructionsText, setInstructionsText] = useState('')
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
@@ -120,8 +124,9 @@ export default function Composer({ editId }: { editId?: string }) {
   }
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
-  // Optional soundtrack (any non-music drop): a Deezer track preview.
-  const [sound, setSound] = useState<{ title: string; artist: string; previewUrl: string; coverUrl: string | null } | null>(null)
+  // Optional soundtrack for a video drop: a Deezer track preview, with
+  // the part of the song that plays (start/end within the preview).
+  const [sound, setSound] = useState<{ title: string; artist: string; previewUrl: string; coverUrl: string | null; start: number; end: number | null } | null>(null)
   const [soundOpen, setSoundOpen] = useState(false)
   const [soundHint, setSoundHint] = useState<string | null>(null)
   const pickSound = (t: MusicTrack) => {
@@ -130,7 +135,7 @@ export default function Composer({ editId }: { editId?: string }) {
       return
     }
     setSoundHint(null)
-    setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image })
+    setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image, start: 0, end: null })
     setSoundOpen(false)
   }
   const { state: locState, effective, locate } = useDeviceLocation(profile?.city)
@@ -227,6 +232,8 @@ export default function Composer({ editId }: { editId?: string }) {
             artist: d.sound_artist ?? '',
             previewUrl: d.sound_preview_url,
             coverUrl: d.sound_cover_url,
+            start: d.sound_start_sec ?? 0,
+            end: d.sound_end_sec,
           })
         }
         if (d.score != null) setScore(d.score)
@@ -383,10 +390,12 @@ export default function Composer({ editId }: { editId?: string }) {
         media_types: mediaList.map((m) => m.type),
         media_poster_urls: mediaList.map((m) => m.posterUrl ?? null),
         media_edits: mediaList.map((m) => m.edit ?? null),
-        sound_title: sound?.title ?? null,
-        sound_artist: sound?.artist ?? null,
-        sound_preview_url: sound?.previewUrl ?? null,
-        sound_cover_url: sound?.coverUrl ?? null,
+        sound_title: hasVideo ? (sound?.title ?? null) : null,
+        sound_artist: hasVideo ? (sound?.artist ?? null) : null,
+        sound_preview_url: hasVideo ? (sound?.previewUrl ?? null) : null,
+        sound_cover_url: hasVideo ? (sound?.coverUrl ?? null) : null,
+        sound_start_sec: hasVideo ? (sound?.start ?? 0) : 0,
+        sound_end_sec: hasVideo ? (sound?.end ?? null) : null,
         ingredients: category === 'recipes' ? parseLines(ingredientsText) : [],
         instructions: category === 'recipes' ? parseLines(instructionsText) : [],
         external_url: externalUrl,
@@ -592,23 +601,31 @@ export default function Composer({ editId }: { editId?: string }) {
         />
       </div>
 
-      {category !== 'music' && (
+      {category !== 'music' && hasVideo && (
         <div className="mt-3">
           {sound ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
-              {sound.coverUrl && <img src={sound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold">{sound.title}</span>
-                <span className="block truncate text-xs text-mute">{sound.artist} · Soundtrack</span>
-              </span>
-              <button
-                onClick={() => setSound(null)}
-                aria-label="Remove soundtrack"
-                className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute hover:text-miss"
-              >
-                ✕
-              </button>
-            </div>
+            <>
+              <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+                {sound.coverUrl && <img src={sound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{sound.title}</span>
+                  <span className="block truncate text-xs text-mute">{sound.artist} · Soundtrack</span>
+                </span>
+                <button
+                  onClick={() => setSound(null)}
+                  aria-label="Remove soundtrack"
+                  className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute hover:text-miss"
+                >
+                  ✕
+                </button>
+              </div>
+              <SoundTrimmer
+                previewUrl={sound.previewUrl}
+                start={sound.start}
+                end={sound.end}
+                onChange={(start, end) => setSound((s) => (s ? { ...s, start, end } : s))}
+              />
+            </>
           ) : (
             <button
               onClick={() => setSoundOpen((o) => !o)}

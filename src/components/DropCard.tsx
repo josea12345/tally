@@ -424,7 +424,12 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
             item={viewerItem}
             sound={
               drop.sound_preview_url
-                ? { previewUrl: drop.sound_preview_url, title: drop.sound_title ?? 'Soundtrack' }
+                ? {
+                    previewUrl: drop.sound_preview_url,
+                    title: drop.sound_title ?? 'Soundtrack',
+                    start: drop.sound_start_sec ?? 0,
+                    end: drop.sound_end_sec,
+                  }
                 : null
             }
             onClose={() => setViewerItem(null)}

@@ -88,6 +88,9 @@ export interface Drop {
   sound_artist: string | null
   sound_preview_url: string | null
   sound_cover_url: string | null
+  /** Which part of the preview plays (0050). start seconds; end null = track end. */
+  sound_start_sec: number
+  sound_end_sec: number | null
   /** Recipes: one ingredient per line, one step per line. */
   ingredients: string[]
   instructions: string[]

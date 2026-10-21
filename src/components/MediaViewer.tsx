@@ -23,8 +23,8 @@ export default function MediaViewer({
   item: CarouselItem
   onClose: () => void
   onDoubleTap: () => void
-  /** The drop's soundtrack preview, when it has one (0049). */
-  sound?: { previewUrl: string; title: string } | null
+  /** The drop's soundtrack preview, when it has one (0049/0050). */
+  sound?: { previewUrl: string; title: string; start?: number; end?: number | null } | null
 }) {
   const isVideo = item.type === 'video'
   const vidRef = useRef<HTMLVideoElement | null>(null)
@@ -104,13 +104,14 @@ export default function MediaViewer({
 
   // Soundtrack: auto-play the drop's preview while the viewer is open;
   // stop it when the viewer closes.
-  const soundPlaying = useSoundState(sound?.previewUrl ?? null)
+  const soundSeg = sound ? { start: sound.start ?? 0, end: sound.end ?? null } : null
+  const soundPlaying = useSoundState(sound?.previewUrl ?? null, soundSeg)
   useEffect(() => {
     if (!sound) return
-    playSound(sound.previewUrl)
+    playSound(sound.previewUrl, soundSeg)
     return () => stopSound()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sound?.previewUrl])
+  }, [sound?.previewUrl, sound?.start, sound?.end])
 
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
@@ -224,7 +225,7 @@ export default function MediaViewer({
         <button
           onClick={(e) => {
             e.stopPropagation()
-            togglePreview(sound.previewUrl)
+            togglePreview(sound.previewUrl, soundSeg)
           }}
           aria-label={soundPlaying ? 'Mute soundtrack' : 'Play soundtrack'}
           className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-xs font-black text-white backdrop-blur-md"
