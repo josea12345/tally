@@ -267,7 +267,7 @@ export default function Camera() {
       if (!pipeStreamRef.current) pipeStreamRef.current = buildPipeStream()
       const rec = new MediaRecorder(pipeStreamRef.current ?? stream, {
         mimeType,
-        videoBitsPerSecond: 2_500_000,
+        videoBitsPerSecond: 1_500_000,
       })
       chunksRef.current = []
       discardRef.current = false

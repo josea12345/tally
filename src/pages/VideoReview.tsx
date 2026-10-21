@@ -123,16 +123,28 @@ export default function VideoReview() {
       }
     })
 
+  const scrubSeekTimer = useRef<number | null>(null)
+  const scrubTarget = useRef<number | null>(null)
   const onScrub = (v: number) => {
     const vid = previewRef.current
     const t = Math.min(Math.max(v, trimStart), Math.max(end, trimStart))
     setScrub(t)
     if (vid) {
       vid.pause()
-      seekTo(vid, t).catch(() => {})
+      // Dragging fires a storm of input events; coalesce the seeks —
+      // seeking per event is what made trimming feel like wading.
+      scrubTarget.current = t
+      if (scrubSeekTimer.current) return
+      scrubSeekTimer.current = window.setTimeout(() => {
+        scrubSeekTimer.current = null
+        const target = scrubTarget.current
+        const el = previewRef.current
+        if (target != null && el) seekTo(el, target).catch(() => {})
+      }, 70)
     }
   }
 
+  const lastScrubPush = useRef(0)
   const onTimeUpdate = () => {
     const vid = previewRef.current
     if (!vid) return
@@ -140,7 +152,12 @@ export default function VideoReview() {
       vid.currentTime = trimStart
     }
     if (!vid.paused && !scrubbingRef.current) {
-      setScrub(Math.min(Math.max(vid.currentTime, trimStart), end))
+      // Progress state at ~5fps is plenty for the scrubber — pushing it
+      // on every timeupdate re-rendered the whole editor constantly.
+      if (Math.abs(vid.currentTime - lastScrubPush.current) >= 0.2) {
+        lastScrubPush.current = vid.currentTime
+        setScrub(Math.min(Math.max(vid.currentTime, trimStart), end))
+      }
     }
   }
 

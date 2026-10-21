@@ -9,14 +9,18 @@ export function isArtworkUrl(url: string): boolean {
   return url.includes('dzcdn.net') || url.includes('image.tmdb.org')
 }
 
+export type ArtworkSize = 'original' | 'w1280' | 'w780' | 'w500'
+
 /**
  * TMDB serves every poster at several sizes; picks used to be stored at
  * w342, which turns to mush in a full-width frame. Rewrite the size
- * segment to `original` at render time so existing posts sharpen too.
+ * segment at render time so existing posts sharpen too — sized to the
+ * surface: cards and grids pull w780/w500 (a fraction of the bytes of
+ * `original`), detail and share cards keep the full-res version.
  */
-export function hiResArtwork(url: string): string {
+export function hiResArtwork(url: string, size: ArtworkSize = 'original'): string {
   if (!url.includes('image.tmdb.org/t/p/')) return url
-  return url.replace(/\/t\/p\/[^/]+\//, '/t/p/original/')
+  return url.replace(/\/t\/p\/[^/]+\//, `/t/p/${size}/`)
 }
 
 export default function ArtworkImage({
@@ -24,14 +28,16 @@ export default function ArtworkImage({
   alt,
   onClick,
   className = '',
+  size = 'w1280',
 }: {
   src: string
   alt: string
   onClick?: () => void
   /** Sizing for the frame, e.g. "h-full w-full" (feed) or "h-[380px] w-full" (detail). */
   className?: string
+  size?: ArtworkSize
 }) {
-  const src = hiResArtwork(rawSrc)
+  const src = hiResArtwork(rawSrc, size)
   return (
     <div className={`relative overflow-hidden bg-black ${className}`}>
       <img

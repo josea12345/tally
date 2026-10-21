@@ -70,7 +70,7 @@ export default function RelatedDrops({ drop }: { drop: Drop }) {
           const thumb = cover
             ? cover.type === 'video'
               ? cover.posterUrl ?? undefined
-              : hiResArtwork(cover.url)
+              : hiResArtwork(cover.url, 'w500')
             : undefined
           return (
             <button

@@ -53,7 +53,23 @@ const parseLines = (s: string): string[] =>
 
 export default function Composer({ editId }: { editId?: string }) {
   const { user, profile } = useAuth()
-  const [category, setCategory] = useState<Category>('food_drink')
+  const [category, setCategoryState] = useState<Category>(() => {
+    try {
+      const last = localStorage.getItem('tally-last-category')
+      if (last && (ALL_CATEGORIES as readonly string[]).includes(last)) return last as Category
+    } catch {
+      // storage unavailable — default below
+    }
+    return 'food_drink'
+  })
+  const setCategory = (c: Category) => {
+    setCategoryState(c)
+    try {
+      localStorage.setItem('tally-last-category', c)
+    } catch {
+      // best-effort only
+    }
+  }
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tip, setTip] = useState('')

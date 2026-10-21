@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { MAX_CAROUSEL_ITEMS } from '../lib/types'
+import { prepareImageForUpload } from '../lib/image'
 
 const MAX_BYTES = 20 * 1024 * 1024
 const PITCH = 104 // thumbnail width (96px) + gap (8px)
@@ -134,10 +135,15 @@ export default function MediaUpload({
       try {
         for (const file of batch) {
           const isVideo = file.type.startsWith('video/')
-          const ext = (file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase().slice(0, 5)
+          // Photos are downscaled before upload — uploads and every
+          // later view of them get dramatically faster.
+          const payload = isVideo ? file : await prepareImageForUpload(file)
+          const ext = isVideo
+            ? (file.name.split('.').pop() || 'mp4').toLowerCase().slice(0, 5)
+            : 'jpg'
           const path = `${userId}/${crypto.randomUUID()}.${ext}`
-          const { error: upErr } = await supabase.storage.from('drop-media').upload(path, file, {
-            contentType: file.type,
+          const { error: upErr } = await supabase.storage.from('drop-media').upload(path, payload, {
+            contentType: isVideo ? file.type : 'image/jpeg',
             upsert: false,
           })
           if (upErr) throw upErr

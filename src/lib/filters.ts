@@ -82,14 +82,19 @@ export function applyFilterToBlob(
       URL.revokeObjectURL(url)
       try {
         const canvas = document.createElement('canvas')
-        canvas.width = img.naturalWidth
-        canvas.height = img.naturalHeight
+        // Cap the bake at 2048px on the long edge: full-res phone shots
+        // (5–12 MB) crawl through the encoder and the upload; this size
+        // is visually identical in the app at a fraction of the time.
+        const MAX_DIM = 2048
+        const k = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight))
+        canvas.width = Math.round(img.naturalWidth * k)
+        canvas.height = Math.round(img.naturalHeight * k)
         const ctx = canvas.getContext('2d')
         if (!ctx) throw new Error('Canvas unavailable')
         if (css && css !== 'none') ctx.filter = css
-        ctx.drawImage(img, 0, 0)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
         ctx.filter = 'none'
-        drawTextOverlays(ctx, texts, canvas.width, canvas.height, textSizeBasis ?? canvas.height)
+        drawTextOverlays(ctx, texts, canvas.width, canvas.height, (textSizeBasis ?? img.naturalHeight) * k)
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Could not process that photo.'))),
           'image/jpeg',

@@ -375,6 +375,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                   <ArtworkImage
                     src={it.url}
                     alt={drop.title}
+                    size="w780"
                     className="h-full w-full"
                     onClick={() => handleMediaTap(false, undefined, () => setViewerItem(it))}
                   />

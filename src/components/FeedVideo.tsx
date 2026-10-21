@@ -73,8 +73,30 @@ export default function FeedVideo({
   const tapTimer = useRef<number | null>(null)
   const [muted, setMuted] = useState(true)
   const [failed, setFailed] = useState(false)
+  // Proximity gate: a <video> (and its decoder) only exists when the
+  // card is within ~700px of the viewport. Far away, the poster alone
+  // renders — that's what makes scrolling feel instant instead of
+  // juggling dozens of media elements.
+  const [near, setNear] = useState(false)
 
   useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap || typeof IntersectionObserver === 'undefined') {
+      setNear(true)
+      return
+    }
+    const po = new IntersectionObserver(
+      (list) => {
+        for (const item of list) if (item.target === wrap) setNear(item.isIntersecting)
+      },
+      { rootMargin: '700px 0px' },
+    )
+    po.observe(wrap)
+    return () => po.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!near) return
     const vid = ref.current
     const wrap = wrapRef.current
     const io = ensureVideoIo()
@@ -88,7 +110,7 @@ export default function FeedVideo({
       vid.pause()
       pickActiveVideo()
     }
-  }, [src])
+  }, [src, near])
 
   /** Open the in-app fullscreen viewer (replaces the old native player). */
   const expand = () => {
@@ -131,6 +153,13 @@ export default function FeedVideo({
 
   return (
     <div ref={wrapRef} className={`feed-video relative h-full ${className}`} style={{ containerType: 'inline-size' }}>
+      {!near ? (
+        poster ? (
+          <img src={poster} alt="" className="h-full w-full bg-black object-cover" draggable={false} />
+        ) : (
+          <div className="h-full w-full bg-black" />
+        )
+      ) : (
       <video
         ref={(el) => {
           ref.current = el
@@ -141,7 +170,7 @@ export default function FeedVideo({
         playsInline
         muted
         loop={!(trimStart > 0 || trimEnd != null)}
-        preload="metadata"
+        preload="auto"
         onError={() => setFailed(true)}
         onClick={handleTap}
         onLoadedMetadata={(e) => {
@@ -164,6 +193,7 @@ export default function FeedVideo({
         className="h-full w-full bg-black object-cover"
         style={{ filter: edit?.filterCss || undefined }}
       />
+      )}
       {(edit?.texts ?? []).map((t) => (
         <span
           key={t.id}

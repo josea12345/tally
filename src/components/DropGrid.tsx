@@ -20,12 +20,12 @@ export default function DropGrid({ drops, showScores = false }: { drops: Drop[];
             {cover ? (
               cover.type === 'video' ? (
                 cover.posterUrl ? (
-                  <img src={hiResArtwork(cover.posterUrl)} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={hiResArtwork(cover.posterUrl, 'w500')} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   <video src={cover.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
                 )
               ) : (
-                <img src={hiResArtwork(cover.url)} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
+                <img src={hiResArtwork(cover.url, 'w500')} alt={d.title} loading="lazy" className="h-full w-full object-cover" />
               )
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-ink-3 p-2">
