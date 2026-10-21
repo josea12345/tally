@@ -11,6 +11,7 @@ import LinkChips from '../components/LinkChips'
 import SoundChip from '../components/SoundChip'
 import SoundPill from '../components/SoundPill'
 import { getSoundSnapshot, isCurrentSound, pauseSound, playSound } from '../lib/sound'
+import { overlayTextStyle } from '../lib/filters'
 import MediaCarousel from '../components/MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
@@ -393,6 +394,7 @@ export default function DropDetail({ id }: { id: string }) {
                     style={{ filter: it.edit?.filterCss || undefined }}
                     onLoadedMetadata={(e) => {
                       const v = e.currentTarget
+                      v.volume = it.edit?.origVolume ?? 1
                       if (it.edit?.speed) v.playbackRate = it.edit.speed
                       if ((it.edit?.trimStart ?? 0) > 0 && v.currentTime < (it.edit?.trimStart ?? 0)) {
                         v.currentTime = it.edit?.trimStart ?? 0
@@ -400,7 +402,7 @@ export default function DropDetail({ id }: { id: string }) {
                     }}
                     onPlay={(e) => {
                       if (soundSeg) {
-                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)))
+                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)), it.edit?.soundVolume)
                       }
                     }}
                     onPause={() => {
@@ -408,7 +410,7 @@ export default function DropDetail({ id }: { id: string }) {
                     }}
                     onSeeked={(e) => {
                       if (soundSeg && isCurrentSound(drop.sound_preview_url!, soundSeg) && getSoundSnapshot().playing) {
-                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)))
+                        playSound(drop.sound_preview_url!, soundSeg, Math.max(0, e.currentTarget.currentTime - (it.edit?.trimStart ?? 0)), it.edit?.soundVolume)
                       }
                     }}
                     onTimeUpdate={(e) => {
@@ -416,7 +418,7 @@ export default function DropDetail({ id }: { id: string }) {
                       if (it.edit?.trimEnd != null && v.currentTime >= it.edit.trimEnd) {
                         v.currentTime = it.edit.trimStart ?? 0
                         if (soundSeg && getSoundSnapshot().playing) {
-                          playSound(drop.sound_preview_url!, soundSeg, 0)
+                          playSound(drop.sound_preview_url!, soundSeg, 0, it.edit?.soundVolume)
                         }
                       }
                     }}
@@ -425,7 +427,7 @@ export default function DropDetail({ id }: { id: string }) {
                       v.currentTime = it.edit?.trimStart ?? 0
                       v.play().catch(() => {})
                       if (soundSeg && getSoundSnapshot().playing) {
-                        playSound(drop.sound_preview_url!, soundSeg, 0)
+                        playSound(drop.sound_preview_url!, soundSeg, 0, it.edit?.soundVolume)
                       }
                     }}
                   />
@@ -436,9 +438,8 @@ export default function DropDetail({ id }: { id: string }) {
                       style={{
                         left: `${t.x * 100}%`,
                         top: `${t.y * 100}%`,
-                        color: t.color,
+                        ...overlayTextStyle(t, 0),
                         fontSize: `${7 * t.scale}cqw`,
-                        textShadow: '0 1px 6px rgba(0,0,0,0.85)',
                       }}
                     >
                       {t.text}

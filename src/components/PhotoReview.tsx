@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { PHOTO_FILTERS, OVERLAY_COLORS, applyFilterToBlob, type TextOverlay } from '../lib/filters'
+import {
+  PHOTO_FILTERS,
+  OVERLAY_COLORS,
+  TEXT_FONTS,
+  applyFilterToBlob,
+  overlayTextStyle,
+  type TextOverlay,
+} from '../lib/filters'
 import { setPendingUpload, type SoundAttachment } from '../lib/pendingMedia'
 import MusicSearch from './MusicSearch'
 import SoundTrimmer from './SoundTrimmer'
@@ -60,6 +67,7 @@ export default function PhotoReview({
       y: 0.42,
       color: OVERLAY_COLORS[0]!,
       scale: 1,
+      font: 'classic',
     }
     setTexts((prev) => [...prev, t])
     setSelText(t.id)
@@ -158,9 +166,7 @@ export default function PhotoReview({
             style={{
               left: `${t.x * 100}%`,
               top: `${t.y * 100}%`,
-              color: t.color,
-              fontSize: `${19 * t.scale}px`,
-              textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+              ...overlayTextStyle(t, 19 * t.scale),
               touchAction: 'none',
             }}
           >
@@ -267,7 +273,26 @@ export default function PhotoReview({
               Delete
             </button>
           </div>
-          <div className="mt-2.5 flex items-center gap-2">
+          {/* font carousel */}
+          <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 pt-3">
+            {TEXT_FONTS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => patchText(selected.id, { font: f.id })}
+                className={`flex shrink-0 flex-col items-center rounded-xl px-3 py-1.5 transition ${
+                  (selected.font ?? 'classic') === f.id
+                    ? 'bg-sig/15 text-sig outline outline-1 outline-sig'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <span style={{ fontFamily: f.family, fontWeight: f.weight }} className="text-base leading-tight">
+                  Ag
+                </span>
+                <span className="text-[9px] font-bold">{f.name}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
             {OVERLAY_COLORS.map((c) => (
               <button
                 key={c}
@@ -279,6 +304,14 @@ export default function PhotoReview({
                 style={{ backgroundColor: c }}
               />
             ))}
+            <button
+              onClick={() => patchText(selected.id, { bg: !selected.bg })}
+              className={`ml-1 rounded-full px-3 py-1.5 text-[11px] font-black ${
+                selected.bg ? 'bg-sig text-ink' : 'border border-white/25 text-white/70'
+              }`}
+            >
+              Block
+            </button>
             <span className="ml-auto flex gap-1">
               {[0.75, 1, 1.4].map((s) => (
                 <button

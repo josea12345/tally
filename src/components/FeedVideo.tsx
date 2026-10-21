@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { SoundOnIcon, SoundOffIcon } from './MediaViewer'
 import type { MediaEdit } from '../lib/types'
+import { overlayTextStyle } from '../lib/filters'
 import {
   playSound,
   pauseSound,
@@ -101,6 +102,8 @@ export default function FeedVideo({
   songPlayingRef.current = songPlaying
   const soundRef = useRef(sound)
   soundRef.current = sound
+  const editRef = useRef(edit)
+  editRef.current = edit
   const segRef = useRef(seg)
   segRef.current = seg
   const entryRef = useRef<VideoEntry | null>(null)
@@ -158,7 +161,7 @@ export default function FeedVideo({
       v.play().catch(() => {})
       const s = soundRef.current
       const sg = segRef.current
-      if (s && sg && songPlayingRef.current) playSound(s.previewUrl, sg, 0)
+      if (s && sg && songPlayingRef.current) playSound(s.previewUrl, sg, 0, editRef.current?.soundVolume)
     }, 600)
     return () => window.clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,7 +181,7 @@ export default function FeedVideo({
       // The soundtrack IS this video's audio: the badge starts it
       // (synced to the picture) or mutes it.
       if (!songPlaying) {
-        playSound(sound!.previewUrl, seg, Math.max(0, vid.currentTime - trimStart))
+        playSound(sound!.previewUrl, seg, Math.max(0, vid.currentTime - trimStart), edit?.soundVolume)
         setSoundMuted(false)
       } else {
         setSoundMuted(!songMuted)
@@ -240,7 +243,7 @@ export default function FeedVideo({
         }}
         onPlay={(e) => {
           if (seg && sound) {
-            playSound(sound.previewUrl, seg, Math.max(0, e.currentTarget.currentTime - trimStart))
+            playSound(sound.previewUrl, seg, Math.max(0, e.currentTarget.currentTime - trimStart), edit?.soundVolume)
           }
         }}
         onPause={() => {
@@ -256,7 +259,7 @@ export default function FeedVideo({
           const v = e.currentTarget
           if (trimEnd != null && v.currentTime >= trimEnd) {
             v.currentTime = trimStart
-            if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
+            if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0, edit?.soundVolume)
           }
         }}
         onEnded={(e) => {
@@ -266,7 +269,7 @@ export default function FeedVideo({
           const v = e.currentTarget
           v.currentTime = trimStart
           v.play().catch(() => {})
-          if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
+          if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0, edit?.soundVolume)
         }}
         className="h-full w-full bg-black object-cover"
         style={{ filter: edit?.filterCss || undefined }}
@@ -289,9 +292,8 @@ export default function FeedVideo({
           style={{
             left: `${t.x * 100}%`,
             top: `${t.y * 100}%`,
-            color: t.color,
+            ...overlayTextStyle(t, 0),
             fontSize: `${7 * t.scale}cqw`,
-            textShadow: '0 1px 6px rgba(0,0,0,0.85)',
           }}
         >
           {t.text}

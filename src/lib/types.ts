@@ -201,6 +201,9 @@ export interface MediaEdit {
   speed?: number
   filterCss?: string
   texts?: import('./filters').TextOverlay[]
+  /** Volume mix (0..1): the clip's own audio vs the added soundtrack. */
+  origVolume?: number
+  soundVolume?: number
 }
 
 export interface CarouselItem {

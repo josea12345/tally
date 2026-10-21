@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
+import { overlayTextStyle } from '../lib/filters'
 import { hiResArtwork } from './ArtworkImage'
 import { isCurrentSound, pauseSound, playSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
 
@@ -108,7 +109,7 @@ export default function MediaViewer({
   const soundPlaying = useSoundState(sound?.previewUrl ?? null, soundSeg)
   useEffect(() => {
     if (!sound) return
-    playSound(sound.previewUrl, soundSeg)
+    playSound(sound.previewUrl, soundSeg, -1, edit?.soundVolume)
     return () => stopSound()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sound?.previewUrl, sound?.start, sound?.end])
@@ -264,7 +265,7 @@ export default function MediaViewer({
             }}
             onPlay={(e) => {
               if (sound && soundSeg) {
-                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart))
+                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart), edit?.soundVolume)
               }
             }}
             onPause={() => {
@@ -272,7 +273,7 @@ export default function MediaViewer({
             }}
             onSeeked={(e) => {
               if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
-                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart))
+                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart), edit?.soundVolume)
               }
             }}
             onTimeUpdate={(e) => {
@@ -291,7 +292,7 @@ export default function MediaViewer({
               v.currentTime = regionStart
               v.play().catch(() => {})
               if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
-                playSound(sound.previewUrl, soundSeg, 0)
+                playSound(sound.previewUrl, soundSeg, 0, edit?.soundVolume)
               }
             }}
             onError={() => setFailed(true)}
@@ -305,9 +306,8 @@ export default function MediaViewer({
               style={{
                 left: `${t.x * 100}%`,
                 top: `${t.y * 100}%`,
-                color: t.color,
+                ...overlayTextStyle(t, 0),
                 fontSize: `${7 * t.scale}cqw`,
-                textShadow: '0 1px 6px rgba(0,0,0,0.85)',
               }}
             >
               {t.text}

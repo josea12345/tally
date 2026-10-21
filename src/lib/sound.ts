@@ -21,6 +21,7 @@ let currentUrl: string | null = null
 let segment: SoundSegment | null = null
 let playing = false
 let mutedFlag = false
+let volumeLevel = 1
 let unlocked = false
 const listeners = new Set<() => void>()
 
@@ -52,6 +53,7 @@ function seekTo(pos: number) {
 function ensure(): HTMLAudioElement {
   if (!audio) {
     audio = new Audio()
+    audio.volume = volumeLevel
     audio.addEventListener('play', () => {
       playing = true
       emit()
@@ -128,8 +130,9 @@ export function segmentPosition(seg: SoundSegment | null, videoTime: number): nu
   return seg.start + (Math.max(0, videoTime) % len)
 }
 
-export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1) {
+export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1, volume?: number) {
   const a = ensure()
+  if (volume != null) setSoundVolume(volume)
   const key = keyFor(url, seg)
   const fresh = currentKey !== key
   if (fresh) {
@@ -175,6 +178,16 @@ export function setSoundMuted(m: boolean) {
   mutedFlag = m
   if (audio) audio.muted = m
   emit()
+}
+
+/** Soundtrack gain (0..1) — the "Added sound" side of the volume mix. */
+export function setSoundVolume(v: number) {
+  volumeLevel = Math.max(0, Math.min(1, v))
+  if (audio) audio.volume = volumeLevel
+}
+
+export function getSoundVolume(): number {
+  return volumeLevel
 }
 
 export function useSoundState(url: string | null, seg?: SoundSegment | null): boolean {

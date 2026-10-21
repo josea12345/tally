@@ -1,9 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
-import { setPendingRawMedia } from '../lib/pendingMedia'
+import {
+  setPendingRawMedia,
+  getDraftSound,
+  setDraftSound,
+  clearDraftSound,
+  type SoundAttachment,
+} from '../lib/pendingMedia'
+import MusicSearch from '../components/MusicSearch'
+import type { MusicTrack } from '../lib/music'
 import { CLIP_MAX_SECONDS, formatDuration } from '../lib/video'
 import PhotoReview from '../components/PhotoReview'
+
+const CAPS = [15, 30, 60] as const
 
 type CamState = 'starting' | 'live' | 'unavailable'
 type Facing = 'environment' | 'user'
@@ -55,6 +65,14 @@ export default function Camera() {
   const [zoom, setZoom] = useState(1)
   const [zoomFlash, setZoomFlash] = useState(false)
   const zoomRef = useRef(1)
+  // clip length cap (TikTok's duration row): 15s / 30s / 60s
+  const [cap, setCap] = useState<number>(CLIP_MAX_SECONDS)
+  const capRef = useRef(CLIP_MAX_SECONDS)
+  // soundtrack picked on the camera (TikTok's top pill) — rides the
+  // composer's draft-sound slot into the post
+  const [camSound, setCamSound] = useState<SoundAttachment | null>(null)
+  const [soundSheet, setSoundSheet] = useState(false)
+  const [soundHint, setSoundHint] = useState<string | null>(null)
   const zoomHideTimer = useRef<number | null>(null)
   const pointersRef = useRef(new Map<number, { x: number; y: number }>())
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null)
@@ -145,7 +163,7 @@ export default function Camera() {
   const tick = () => {
     const total = (recordedMsRef.current + (Date.now() - segStartRef.current)) / 1000
     setElapsed(total)
-    if (total >= CLIP_MAX_SECONDS) {
+    if (total >= capRef.current) {
       finishVideo()
       return
     }
@@ -483,8 +501,37 @@ export default function Camera() {
     setFacing((f) => (f === 'environment' ? 'user' : 'environment'))
   }
 
-  const progress = Math.min(elapsed / CLIP_MAX_SECONDS, 1)
+  const progress = Math.min(elapsed / cap, 1)
   const totalBanked = segments.reduce((a, b) => a + b, 0)
+
+  const pickCamSound = (t: MusicTrack) => {
+    if (t.kind !== 'track' || !t.preview) {
+      setSoundHint('Pick a song — albums and artists don\'t have previews.')
+      return
+    }
+    const s: SoundAttachment = {
+      title: t.name,
+      artist: t.artists,
+      previewUrl: t.preview,
+      coverUrl: t.image,
+      start: 0,
+      end: null,
+    }
+    setSoundHint(null)
+    setCamSound(s)
+    setDraftSound(s)
+    setSoundSheet(false)
+  }
+  const clearCamSound = () => {
+    setCamSound(null)
+    clearDraftSound()
+  }
+
+  // Restore a sound picked earlier (composer draft slot) into the pill.
+  useEffect(() => {
+    const d = getDraftSound()
+    if (d) setCamSound(d)
+  }, [])
 
   return (
     <div className="screen-in fixed inset-0 z-50 select-none bg-black touch-none" onContextMenu={(e) => e.preventDefault()}>
@@ -519,7 +566,7 @@ export default function Camera() {
         </div>
       )}
 
-      {/* top bar — floating glass controls, no chrome */}
+      {/* top bar — close left, sound pill center (TikTok layout) */}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-start justify-between px-4 pt-[max(env(safe-area-inset-top),16px)]">
         <button
           onClick={() => navigate('/')}
@@ -530,48 +577,69 @@ export default function Camera() {
             <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {recording && (
+        {recording ? (
           <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 backdrop-blur-sm">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm font-black tabular-nums text-white">{formatDuration(elapsed)}</span>
           </div>
+        ) : camState === 'live' ? (
+          <button
+            onClick={() => setSoundSheet(true)}
+            className="press flex max-w-[46%] items-center gap-1.5 rounded-full bg-black/40 px-3.5 py-2.5 text-xs font-bold text-white backdrop-blur-sm"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 shrink-0">
+              <path d="M9 18V5l12-2v13" strokeLinejoin="round" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+            <span className="truncate">{camSound ? camSound.title : 'Add sound'}</span>
+          </button>
+        ) : (
+          <span />
         )}
-        <div className="flex items-center gap-2">
+        <span className="w-10" />
+      </div>
+
+      {/* right tool rail — labeled, TikTok-style */}
+      {camState === 'live' && !recording && !soundSheet && (
+        <div className="absolute right-3 top-[21%] z-10 flex flex-col items-center gap-6">
+          <button
+            onClick={flip}
+            disabled={segments.length > 0 || counting != null}
+            className="flex flex-col items-center gap-1 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] disabled:opacity-40"
+            aria-label="Flip camera"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
+              <polyline points="1 4 1 10 7 10" />
+              <polyline points="23 20 23 14 17 14" />
+              <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+            </svg>
+            <span className="text-[10px] font-bold">Flip</span>
+          </button>
           <button
             onClick={() => setTimerSec((t) => (t === 0 ? 3 : t === 3 ? 10 : 0))}
-            aria-label="Countdown timer"
-            disabled={camState !== 'live' || recording || segments.length > 0}
-            className={`press flex h-10 items-center gap-1 rounded-full px-3 backdrop-blur-sm disabled:opacity-40 ${
-              timerSec > 0 ? 'bg-sig font-black text-ink' : 'bg-black/40 font-bold text-white'
+            disabled={segments.length > 0}
+            className={`flex flex-col items-center gap-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] disabled:opacity-40 ${
+              timerSec > 0 ? 'text-sig' : 'text-white'
             }`}
+            aria-label="Countdown timer"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4.5 w-4.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-6 w-6">
               <circle cx="12" cy="13" r="8" />
               <path strokeLinecap="round" d="M12 9v4l2.5 2.5M9 2h6" />
             </svg>
-            <span className="text-xs">{timerSec > 0 ? `${timerSec}s` : 'Timer'}</span>
+            <span className="text-[10px] font-bold">{timerSec > 0 ? `${timerSec}s` : 'Timer'}</span>
           </button>
           <button
             onClick={() => navigate('/create')}
+            className="flex flex-col items-center gap-1 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
             aria-label="Write a text drop instead"
-            className="press flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
           >
-            <span className="text-sm font-black">Aa</span>
-          </button>
-          <button
-            onClick={flip}
-            aria-label="Flip camera"
-            disabled={camState !== 'live' || recording}
-            className="press flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm disabled:opacity-40"
-          >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
-            <polyline points="1 4 1 10 7 10" />
-            <polyline points="23 20 23 14 17 14" />
-            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
-          </svg>
+            <span className="font-display text-[22px] font-black leading-none">Aa</span>
+            <span className="text-[10px] font-bold">Text</span>
           </button>
         </div>
-      </div>
+      )}
 
       {camState === 'starting' && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -585,27 +653,46 @@ export default function Camera() {
         <p className="absolute left-0 right-0 top-20 px-6 text-center text-sm font-bold text-red-400">{error}</p>
       )}
 
-      {/* segmented clip progress — Vine-style blocks filling to 5s */}
+      {/* segmented clip progress — one block per take, at the very top */}
       {camState === 'live' && (segments.length > 0 || recording) && (
-        <div className="absolute left-0 right-0 top-16 px-5">
-          <div key={segments.length} className="seg-pop flex h-1 gap-1">
+        <div className="absolute left-0 right-0 top-[6px] z-20 px-2">
+          <div key={segments.length} className="seg-pop flex h-[3px] gap-1">
             {segments.map((d, i) => (
               <div key={i} className="rounded-full bg-sig" style={{ flexGrow: Math.max(d, 0.05) }} />
             ))}
             {recording && (
               <div className="animate-pulse rounded-full bg-red-500" style={{ flexGrow: Math.max(elapsed - totalBanked, 0.05) }} />
             )}
-            <div className="rounded-full bg-white/25" style={{ flexGrow: Math.max(CLIP_MAX_SECONDS - elapsed, 0.02) }} />
+            <div className="rounded-full bg-white/25" style={{ flexGrow: Math.max(cap - elapsed, 0.02) }} />
           </div>
         </div>
       )}
 
       {/* bottom controls */}
-      {camState === 'live' && (
+      {camState === 'live' && !soundSheet && (
         <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/60 to-transparent px-4 pb-10 pt-12">
+          {/* duration row — directly above the record button */}
+          {!recording && segments.length === 0 && (
+            <div className="flex items-center gap-1 rounded-full bg-black/35 p-1 backdrop-blur-sm">
+              {CAPS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    setCap(c)
+                    capRef.current = c
+                  }}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+                    cap === c ? 'bg-white text-black' : 'text-white/75'
+                  }`}
+                >
+                  {c}s
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex w-full items-center justify-between">
             <div className="w-14">
-              {segments.length > 0 && !recording && (
+              {segments.length > 0 && !recording ? (
                 <button
                   onClick={discardAll}
                   aria-label="Discard clip"
@@ -615,7 +702,34 @@ export default function Camera() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" />
                   </svg>
                 </button>
-              )}
+              ) : !recording ? (
+                <button
+                  onClick={() => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = 'image/*,video/*'
+                    input.onchange = () => {
+                      const f = input.files?.[0]
+                      if (!f) return
+                      const kind = f.type.startsWith('video') ? 'video' : 'photo'
+                      setPendingRawMedia(f, f.name, kind)
+                      navigate(kind === 'photo' ? '/filter' : '/video')
+                    }
+                    input.click()
+                  }}
+                  className="flex flex-col items-center gap-1 text-white"
+                  aria-label="Upload from library"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border-2 border-white/80 bg-white/15">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                      <rect x="3" y="3" width="18" height="18" rx="3" />
+                      <circle cx="9" cy="9" r="1.6" />
+                      <path d="M21 15.5l-4.5-4.5L9 18.5" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span className="text-[10px] font-bold">Upload</span>
+                </button>
+              ) : null}
             </div>
             <div className="relative h-24 w-24">
               <svg viewBox="0 0 96 96" className="absolute inset-0 h-full w-full -rotate-90">
@@ -643,8 +757,8 @@ export default function Camera() {
                 style={{ touchAction: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
               >
                 <span
-                  className={`block h-14 w-14 rounded-full transition-all ${
-                    recording ? 'scale-90 bg-red-500' : 'bg-white'
+                  className={`block transition-all ${
+                    recording ? 'h-12 w-12 rounded-[16px] bg-red-500' : 'h-14 w-14 rounded-full bg-white'
                   }`}
                 />
               </button>
@@ -663,6 +777,42 @@ export default function Camera() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* sound picker sheet — the top pill opens this */}
+      {soundSheet && camState === 'live' && (
+        <div className="absolute inset-x-0 bottom-0 z-30 max-h-[62%] overflow-y-auto rounded-t-3xl border-t border-line bg-[#14131f]/[.98] px-4 pb-[max(env(safe-area-inset-bottom),18px)] pt-3 backdrop-blur">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-widest text-mute">Add sound</span>
+            <button
+              onClick={() => setSoundSheet(false)}
+              className="rounded-full bg-sig px-4 py-1.5 text-xs font-black text-ink"
+            >
+              Done
+            </button>
+          </div>
+          {camSound && (
+            <div className="mb-2 flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+              {camSound.coverUrl && <img src={camSound.coverUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-fog">{camSound.title}</span>
+                <span className="block truncate text-xs text-mute">{camSound.artist} · rides into your post</span>
+              </span>
+              <button
+                onClick={clearCamSound}
+                aria-label="Remove sound"
+                className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-black text-mute"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <MusicSearch onPick={pickCamSound} />
+          {soundHint && <p className="mt-1.5 text-xs font-bold text-butter">{soundHint}</p>}
+          <p className="pt-2 text-center text-xs text-mute">
+            Pick now, trim the part later in the editor.
+          </p>
         </div>
       )}
 
