@@ -18,12 +18,13 @@ function pickActiveVideo() {
   }
   for (const e of videoEntries) {
     if (e === best) {
-      // Warm the cache: the viewer reuses this URL, so preload the full
-      // clip once it's the active one instead of just metadata.
+      // Only the on-screen clip earns a full buffer; everyone else
+      // drops back to metadata so scrolling never fights for bandwidth.
       if (e.vid.preload !== 'auto') e.vid.preload = 'auto'
       e.vid.play().catch(() => {})
-    } else if (!e.vid.paused) {
-      e.vid.pause()
+    } else {
+      if (e.vid.preload !== 'metadata') e.vid.preload = 'metadata'
+      if (!e.vid.paused) e.vid.pause()
     }
   }
 }
@@ -73,30 +74,14 @@ export default function FeedVideo({
   const tapTimer = useRef<number | null>(null)
   const [muted, setMuted] = useState(true)
   const [failed, setFailed] = useState(false)
-  // Proximity gate: a <video> (and its decoder) only exists when the
-  // card is within ~700px of the viewport. Far away, the poster alone
-  // renders — that's what makes scrolling feel instant instead of
-  // juggling dozens of media elements.
-  const [near, setNear] = useState(false)
+  // The poster covers the video until it can actually play — starts
+  // read as instant instead of a frozen black frame (the IG trick).
+  // The player itself stays MOUNTED the whole time: creating and
+  // destroying media elements mid-scroll is what makes feeds stick.
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const wrap = wrapRef.current
-    if (!wrap || typeof IntersectionObserver === 'undefined') {
-      setNear(true)
-      return
-    }
-    const po = new IntersectionObserver(
-      (list) => {
-        for (const item of list) if (item.target === wrap) setNear(item.isIntersecting)
-      },
-      { rootMargin: '700px 0px' },
-    )
-    po.observe(wrap)
-    return () => po.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!near) return
+    setReady(false)
     const vid = ref.current
     const wrap = wrapRef.current
     const io = ensureVideoIo()
@@ -110,7 +95,7 @@ export default function FeedVideo({
       vid.pause()
       pickActiveVideo()
     }
-  }, [src, near])
+  }, [src])
 
   /** Open the in-app fullscreen viewer (replaces the old native player). */
   const expand = () => {
@@ -153,13 +138,6 @@ export default function FeedVideo({
 
   return (
     <div ref={wrapRef} className={`feed-video relative h-full ${className}`} style={{ containerType: 'inline-size' }}>
-      {!near ? (
-        poster ? (
-          <img src={poster} alt="" className="h-full w-full bg-black object-cover" draggable={false} />
-        ) : (
-          <div className="h-full w-full bg-black" />
-        )
-      ) : (
       <video
         ref={(el) => {
           ref.current = el
@@ -170,8 +148,9 @@ export default function FeedVideo({
         playsInline
         muted
         loop={!(trimStart > 0 || trimEnd != null)}
-        preload="auto"
+        preload="metadata"
         onError={() => setFailed(true)}
+        onCanPlay={() => setReady(true)}
         onClick={handleTap}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget
@@ -193,6 +172,16 @@ export default function FeedVideo({
         className="h-full w-full bg-black object-cover"
         style={{ filter: edit?.filterCss || undefined }}
       />
+      {poster && (
+        <img
+          src={poster}
+          alt=""
+          draggable={false}
+          onClick={handleTap}
+          className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+            ready ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
       )}
       {(edit?.texts ?? []).map((t) => (
         <span

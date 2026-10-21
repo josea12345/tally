@@ -8,6 +8,7 @@ export default function SoundChip({
   previewUrl,
   start = 0,
   end = null,
+  compact = false,
 }: {
   title: string
   artist: string | null
@@ -15,19 +16,21 @@ export default function SoundChip({
   previewUrl: string
   start?: number
   end?: number | null
+  /** Slim feed-card variant — hear the song without opening the drop. */
+  compact?: boolean
 }) {
   const seg = { start, end }
   const isPlaying = useSoundState(previewUrl, seg)
   const trimmed = start > 0 || end != null
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-2 px-3 py-2.5">
+    <div className={`flex items-center gap-3 rounded-2xl border border-line bg-ink-2 ${compact ? 'px-2.5 py-2' : 'px-3 py-2.5'}`}>
       <button
         onClick={() => toggleSound(previewUrl, seg)}
         aria-label={isPlaying ? `Pause ${title}` : `Play ${title}`}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
-          isPlaying ? 'bg-sig text-ink' : 'bg-ink-3 text-fog hover:text-sig'
-        }`}
+        className={`flex shrink-0 items-center justify-center rounded-full transition ${
+          compact ? 'h-8 w-8' : 'h-10 w-10'
+        } ${isPlaying ? 'bg-sig text-ink' : 'bg-ink-3 text-fog hover:text-sig'}`}
       >
         {isPlaying ? (
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
@@ -41,7 +44,7 @@ export default function SoundChip({
         )}
       </button>
       {coverUrl ? (
-        <img src={coverUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" />
+        <img src={coverUrl} alt="" className={`shrink-0 rounded-lg object-cover ${compact ? 'h-8 w-8' : 'h-10 w-10'}`} loading="lazy" />
       ) : null}
       <span className="min-w-0">
         <span className="block truncate text-sm font-bold">{title}</span>

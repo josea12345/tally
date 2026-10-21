@@ -10,6 +10,7 @@ import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from './ArtworkImage'
 import MediaViewer from './MediaViewer'
+import SoundChip from './SoundChip'
 import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
 import { safeExternalUrl } from '../lib/urls'
@@ -389,6 +390,21 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                   />
                 )
               }
+            />
+          </div>
+        )}
+
+        {/* soundtrack — hear it right here, no need to open the drop */}
+        {drop.sound_preview_url && (
+          <div className="px-4 pt-3">
+            <SoundChip
+              compact
+              title={drop.sound_title ?? 'Soundtrack'}
+              artist={drop.sound_artist}
+              coverUrl={drop.sound_cover_url}
+              previewUrl={drop.sound_preview_url}
+              start={drop.sound_start_sec ?? 0}
+              end={drop.sound_end_sec}
             />
           </div>
         )}
