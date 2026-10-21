@@ -25,7 +25,7 @@ export function getVideoDuration(blob: Blob): Promise<number> {
   })
 }
 
-interface RVFCVideo extends HTMLVideoElement {
+type RVFCHost = {
   requestVideoFrameCallback?: (cb: (now: number, meta: { mediaTime: number }) => void) => number
 }
 
@@ -39,8 +39,9 @@ interface RVFCVideo extends HTMLVideoElement {
  */
 export function probeTrueEnd(url: string, containerDuration: number): Promise<number | null> {
   return new Promise((resolve) => {
-    const v = document.createElement('video') as RVFCVideo
-    if (typeof v.requestVideoFrameCallback !== 'function') return resolve(null)
+    const v = document.createElement('video')
+    const rvfc = v as unknown as RVFCHost
+    if (typeof rvfc.requestVideoFrameCallback !== 'function') return resolve(null)
     v.muted = true
     v.playsInline = true
     v.preload = 'auto'
@@ -60,9 +61,9 @@ export function probeTrueEnd(url: string, containerDuration: number): Promise<nu
     }
     const cb = (_now: number, meta: { mediaTime: number }) => {
       last = meta.mediaTime
-      if (!done) v.requestVideoFrameCallback?.(cb)
+      if (!done) rvfc.requestVideoFrameCallback?.(cb)
     }
-    v.requestVideoFrameCallback(cb)
+    rvfc.requestVideoFrameCallback(cb)
     v.addEventListener('ended', () => finish(last > 0 ? last : null), { once: true })
     v.addEventListener('error', () => finish(null), { once: true })
     const rate = Math.min(16, Math.max(4, containerDuration / 1.2))
