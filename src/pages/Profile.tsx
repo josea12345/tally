@@ -12,6 +12,7 @@ import DropGrid from '../components/DropGrid'
 import { hiResArtwork } from '../components/ArtworkImage'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
+import ProfileMenu from '../components/ProfileMenu'
 import BadgeList from '../components/BadgeList'
 import Mascot from '../components/Mascot'
 import { GearIcon, CameraIcon } from '../components/icons'
@@ -481,6 +482,7 @@ export default function Profile({ id }: { id?: string }) {
               >
                 {profileCopied ? 'Copied!' : 'Share'}
               </button>
+              <ProfileMenu targetId={profile.id} handle={profile.username} />
             </div>
           )}
         </div>

@@ -315,6 +315,24 @@ export default function Settings() {
     }
   }, [profile?.is_admin])
 
+  // --- Change password -------------------------------------------------------
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const changePassword = async () => {
+    if (passwordBusy || newPassword.length < 8) return
+    setPasswordBusy(true)
+    setPasswordMsg(null)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setPasswordBusy(false)
+    if (error) {
+      setPasswordMsg({ ok: false, text: 'Could not update — try again in a moment.' })
+    } else {
+      setNewPassword('')
+      setPasswordMsg({ ok: true, text: 'Password updated.' })
+    }
+  }
+
   // --- Download my data ------------------------------------------------------
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -737,6 +755,35 @@ export default function Settings() {
           {leaving ? 'Logging out…' : 'Log out'}
         </button>
         <p className="mt-3 text-center text-xs text-mute">Logged in as @{profile?.username ?? '…'}</p>
+
+        <div className="mt-5 rounded-2xl border border-line bg-ink-2 p-4">
+          <p className="text-sm font-black">Change password</p>
+          <div className="mt-3 flex gap-2">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value)
+                setPasswordMsg(null)
+              }}
+              placeholder="New password (8+ characters)"
+              autoComplete="new-password"
+              className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2 text-sm outline-none focus:border-sig"
+            />
+            <button
+              onClick={changePassword}
+              disabled={newPassword.length < 8 || passwordBusy}
+              className="shrink-0 rounded-full bg-sig px-4 py-2 text-sm font-black text-ink disabled:opacity-40"
+            >
+              {passwordBusy ? 'Saving…' : 'Update'}
+            </button>
+          </div>
+          {passwordMsg && (
+            <p className={`mt-2 text-xs font-bold ${passwordMsg.ok ? 'text-win' : 'text-miss'}`}>
+              {passwordMsg.text}
+            </p>
+          )}
+        </div>
 
         {confirmingDelete ? (
           <div className="mt-5 rounded-2xl border border-miss/60 bg-miss/10 p-4">

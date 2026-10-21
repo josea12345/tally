@@ -16,6 +16,7 @@ import DropMap from '../components/DropMap'
 import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
 import OnboardingChecklist from '../components/OnboardingChecklist'
+import FollowingSuggestions from '../components/FollowingSuggestions'
 import EmptyState from '../components/EmptyState'
 
 type Tab = 'putons' | 'following' | 'near'
@@ -360,6 +361,15 @@ export default function Discover() {
     )
   }, [tab, topicDrops, following])
 
+  const topTopics = [...topicCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([key, count]) => ({
+      key,
+      count,
+      label: [...drops, ...topicDrops].find((d) => d.topic_key === key)?.title ?? key,
+    }))
+
   const visible = useMemo(() => {
     let list = drops
     if (tab === 'following') {
@@ -640,6 +650,12 @@ export default function Discover() {
           </button>
         } />
       ) : visible.length === 0 ? (
+        tab === 'following' && !debounced && (tastemakers.length > 0 || topTopics.length > 0) ? (
+          <FollowingSuggestions
+            people={tastemakers.filter((p) => p.id !== user?.id && !following.has(p.id)).slice(0, 5)}
+            topics={topTopics}
+          />
+        ) : (
         <EmptyState
           mood={debounced ? 'sleepy' : 'happy'}
           title={
@@ -666,6 +682,7 @@ export default function Discover() {
             </button>
           }
         />
+        )
       ) : tab === 'near' && nearView === 'map' ? (
         <DropMap drops={visible} center={effective} />
       ) : (
