@@ -284,6 +284,16 @@ export default function MediaViewer({
               const span = Math.max(end - regionStart, 0.01)
               setProgress(Math.min(1, Math.max(0, (v.currentTime - regionStart) / span)))
             }}
+            onEnded={(e) => {
+              // If the end slips past the region wrap, restart the
+              // region and the song together — never one without the other.
+              const v = e.currentTarget
+              v.currentTime = regionStart
+              v.play().catch(() => {})
+              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
+                playSound(sound.previewUrl, soundSeg, 0)
+              }
+            }}
             onError={() => setFailed(true)}
             style={{ ...mediaStyle, filter: edit?.filterCss || undefined }}
             className="h-full w-full object-contain"

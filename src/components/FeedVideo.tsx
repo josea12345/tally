@@ -226,11 +226,13 @@ export default function FeedVideo({
           }
         }}
         onEnded={(e) => {
-          if (trimStart > 0) {
-            e.currentTarget.currentTime = trimStart
-            e.currentTarget.play().catch(() => {})
-            if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
-          }
+          // Always loop the (possibly trimmed) region — a clip with an
+          // end-trim but no start-trim used to die here on its last
+          // frame while the song kept playing without it.
+          const v = e.currentTarget
+          v.currentTime = trimStart
+          v.play().catch(() => {})
+          if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
         }}
         className="h-full w-full bg-black object-cover"
         style={{ filter: edit?.filterCss || undefined }}
