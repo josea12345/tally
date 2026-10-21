@@ -7,14 +7,21 @@ export interface SoundSegment {
 }
 
 /**
- * One shared <audio> for drop soundtracks — only one preview plays at
- * a time app-wide, optionally looping just the chosen segment of it.
- * Components subscribe to (key, playing) changes via useSoundState.
+ * One shared <audio> for drop soundtracks — it behaves as the playing
+ * video's audio track: FeedVideo/MediaViewer start and pause it in
+ * sync with their <video> (offset-mapped into the chosen segment).
+ *
+ * Autoplay reality: browsers only let an <audio> element make sound
+ * after a user gesture, so the first pointerdown anywhere "unlocks"
+ * the element with a silent play; after that, programmatic play in
+ * sync with scrolling videos works for the session.
  */
 let audio: HTMLAudioElement | null = null
 let currentUrl: string | null = null
 let segment: SoundSegment | null = null
 let playing = false
+let mutedFlag = false
+let unlocked = false
 const listeners = new Set<() => void>()
 
 function keyFor(url: string, seg?: SoundSegment | null): string {
@@ -26,27 +33,20 @@ function emit() {
   for (const fn of listeners) fn()
 }
 
-function seekToStart() {
-  if (!audio || !segment) return
-  const start = segment.start
-  if (audio.readyState >= 1) {
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+
+function seekTo(pos: number) {
+  if (!audio) return
+  const apply = () => {
     try {
-      audio.currentTime = start
+      if (audio) audio.currentTime = pos
     } catch {
-      /* not seekable yet — the loadedmetadata path covers it */
+      /* ignore */
     }
-  } else {
-    const onMeta = () => {
-      if (audio && segment && segment.start === start) {
-        try {
-          audio.currentTime = start
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-    audio.addEventListener('loadedmetadata', onMeta, { once: true })
   }
+  if (audio.readyState >= 1) apply()
+  else audio.addEventListener('loadedmetadata', apply, { once: true })
 }
 
 function ensure(): HTMLAudioElement {
@@ -77,7 +77,6 @@ function ensure(): HTMLAudioElement {
     audio.addEventListener('timeupdate', () => {
       if (!audio || !segment) return
       if (segment.end != null && audio.currentTime >= segment.end) {
-        // Loop just the chosen part of the song.
         try {
           audio.currentTime = segment.start
         } catch {
@@ -91,27 +90,67 @@ function ensure(): HTMLAudioElement {
         }
       }
     })
+    // One-time unlock on the first tap anywhere in the app.
+    const unlock = () => {
+      window.removeEventListener('pointerdown', unlock)
+      if (unlocked || !audio) return
+      const a = audio
+      const prevSrc = a.src
+      a.muted = true
+      a.src = SILENT_WAV
+      a.play()
+        .then(() => {
+          a.pause()
+          a.muted = mutedFlag
+          unlocked = true
+          if (prevSrc) a.src = prevSrc
+          else a.removeAttribute('src')
+        })
+        .catch(() => {
+          a.muted = mutedFlag
+        })
+    }
+    window.addEventListener('pointerdown', unlock)
   }
   return audio
 }
 
-export function playSound(url: string, seg?: SoundSegment | null) {
+/** Segment length in seconds (preview tracks run ~30s). */
+export function segmentLength(seg: SoundSegment | null, fallback = 30): number {
+  if (!seg) return fallback
+  return seg.end != null ? Math.max(1, seg.end - seg.start) : fallback
+}
+
+/** Where in the track a video at `videoTime` should hear: mapped into the segment, looping. */
+export function segmentPosition(seg: SoundSegment | null, videoTime: number): number {
+  if (!seg) return 0
+  const len = segmentLength(seg)
+  return seg.start + (Math.max(0, videoTime) % len)
+}
+
+export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1) {
   const a = ensure()
   const key = keyFor(url, seg)
-  if (currentKey !== key) {
+  const fresh = currentKey !== key
+  if (fresh) {
     currentKey = key
     segment = seg ?? null
-    // Whole-track playback loops natively; segment looping is manual.
-    a.loop = !segment || segment.end == null ? true : false
-    if (segment && segment.end == null && segment.start > 0) a.loop = false
+    a.loop = !segment || (segment.end == null && segment.start === 0)
     if (currentUrl !== url) {
       currentUrl = url
       a.src = url
     }
-    seekToStart()
   }
+  // Seek on a fresh load, or whenever the caller passes an explicit
+  // video-synced offset; a plain resume (offset -1) stays in place.
+  if (fresh) seekTo(segmentPosition(seg ?? null, Math.max(0, offsetSec)))
+  else if (offsetSec >= 0) seekTo(segmentPosition(seg ?? null, offsetSec))
   if (a.paused) a.play().catch(() => {})
   emit()
+}
+
+export function pauseSound() {
+  if (audio && !audio.paused) audio.pause()
 }
 
 export function toggleSound(url: string, seg?: SoundSegment | null) {
@@ -124,7 +163,18 @@ export function toggleSound(url: string, seg?: SoundSegment | null) {
 }
 
 export function stopSound() {
-  if (audio && !audio.paused) audio.pause()
+  pauseSound()
+}
+
+/** True when this exact song+segment is the one loaded in the player. */
+export function isCurrentSound(url: string, seg?: SoundSegment | null): boolean {
+  return currentKey === keyFor(url, seg)
+}
+
+export function setSoundMuted(m: boolean) {
+  mutedFlag = m
+  if (audio) audio.muted = m
+  emit()
 }
 
 export function useSoundState(url: string | null, seg?: SoundSegment | null): boolean {
@@ -137,4 +187,16 @@ export function useSoundState(url: string | null, seg?: SoundSegment | null): bo
     }
   }, [])
   return !!url && currentKey === keyFor(url, seg) && playing
+}
+
+export function useSoundMuted(): boolean {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const fn = () => setTick((n) => n + 1)
+    listeners.add(fn)
+    return () => {
+      listeners.delete(fn)
+    }
+  }, [])
+  return mutedFlag
 }

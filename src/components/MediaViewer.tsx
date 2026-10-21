@@ -3,7 +3,7 @@ import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
 import { hiResArtwork } from './ArtworkImage'
-import { playSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
+import { isCurrentSound, pauseSound, playSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
 
 /**
  * TikTok-style fullscreen media viewer. One viewer for both photos and video:
@@ -261,6 +261,19 @@ export default function MediaViewer({
               const v = e.currentTarget
               if (edit?.speed) v.playbackRate = edit.speed
               if (regionStart > 0 && v.currentTime < regionStart) v.currentTime = regionStart
+            }}
+            onPlay={(e) => {
+              if (sound && soundSeg) {
+                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart))
+              }
+            }}
+            onPause={() => {
+              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) pauseSound()
+            }}
+            onSeeked={(e) => {
+              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
+                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart))
+              }
             }}
             onTimeUpdate={(e) => {
               const v = e.currentTarget

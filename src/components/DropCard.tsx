@@ -297,7 +297,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   return (
     <Reveal delay={revealDelay}>
-      <article onClick={open} className="relative cursor-pointer pb-8">
+      <article
+        onClick={open}
+        className="relative cursor-pointer pb-8 [content-visibility:auto] [contain-intrinsic-size:auto_640px]"
+      >
         {selfNote && (
           <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
             <span className="rounded-full bg-ink-3/95 px-4 py-2 text-xs font-bold text-fog shadow-lg">
@@ -378,7 +381,15 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                   <FeedVideo
                     src={it.url}
                     poster={it.posterUrl}
-                    hasSound={!!drop.sound_preview_url}
+                    sound={
+                      drop.sound_preview_url
+                        ? {
+                            previewUrl: drop.sound_preview_url,
+                            start: drop.sound_start_sec ?? 0,
+                            end: drop.sound_end_sec,
+                          }
+                        : null
+                    }
                     onDoubleTap={() => {
                       if (myVote !== 'W') doVote('W')
                     }}

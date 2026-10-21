@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { SoundOnIcon, SoundOffIcon } from './MediaViewer'
 import type { MediaEdit } from '../lib/types'
+import {
+  playSound,
+  pauseSound,
+  isCurrentSound,
+  setSoundMuted,
+  useSoundState,
+  useSoundMuted,
+  type SoundSegment,
+} from '../lib/sound'
 
 /**
  * One active video at a time across the whole feed (the TikTok rule):
@@ -18,13 +27,13 @@ function pickActiveVideo() {
   }
   for (const e of videoEntries) {
     if (e === best) {
-      // Only the on-screen clip earns a full buffer; everyone else
-      // drops back to metadata so scrolling never fights for bandwidth.
+      // Only the on-screen clip earns a full buffer. (Never downgrade
+      // preload back afterwards — flipping it makes browsers drop
+      // buffers, which reads as "stuck" on the way back.)
       if (e.vid.preload !== 'auto') e.vid.preload = 'auto'
       e.vid.play().catch(() => {})
-    } else {
-      if (e.vid.preload !== 'metadata') e.vid.preload = 'metadata'
-      if (!e.vid.paused) e.vid.pause()
+    } else if (!e.vid.paused) {
+      e.vid.pause()
     }
   }
 }
@@ -58,7 +67,7 @@ export default function FeedVideo({
   onDoubleTap,
   onExpand,
   edit,
-  hasSound = false,
+  sound = null,
 }: {
   src: string
   poster?: string | null
@@ -69,8 +78,8 @@ export default function FeedVideo({
   onExpand?: () => void
   /** Live-rendered edit (trim / speed / filter / text) from the clip editor. */
   edit?: MediaEdit | null
-  /** The drop has a soundtrack — it IS the audio; no native unmute badge. */
-  hasSound?: boolean
+  /** The drop's soundtrack — incorporated as this video's audio track. */
+  sound?: { previewUrl: string; start?: number; end?: number | null } | null
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -82,6 +91,26 @@ export default function FeedVideo({
   // The player itself stays MOUNTED the whole time: creating and
   // destroying media elements mid-scroll is what makes feeds stick.
   const [ready, setReady] = useState(false)
+  // Soundtrack state (incorporated audio): starts/stops with the video.
+  const seg: SoundSegment | null = sound
+    ? { start: sound.start ?? 0, end: sound.end ?? null }
+    : null
+  const songPlaying = useSoundState(sound?.previewUrl ?? null, seg)
+  const songMuted = useSoundMuted()
+  const songPlayingRef = useRef(songPlaying)
+  songPlayingRef.current = songPlaying
+  const soundRef = useRef(sound)
+  soundRef.current = sound
+  const segRef = useRef(seg)
+  segRef.current = seg
+  const stallTimer = useRef<number | null>(null)
+  const markReady = () => {
+    if (stallTimer.current) {
+      clearTimeout(stallTimer.current)
+      stallTimer.current = null
+    }
+    setReady(true)
+  }
 
   useEffect(() => {
     setReady(false)
@@ -96,6 +125,9 @@ export default function FeedVideo({
       videoEntries.delete(entry)
       io.unobserve(wrap)
       vid.pause()
+      const s = soundRef.current
+      const sg = segRef.current
+      if (s && sg && isCurrentSound(s.previewUrl, sg)) pauseSound()
       pickActiveVideo()
     }
   }, [src])
@@ -110,6 +142,17 @@ export default function FeedVideo({
     e.stopPropagation()
     const vid = ref.current
     if (!vid || failed) return
+    if (seg) {
+      // The soundtrack IS this video's audio: the badge starts it
+      // (synced to the picture) or mutes it.
+      if (!songPlaying) {
+        playSound(sound!.previewUrl, seg, Math.max(0, vid.currentTime - trimStart))
+        setSoundMuted(false)
+      } else {
+        setSoundMuted(!songMuted)
+      }
+      return
+    }
     const next = !muted
     setMuted(next)
     vid.muted = next
@@ -153,7 +196,22 @@ export default function FeedVideo({
         loop={!(trimStart > 0 || trimEnd != null)}
         preload="metadata"
         onError={() => setFailed(true)}
-        onCanPlay={() => setReady(true)}
+        onCanPlay={markReady}
+        onPlaying={markReady}
+        onWaiting={() => {
+          // A stall mid-scroll brings the poster back instead of
+          // freezing on a frame — reads as "loading", not "stuck".
+          if (stallTimer.current) clearTimeout(stallTimer.current)
+          stallTimer.current = window.setTimeout(() => setReady(false), 350)
+        }}
+        onPlay={(e) => {
+          if (seg && sound) {
+            playSound(sound.previewUrl, seg, Math.max(0, e.currentTarget.currentTime - trimStart))
+          }
+        }}
+        onPause={() => {
+          if (seg && sound && isCurrentSound(sound.previewUrl, seg)) pauseSound()
+        }}
         onClick={handleTap}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget
@@ -164,12 +222,14 @@ export default function FeedVideo({
           const v = e.currentTarget
           if (trimEnd != null && v.currentTime >= trimEnd) {
             v.currentTime = trimStart
+            if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
           }
         }}
         onEnded={(e) => {
           if (trimStart > 0) {
             e.currentTarget.currentTime = trimStart
             e.currentTarget.play().catch(() => {})
+            if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0)
           }
         }}
         className="h-full w-full bg-black object-cover"
@@ -201,15 +261,23 @@ export default function FeedVideo({
           {t.text}
         </span>
       ))}
-      {!hasSound && (
-        <button
-          onClick={toggleSound}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
-        >
-          {muted ? <SoundOffIcon className="h-3.5 w-3.5" /> : <SoundOnIcon className="h-3.5 w-3.5" />}
-        </button>
-      )}
+      <button
+        onClick={toggleSound}
+        aria-label={seg ? (songPlaying && !songMuted ? 'Mute song' : 'Play song') : muted ? 'Unmute' : 'Mute'}
+        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
+      >
+        {seg ? (
+          songPlaying && !songMuted ? (
+            <SoundOnIcon className="h-3.5 w-3.5" />
+          ) : (
+            <SoundOffIcon className="h-3.5 w-3.5" />
+          )
+        ) : muted ? (
+          <SoundOffIcon className="h-3.5 w-3.5" />
+        ) : (
+          <SoundOnIcon className="h-3.5 w-3.5" />
+        )}
+      </button>
     </div>
   )
 }
