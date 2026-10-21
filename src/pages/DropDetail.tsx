@@ -365,7 +365,7 @@ export default function DropDetail({ id }: { id: string }) {
       {dropMedia(drop).length > 0 && (
         <div className="relative border-b border-line px-4 py-3">
           {drop.sound_preview_url && (
-            <div className="absolute bottom-6 left-6 z-20">
+            <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
               <SoundPill
                 title={drop.sound_title ?? 'Soundtrack'}
                 artist={drop.sound_artist}

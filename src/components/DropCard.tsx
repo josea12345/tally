@@ -351,7 +351,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {items.length > 0 && (
           <div className="relative mt-3" onClick={(e) => e.stopPropagation()}>
             {drop.sound_preview_url && (
-              <div className="absolute bottom-[64px] left-3 z-20">
+              <div className="absolute bottom-[64px] left-1/2 z-20 -translate-x-1/2">
                 <SoundPill
                   title={drop.sound_title ?? 'Soundtrack'}
                   artist={drop.sound_artist}
