@@ -103,6 +103,9 @@ export default function FeedVideo({
   soundRef.current = sound
   const segRef = useRef(seg)
   segRef.current = seg
+  const entryRef = useRef<VideoEntry | null>(null)
+  const trimStartRef = useRef(0)
+  const trimEndRef = useRef<number | null>(null)
   const stallTimer = useRef<number | null>(null)
   const markReady = () => {
     if (stallTimer.current) {
@@ -119,6 +122,7 @@ export default function FeedVideo({
     const io = ensureVideoIo()
     if (!vid || !wrap || !io) return
     const entry: VideoEntry = { wrap, vid, ratio: 0 }
+    entryRef.current = entry
     videoEntries.add(entry)
     io.observe(wrap)
     return () => {
@@ -131,6 +135,34 @@ export default function FeedVideo({
       pickActiveVideo()
     }
   }, [src])
+
+  // Watchdog: event-driven looping (onEnded / timeupdate wraps) can
+  // lose the race at the end of a clip — the video sits on its last
+  // frame while the song loops on. If this clip is the on-screen one
+  // and it has ended or stalled paused at its end, restart picture
+  // and song together.
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const v = ref.current
+      const entry = entryRef.current
+      if (!v || !entry || entry.ratio < 0.45 || failed) return
+      const end = trimEndRef.current ?? (Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null)
+      if (end == null) return
+      const atEnd = v.ended || (v.paused && v.readyState >= 2 && v.currentTime >= end - 0.4)
+      if (!atEnd) return
+      try {
+        v.currentTime = trimStartRef.current
+      } catch {
+        /* not seekable yet */
+      }
+      v.play().catch(() => {})
+      const s = soundRef.current
+      const sg = segRef.current
+      if (s && sg && songPlayingRef.current) playSound(s.previewUrl, sg, 0)
+    }, 600)
+    return () => window.clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, failed])
 
   /** Open the in-app fullscreen viewer (replaces the old native player). */
   const expand = () => {
@@ -181,6 +213,8 @@ export default function FeedVideo({
 
   const trimStart = edit?.trimStart ?? 0
   const trimEnd = edit?.trimEnd ?? null
+  trimStartRef.current = trimStart
+  trimEndRef.current = trimEnd
 
   return (
     <div ref={wrapRef} className={`feed-video relative h-full ${className}`} style={{ containerType: 'inline-size' }}>
