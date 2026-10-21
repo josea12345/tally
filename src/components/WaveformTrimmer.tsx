@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getSoundSnapshot, playSound, toggleSound, useSoundState } from '../lib/sound'
+import { getSoundSnapshot, playSound, stopSound, toggleSound, useSoundState } from '../lib/sound'
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -56,33 +56,58 @@ function fallbackPeaks(url: string): number[] {
 }
 
 /**
- * TikTok-style sound trimmer: the selection window is exactly the
- * clip's length; drag the waveform to choose WHICH part of the song
- * plays. The chosen segment loops in sync with the clip everywhere.
+ * TikTok-style sound trimmer over the real waveform. Two modes:
+ * - Fixed window (video editor): the selection is exactly the clip's
+ *   length; drag to choose WHICH part of the song plays.
+ * - Free selection (photos / composer): drag the window's edges to
+ *   choose the part itself — any length from 1s to the whole preview.
  */
 export default function WaveformTrimmer({
   previewUrl,
   clipLength,
   start,
+  end: endProp,
   onChange,
 }: {
   previewUrl: string
-  /** Length of the (trimmed) video in seconds — the selection size. */
-  clipLength: number
+  /** Length of the (trimmed) video in seconds — the selection size.
+   *  Null/omitted = free selection using `end`. */
+  clipLength?: number | null
   start: number
-  /** Reports (start, end) — end is always start + clipLength, clamped. */
+  end?: number | null
+  /** Reports (start, end) — end is null when the selection reaches
+   *  the end of the preview. */
   onChange: (start: number, end: number | null) => void
 }) {
   const [duration, setDuration] = useState(30)
   const [peaks, setPeaks] = useState<number[] | null>(null)
   const stripRef = useRef<HTMLDivElement | null>(null)
-  const dragRef = useRef<{ pointerX: number; startAtDrag: number } | null>(null)
+  const dragRef = useRef<{ pointerX: number; startAtDrag: number; endAtDrag: number; mode: 'move' | 'left' | 'right' } | null>(null)
   const [playhead, setPlayhead] = useState<number | null>(null)
 
-  const winLen = Math.min(clipLength, duration)
+  const free = clipLength == null
+  // Free-mode hosts (photo editor, composer) own no playback session:
+  // don't strand a looping preview when this unmounts.
+  useEffect(
+    () => () => {
+      if (free) stopSound()
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  const rawEnd = free ? (endProp ?? duration) : 0
+  const winLen = free
+    ? Math.max(1, Math.min(rawEnd, duration) - Math.max(0, start))
+    : Math.min(clipLength, duration)
   const maxStart = Math.max(0, duration - winLen)
-  const clampedStart = Math.min(Math.max(0, start), maxStart)
-  const end = clampedStart + winLen >= duration - 0.05 ? null : clampedStart + winLen
+  const clampedStart = Math.min(Math.max(0, start), free ? Math.max(0, duration - 1) : maxStart)
+  const end = free
+    ? clampedStart + winLen >= duration - 0.05
+      ? null
+      : Math.round((clampedStart + winLen) * 2) / 2
+    : clampedStart + winLen >= duration - 0.05
+      ? null
+      : clampedStart + winLen
   const seg = { start: clampedStart, end }
   const isPlaying = useSoundState(previewUrl, seg)
 
@@ -109,9 +134,17 @@ export default function WaveformTrimmer({
   }, [previewUrl])
 
   // Keep the saved segment glued to the clip length / clamp range.
+  // (Free mode: the caller's start/end ARE the selection — only emit
+  // when the loaded duration makes them impossible.)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
   useEffect(() => {
+    if (free) {
+      if (start !== clampedStart || (endProp != null && endProp > duration)) {
+        onChangeRef.current(clampedStart, end)
+      }
+      return
+    }
     onChangeRef.current(clampedStart, end)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clampedStart, end])
@@ -129,14 +162,30 @@ export default function WaveformTrimmer({
     return () => window.clearInterval(t)
   }, [isPlaying, previewUrl])
 
+  const r2 = (n: number) => Math.round(n * 2) / 2
   const moveWindow = (clientX: number) => {
     const strip = stripRef.current
     const drag = dragRef.current
     if (!strip || !drag) return
     const rect = strip.getBoundingClientRect()
     const dx = ((clientX - drag.pointerX) / rect.width) * duration
-    const next = Math.min(maxStart, Math.max(0, drag.startAtDrag + dx))
-    onChangeRef.current(Math.round(next * 2) / 2, next + winLen >= duration - 0.05 ? null : Math.round((next + winLen) * 2) / 2)
+    const t = ((clientX - rect.left) / rect.width) * duration
+    if (!free) {
+      const next = Math.min(maxStart, Math.max(0, drag.startAtDrag + dx))
+      onChangeRef.current(r2(next), next + winLen >= duration - 0.05 ? null : r2(next + winLen))
+      return
+    }
+    if (drag.mode === 'left') {
+      const ns = Math.min(Math.max(0, t), drag.endAtDrag - 1)
+      onChangeRef.current(r2(ns), drag.endAtDrag >= duration - 0.05 ? null : r2(drag.endAtDrag))
+    } else if (drag.mode === 'right') {
+      const ne = Math.max(Math.min(duration, t), drag.startAtDrag + 1)
+      onChangeRef.current(r2(drag.startAtDrag), ne >= duration - 0.05 ? null : r2(ne))
+    } else {
+      const len = drag.endAtDrag - drag.startAtDrag
+      const ns = Math.min(Math.max(0, drag.startAtDrag + dx), Math.max(0, duration - len))
+      onChangeRef.current(r2(ns), ns + len >= duration - 0.05 ? null : r2(ns + len))
+    }
   }
 
   const winLeftPct = duration > 0 ? (clampedStart / duration) * 100 : 0
@@ -151,7 +200,9 @@ export default function WaveformTrimmer({
       <div className="flex items-baseline justify-between text-[10px] font-black uppercase tracking-widest text-mute">
         <span>Which part plays</span>
         <span className="tabular-nums normal-case tracking-normal">
-          {fmt(clampedStart)} / {fmt(duration)}
+          {free
+            ? `${fmt(clampedStart)} – ${fmt(clampedStart + winLen)} / ${fmt(duration)}`
+            : `${fmt(clampedStart)} / ${fmt(duration)}`}
         </span>
       </div>
 
@@ -160,8 +211,21 @@ export default function WaveformTrimmer({
         className="relative mt-2.5 h-16 touch-none select-none overflow-hidden rounded-xl bg-ink"
         onPointerDown={(e) => {
           ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-          dragRef.current = { pointerX: e.clientX, startAtDrag: clampedStart }
-          moveWindow(e.clientX)
+          const rect = stripRef.current?.getBoundingClientRect()
+          let mode: 'move' | 'left' | 'right' = 'move'
+          if (free && rect) {
+            const t = ((e.clientX - rect.left) / rect.width) * duration
+            const handleSec = (14 / rect.width) * duration
+            if (Math.abs(t - clampedStart) <= handleSec) mode = 'left'
+            else if (Math.abs(t - (clampedStart + winLen)) <= handleSec) mode = 'right'
+          }
+          dragRef.current = {
+            pointerX: e.clientX,
+            startAtDrag: clampedStart,
+            endAtDrag: clampedStart + winLen,
+            mode,
+          }
+          if (mode === 'move') moveWindow(e.clientX)
           playSound(previewUrl, seg)
         }}
         onPointerMove={(e) => {
@@ -195,6 +259,23 @@ export default function WaveformTrimmer({
           className="pointer-events-none absolute inset-y-0 rounded-lg border-2 border-fog/90"
           style={{ left: `${winLeftPct}%`, width: `${winWidthPct}%` }}
         />
+        {/* free-mode edge handles */}
+        {free && (
+          <>
+            <div
+              className="pointer-events-none absolute inset-y-1 z-10 flex w-3 items-center justify-center rounded-full bg-fog shadow"
+              style={{ left: `calc(${winLeftPct}% - 6px)` }}
+            >
+              <span className="h-5 w-[3px] rounded bg-ink/60" />
+            </div>
+            <div
+              className="pointer-events-none absolute inset-y-1 z-10 flex w-3 items-center justify-center rounded-full bg-fog shadow"
+              style={{ left: `calc(${winLeftPct + winWidthPct}% - 6px)` }}
+            >
+              <span className="h-5 w-[3px] rounded bg-ink/60" />
+            </div>
+          </>
+        )}
         {/* playhead */}
         {playheadPct != null && (
           <div
@@ -205,7 +286,9 @@ export default function WaveformTrimmer({
       </div>
 
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs font-bold text-mute">{Math.round(winLen)}s selected — your clip's length</span>
+        <span className="text-xs font-bold text-mute">
+          {Math.round(winLen)}s selected{free ? '' : " — your clip's length"}
+        </span>
         <button
           onClick={() => toggleSound(previewUrl, seg)}
           className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-black transition ${
@@ -225,7 +308,11 @@ export default function WaveformTrimmer({
           {isPlaying ? 'Stop' : 'Preview'}
         </button>
       </div>
-      <p className="mt-1.5 text-[11px] text-mute">Drag the waveform — the boxed part plays over your clip, on loop with it.</p>
+      <p className="mt-1.5 text-[11px] text-mute">
+        {free
+          ? 'Drag the edges to size the part, or the middle to move it — it loops under your post.'
+          : 'Drag the waveform — the boxed part plays over your clip, on loop with it.'}
+      </p>
     </div>
   )
 }

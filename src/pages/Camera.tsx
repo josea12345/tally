@@ -44,6 +44,9 @@ export default function Camera() {
   const pressStartRef = useRef(0)
   const segStartRef = useRef(0)
   const recordedMsRef = useRef(0)
+  /** Every banked take in file time, incl. deleted ones (kept=false). */
+  const fileSegsRef = useRef<Array<{ start: number; end: number; kept: boolean }>>([])
+  const fileMsRef = useRef(0)
   const facingRef = useRef<Facing>('environment')
 
   const [camState, setCamState] = useState<CamState>('starting')
@@ -330,7 +333,10 @@ export default function Camera() {
         chunksRef.current = []
         recRef.current = null
         if (keep && blob.size > 0) {
-          setPendingRawMedia(blob, 'clip.mp4', 'video')
+          const cuts = fileSegsRef.current
+            .filter((s) => !s.kept)
+            .map((s) => ({ start: s.start, end: s.end }))
+          setPendingRawMedia(blob, 'clip.mp4', 'video', cuts.length > 0 ? cuts : undefined)
           navigate('/video')
         }
       }
@@ -357,6 +363,8 @@ export default function Camera() {
     setSegments([])
     setElapsed(0)
     recordedMsRef.current = 0
+    fileSegsRef.current = []
+    fileMsRef.current = 0
     const rec = recRef.current
     discardRef.current = true
     if (rec && rec.state !== 'inactive') rec.stop()
@@ -445,6 +453,11 @@ export default function Camera() {
     if (!rec) return
     const segMs = Date.now() - segStartRef.current
     recordedMsRef.current += segMs
+    // File-time bookkeeping: the recorder only advances while rolling,
+    // so banked segments tile the file back to back.
+    const start = fileMsRef.current / 1000
+    fileMsRef.current += segMs
+    fileSegsRef.current.push({ start, end: fileMsRef.current / 1000, kept: true })
     setSegments((s) => [...s, segMs / 1000])
     setElapsed(recordedMsRef.current / 1000)
     try {
@@ -452,6 +465,21 @@ export default function Camera() {
     } catch {
       /* already stopped */
     }
+  }
+
+  /** Delete just the last take: it becomes a cut range in the edit
+   *  (every player skips it); the raw file keeps it, like every trim. */
+  const deleteLastSegment = () => {
+    const segs = fileSegsRef.current
+    for (let i = segs.length - 1; i >= 0; i--) {
+      if (!segs[i].kept) continue
+      segs[i].kept = false
+      recordedMsRef.current = Math.max(0, recordedMsRef.current - (segs[i].end - segs[i].start) * 1000)
+      setSegments((s) => s.slice(0, -1))
+      setElapsed(recordedMsRef.current / 1000)
+      break
+    }
+    if (!segs.some((s) => s.kept)) discardAll()
   }
 
   const onPressDown = (e: React.PointerEvent) => {
@@ -727,15 +755,28 @@ export default function Camera() {
           <div className="flex w-full items-center justify-between">
             <div className="w-14">
               {segments.length > 0 && !recording ? (
-                <button
-                  onClick={discardAll}
-                  aria-label="Discard clip"
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" />
-                  </svg>
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={deleteLastSegment}
+                    aria-label="Delete last take"
+                    className="flex h-10 items-center gap-1.5 rounded-full bg-black/40 px-3 text-white"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 14L4 9l5-5" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 9h9a7 7 0 017 7v1" />
+                    </svg>
+                    <span className="text-[11px] font-black">Last take</span>
+                  </button>
+                  <button
+                    onClick={discardAll}
+                    aria-label="Discard clip"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" />
+                    </svg>
+                  </button>
+                </div>
               ) : !recording ? (
                 <button
                   onClick={() => {

@@ -11,7 +11,7 @@ import {
 } from '../lib/filters'
 import { setPendingUpload, type SoundAttachment } from '../lib/pendingMedia'
 import MusicSearch from './MusicSearch'
-import SoundTrimmer from './SoundTrimmer'
+import WaveformTrimmer from './WaveformTrimmer'
 import type { MusicTrack } from '../lib/music'
 
 /**
@@ -236,7 +236,7 @@ export default function PhotoReview({
                   ✕
                 </button>
               </div>
-              <SoundTrimmer
+              <WaveformTrimmer
                 previewUrl={sound.previewUrl}
                 start={sound.start}
                 end={sound.end}

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Touch, TouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
-import { overlayTextStyle } from '../lib/filters'
+import { overlayTextStyle, textVisibleAt } from '../lib/filters'
 import { hiResArtwork } from './ArtworkImage'
 import { claimSound, isCurrentSound, pauseSound, playSound, releaseSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
+import { cutEndAt } from '../lib/video'
 
 /**
  * TikTok-style fullscreen media viewer. One viewer for both photos and video:
@@ -38,6 +39,8 @@ export default function MediaViewer({
   const [muted, setMuted] = useState(false)
   const [, setPlaying] = useState(true)
   const [progress, setProgress] = useState(0)
+  /** Edited-timeline position (seconds) — gates timed text overlays. */
+  const [posSec, setPosSec] = useState(0)
   const [flash, setFlash] = useState<'play' | 'pause' | 'w' | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -308,12 +311,21 @@ export default function MediaViewer({
             onTimeUpdate={(e) => {
               const v = e.currentTarget
               const end = regionEnd(v)
+              // Deleted takes: skip cut ranges (marked so the seeked
+              // handler doesn't treat the jump as a user scrub).
+              const jump = cutEndAt(edit?.cuts, v.currentTime)
+              if (jump != null && jump < end) {
+                wrapSeekRef.current = true
+                v.currentTime = jump
+                return
+              }
               if (end > regionStart && v.currentTime >= end - 0.02 && !v.paused) {
                 wrapSeekRef.current = true
                 v.currentTime = regionStart
               }
               const span = Math.max(end - regionStart, 0.01)
               setProgress(Math.min(1, Math.max(0, (v.currentTime - regionStart) / span)))
+              setPosSec(Math.max(0, v.currentTime - regionStart))
             }}
             onEnded={(e) => {
               // If the end slips past the region wrap, restart the
@@ -330,7 +342,9 @@ export default function MediaViewer({
             style={{ ...mediaStyle, filter: edit?.filterCss || undefined }}
             className="h-full w-full object-contain"
           />
-          {(edit?.texts ?? []).map((t) => (
+          {(edit?.texts ?? [])
+            .filter((t) => textVisibleAt(t, posSec))
+            .map((t) => (
             <span
               key={t.id}
               className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black text-white"

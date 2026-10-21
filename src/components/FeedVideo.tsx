@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { SoundOnIcon, SoundOffIcon } from './MediaViewer'
 import type { MediaEdit } from '../lib/types'
-import { overlayTextStyle } from '../lib/filters'
+import { overlayTextStyle, textVisibleAt } from '../lib/filters'
+import { cutEndAt } from '../lib/video'
 import {
   playSound,
   pauseSound,
@@ -103,6 +104,16 @@ export default function FeedVideo({
   const soundRef = useRef(sound)
   soundRef.current = sound
   const editRef = useRef(edit)
+  /** Timed text overlays: visibility is synced by direct style writes
+   *  (the feed must not re-render per frame). */
+  const textElsRef = useRef(new Map<string, HTMLSpanElement>())
+  const syncTexts = (v: HTMLVideoElement) => {
+    const pos = Math.max(0, v.currentTime - trimStartRef.current)
+    for (const t of editRef.current?.texts ?? []) {
+      const el = textElsRef.current.get(t.id)
+      if (el) el.style.opacity = textVisibleAt(t, pos) ? '1' : '0'
+    }
+  }
   editRef.current = edit
   const segRef = useRef(seg)
   segRef.current = seg
@@ -257,6 +268,16 @@ export default function FeedVideo({
         }}
         onTimeUpdate={(e) => {
           const v = e.currentTarget
+          syncTexts(v)
+          // Deleted takes: skip cut ranges (and pull the song along).
+          const jump = cutEndAt(edit?.cuts, v.currentTime)
+          if (jump != null && (trimEnd == null || jump < trimEnd)) {
+            v.currentTime = jump
+            if (seg && sound && songPlayingRef.current) {
+              playSound(sound.previewUrl, seg, Math.max(0, jump - trimStart), edit?.soundVolume)
+            }
+            return
+          }
           if (trimEnd != null && v.currentTime >= trimEnd) {
             v.currentTime = trimStart
             if (seg && sound && songPlayingRef.current) playSound(sound.previewUrl, seg, 0, edit?.soundVolume)
@@ -288,12 +309,17 @@ export default function FeedVideo({
       {(edit?.texts ?? []).map((t) => (
         <span
           key={t.id}
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black"
+          ref={(el) => {
+            if (el) textElsRef.current.set(t.id, el)
+            else textElsRef.current.delete(t.id)
+          }}
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black transition-opacity duration-200"
           style={{
             left: `${t.x * 100}%`,
             top: `${t.y * 100}%`,
             ...overlayTextStyle(t, 0),
             fontSize: `${7 * t.scale}cqw`,
+            opacity: textVisibleAt(t, 0) ? 1 : 0,
           }}
         >
           {t.text}

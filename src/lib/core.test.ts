@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { parseHashString } from './routes'
 import { tasteScoreFor, trustScoreFor, winRateFor, WIN_RATE_MINIMUM } from './stats'
-import { scaleFilterCss } from './filters'
+import { scaleFilterCss, textVisibleAt, type TextOverlay } from './filters'
+import { cutEndAt, keptSeconds } from './video'
 import { segmentPosition } from './sound'
 
 describe('tasteScoreFor (Wilson lower bound)', () => {
@@ -103,5 +104,45 @@ describe('segmentPosition', () => {
   })
   it('route parser stays wired (smoke)', () => {
     expect(parseHashString('#/drop/x').name).toBe('drop')
+  })
+})
+
+describe('cutEndAt / keptSeconds (deleted takes)', () => {
+  const cuts = [
+    { start: 5, end: 10 },
+    { start: 20, end: 22 },
+  ]
+  it('returns the cut end inside a cut, null outside', () => {
+    expect(cutEndAt(cuts, 7)).toBe(10)
+    expect(cutEndAt(cuts, 5)).toBe(10)
+    expect(cutEndAt(cuts, 10)).toBeNull()
+    expect(cutEndAt(cuts, 3)).toBeNull()
+    expect(cutEndAt(undefined, 7)).toBeNull()
+  })
+  it('keptSeconds subtracts only the overlap', () => {
+    expect(keptSeconds(0, 30, cuts)).toBe(23)
+    expect(keptSeconds(0, 6, cuts)).toBe(5)
+    expect(keptSeconds(12, 18, cuts)).toBe(6)
+    expect(keptSeconds(0, 30, undefined)).toBe(30)
+  })
+})
+
+describe('textVisibleAt (timed overlays)', () => {
+  const base: TextOverlay = { id: 'x', text: 'hi', x: 0.5, y: 0.5, color: '#fff', scale: 1 }
+  it('untimed text is always visible', () => {
+    expect(textVisibleAt(base, 0)).toBe(true)
+    expect(textVisibleAt(base, 42)).toBe(true)
+  })
+  it('windowed text shows only inside [start, end]', () => {
+    const t = { ...base, start: 2, end: 5 }
+    expect(textVisibleAt(t, 1.9)).toBe(false)
+    expect(textVisibleAt(t, 2)).toBe(true)
+    expect(textVisibleAt(t, 5)).toBe(true)
+    expect(textVisibleAt(t, 5.1)).toBe(false)
+  })
+  it('null end means until the clip ends', () => {
+    const t = { ...base, start: 3, end: null }
+    expect(textVisibleAt(t, 2)).toBe(false)
+    expect(textVisibleAt(t, 99)).toBe(true)
   })
 })

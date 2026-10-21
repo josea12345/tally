@@ -11,7 +11,8 @@ import LinkChips from '../components/LinkChips'
 import SoundChip from '../components/SoundChip'
 import SoundPill from '../components/SoundPill'
 import { getSoundSnapshot, isCurrentSound, pauseSound, playSound } from '../lib/sound'
-import { overlayTextStyle } from '../lib/filters'
+import { cutEndAt } from '../lib/video'
+import { overlayTextStyle, textVisibleAt } from '../lib/filters'
 import MediaCarousel from '../components/MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
@@ -33,6 +34,8 @@ import ReminderButton from '../components/ReminderButton'
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
   const [drop, setDrop] = useState<Drop | null>(null)
+  /** Per-video edited-timeline position — gates timed text overlays. */
+  const [videoPos, setVideoPos] = useState<Record<string, number>>({})
   const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
   const [myVerdict, setMyVerdict] = useState<Verdict | null>(null)
   const [saved, setSaved] = useState(false)
@@ -415,6 +418,17 @@ export default function DropDetail({ id }: { id: string }) {
                     }}
                     onTimeUpdate={(e) => {
                       const v = e.currentTarget
+                      const pos = Math.max(0, v.currentTime - (it.edit?.trimStart ?? 0))
+                      setVideoPos((m) =>
+                        Math.abs((m[it.url] ?? 0) - pos) > 0.15 ? { ...m, [it.url]: pos } : m,
+                      )
+                      // Deleted takes: skip cut ranges; the song
+                      // resyncs at the loop point, drift is bounded.
+                      const jump = cutEndAt(it.edit?.cuts, v.currentTime)
+                      if (jump != null && (it.edit?.trimEnd == null || jump < it.edit.trimEnd)) {
+                        v.currentTime = jump
+                        return
+                      }
                       if (it.edit?.trimEnd != null && v.currentTime >= it.edit.trimEnd) {
                         v.currentTime = it.edit.trimStart ?? 0
                         if (soundSeg && getSoundSnapshot().playing) {
@@ -431,7 +445,9 @@ export default function DropDetail({ id }: { id: string }) {
                       }
                     }}
                   />
-                  {(it.edit?.texts ?? []).map((t) => (
+                  {(it.edit?.texts ?? [])
+                    .filter((t) => textVisibleAt(t, videoPos[it.url] ?? 0))
+                    .map((t) => (
                     <span
                       key={t.id}
                       className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-black"

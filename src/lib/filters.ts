@@ -12,6 +12,17 @@ export interface TextOverlay {
   font?: string
   /** Background block behind the text (TikTok-style). */
   bg?: boolean
+  /** When the text is on screen, in edited-timeline seconds (0 = the
+   *  clip's first frame after trimming). Absent/null = whole clip. */
+  start?: number | null
+  end?: number | null
+}
+
+/** Is this overlay visible at edited-timeline position `pos`? */
+export function textVisibleAt(t: TextOverlay, pos: number): boolean {
+  if (t.start != null && pos < t.start) return false
+  if (t.end != null && pos > t.end) return false
+  return true
 }
 
 export const OVERLAY_COLORS = ['#FFFFFF', '#45C8FF', '#FFD166', '#FF5D6E', '#7CFFB2', '#191725']

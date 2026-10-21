@@ -30,6 +30,31 @@ type RVFCHost = {
 }
 
 /**
+ * If file-time `t` falls inside a cut range, where does playback jump
+ * to? Returns the cut's end, or null when `t` isn't cut. Players call
+ * this from their timeupdate handlers so deleted takes never show.
+ */
+export function cutEndAt(cuts: Array<{ start: number; end: number }> | undefined, t: number): number | null {
+  if (!cuts) return null
+  for (const c of cuts) {
+    if (t >= c.start && t < c.end) return c.end
+  }
+  return null
+}
+
+/** Total seconds of [start, end) NOT covered by any cut. */
+export function keptSeconds(start: number, end: number, cuts: Array<{ start: number; end: number }> | undefined): number {
+  let total = Math.max(0, end - start)
+  if (!cuts) return total
+  for (const c of cuts) {
+    const lo = Math.max(start, c.start)
+    const hi = Math.min(end, c.end)
+    if (hi > lo) total -= hi - lo
+  }
+  return Math.max(0, total)
+}
+
+/**
  * Does this clip actually contain an audio track? Safari exposes
  * `audioTracks` on media elements; elsewhere we play a moment at
  * volume 0 and watch the decoded-byte counter. Returns null when the

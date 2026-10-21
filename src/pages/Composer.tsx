@@ -17,7 +17,7 @@ import { fetchOmdbRating } from '../lib/omdb'
 import { successHaptic } from '../lib/haptics'
 import { takePendingUpload, getDraftMedia, setDraftMedia, clearDraftMedia, getDraftSound, setDraftSound, clearDraftSound } from '../lib/pendingMedia'
 import { takeSharedContent } from '../lib/shareTarget'
-import SoundTrimmer from '../components/SoundTrimmer'
+import WaveformTrimmer from '../components/WaveformTrimmer'
 import { topicKeyFor } from '../lib/format'
 import { safeExternalUrl, normalizePastedUrl } from '../lib/urls'
 import EmptyState from '../components/EmptyState'
@@ -646,7 +646,7 @@ export default function Composer({ editId }: { editId?: string }) {
                   ✕
                 </button>
               </div>
-              <SoundTrimmer
+              <WaveformTrimmer
                 previewUrl={sound.previewUrl}
                 start={sound.start}
                 end={sound.end}

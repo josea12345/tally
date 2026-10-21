@@ -9,7 +9,7 @@ import WaveformTrimmer from '../components/WaveformTrimmer'
 import FilmTrim from '../components/FilmTrim'
 import type { MusicTrack } from '../lib/music'
 import { claimSound, isCurrentSound, pauseSound, playSound, releaseSound, stopSound } from '../lib/sound'
-import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration, probeHasAudio, probeTrueEnd } from '../lib/video'
+import { CLIP_MAX_SECONDS, cutEndAt, formatDuration, getVideoDuration, keptSeconds, probeHasAudio, probeTrueEnd } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
   PHOTO_FILTERS,
@@ -17,6 +17,7 @@ import {
   TEXT_FONTS,
   overlayTextStyle,
   scaleFilterCss,
+  textVisibleAt,
   type TextOverlay,
 } from '../lib/filters'
 import type { MediaEdit } from '../lib/types'
@@ -66,6 +67,10 @@ export default function VideoReview() {
   const [origVol, setOrigVol] = useState(1)
   const [soundVol, setSoundVol] = useState(1)
   const [phantomTail, setPhantomTail] = useState<number | null>(null)
+  /** Takes the camera deleted (cut ranges in file time). */
+  const [cuts, setCuts] = useState<Array<{ start: number; end: number }>>([])
+  const cutsRef = useRef<Array<{ start: number; end: number }>>([])
+  cutsRef.current = cuts
   /** Whether the clip really contains an audio track (null = can't tell). */
   const [hasAudio, setHasAudio] = useState<boolean | null>(null)
   const [texts, setTexts] = useState<TextOverlay[]>([])
@@ -92,6 +97,7 @@ export default function VideoReview() {
     setBlob(pending.blob)
     setName(pending.name)
     setObjectUrl(url)
+    if (pending.cuts && pending.cuts.length > 0) setCuts(pending.cuts)
     probeHasAudio(url)
       .then(setHasAudio)
       .catch(() => {})
@@ -128,7 +134,7 @@ export default function VideoReview() {
   }, [])
 
   const end = trimEnd ?? duration ?? 0
-  const outLen = duration != null ? (end - trimStart) / speed : 0
+  const outLen = duration != null ? keptSeconds(trimStart, end, cuts) / speed : 0
   const outTooLong = outLen > CLIP_MAX_SECONDS + 0.5
   const cleanTexts = texts.filter((t) => t.text.trim().length > 0)
   const dirty =
@@ -139,6 +145,7 @@ export default function VideoReview() {
     (filterId !== 'normal' && filterIntensity !== 1) ||
     origVol !== 1 ||
     soundVol !== 1 ||
+    cuts.length > 0 ||
     cleanTexts.length > 0
 
   useEffect(() => {
@@ -192,6 +199,14 @@ export default function VideoReview() {
   const onTimeUpdate = () => {
     const vid = previewRef.current
     if (!vid) return
+    // Skip deleted takes in the preview, like every player will.
+    if (!vid.paused) {
+      const jump = cutEndAt(cutsRef.current, vid.currentTime)
+      if (jump != null && jump < end - 0.02) {
+        vid.currentTime = jump
+        return
+      }
+    }
     if (!vid.paused && vid.currentTime >= end - 0.02 && duration != null) {
       vid.currentTime = trimStart
       // Loop point: the song restarts its part with the picture.
@@ -314,6 +329,14 @@ export default function VideoReview() {
             ...(cleanTexts.length > 0 ? { texts: cleanTexts } : {}),
             ...(origVol !== 1 ? { origVolume: Math.round(origVol * 100) / 100 } : {}),
             ...(soundVol !== 1 && sound ? { soundVolume: Math.round(soundVol * 100) / 100 } : {}),
+            ...(cuts.length > 0
+              ? {
+                  cuts: cuts.map((c) => ({
+                    start: Math.round(c.start * 100) / 100,
+                    end: Math.round(c.end * 100) / 100,
+                  })),
+                }
+              : {}),
           }
         : null
       const posterUrl = await captureCover()
@@ -391,7 +414,9 @@ export default function VideoReview() {
             className="max-h-full w-auto max-w-full"
             style={{ filter: previewFilterCss === 'none' ? undefined : previewFilterCss }}
           />
-          {texts.map((t) => (
+          {texts
+            .filter((t) => t.id === selText || textVisibleAt(t, scrub - trimStart))
+            .map((t) => (
             <span
               key={t.id}
               onPointerDown={(e) => onOverlayDown(e, t.id)}
@@ -730,6 +755,75 @@ export default function VideoReview() {
                       ))}
                     </span>
                   </div>
+                  {/* timing: when this text is on screen */}
+                  {(() => {
+                    const regionLen = Math.max(1, Math.round((end - trimStart) * 10) / 10)
+                    const appear = selected.start ?? 0
+                    const disappear = selected.end ?? regionLen
+                    const timed = selected.start != null || selected.end != null
+                    const r1 = (n: number) => Math.round(n * 10) / 10
+                    return (
+                      <div className="mt-3 border-t border-line pt-3">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-widest text-mute">Timing</span>
+                          {timed ? (
+                            <button
+                              onClick={() => patchText(selected.id, { start: null, end: null })}
+                              className="text-[11px] font-black text-sig"
+                            >
+                              Reset — whole clip
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-bold text-mute">Whole clip</span>
+                          )}
+                        </div>
+                        <div className="mb-1 flex justify-between text-[11px] font-bold text-mute">
+                          <span>Appears at</span>
+                          <span className="tabular-nums">{formatDuration(appear)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={regionLen}
+                          step={0.1}
+                          value={appear}
+                          onChange={(e) => {
+                            const v = r1(parseFloat(e.target.value))
+                            const patch: { start: number | null; end?: number | null } = {
+                              start: v <= 0.05 ? null : v,
+                            }
+                            if (disappear <= v) patch.end = v + 0.5 >= regionLen ? null : r1(v + 0.5)
+                            patchText(selected.id, patch)
+                          }}
+                          className="w-full accent-sig"
+                          aria-label="Text appears at"
+                        />
+                        <div className="mb-1 flex justify-between text-[11px] font-bold text-mute">
+                          <span>Disappears at</span>
+                          <span className="tabular-nums">
+                            {selected.end == null ? 'End of clip' : formatDuration(disappear)}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={regionLen}
+                          step={0.1}
+                          value={disappear}
+                          onChange={(e) => {
+                            const v = r1(parseFloat(e.target.value))
+                            if (v >= regionLen - 0.05) patchText(selected.id, { end: null })
+                            else if (v > appear) patchText(selected.id, { end: v })
+                          }}
+                          className="w-full accent-sig"
+                          aria-label="Text disappears at"
+                        />
+                        <p className="text-[11px] text-mute">
+                          The preview shows the text only while the playhead is inside its window.
+                        </p>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </div>

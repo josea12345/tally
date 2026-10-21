@@ -204,6 +204,9 @@ export interface MediaEdit {
   /** Volume mix (0..1): the clip's own audio vs the added soundtrack. */
   origVolume?: number
   soundVolume?: number
+  /** Ranges (file-time seconds) cut out of the clip — the camera's
+   *  deleted takes. Players skip them; the raw file keeps everything. */
+  cuts?: Array<{ start: number; end: number }>
 }
 
 export interface CarouselItem {

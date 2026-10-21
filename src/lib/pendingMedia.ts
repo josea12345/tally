@@ -4,6 +4,8 @@ export interface PendingRawMedia {
   blob: Blob
   name: string
   kind: 'photo' | 'video'
+  /** Camera-deleted takes (file-time ranges) for the video editor. */
+  cuts?: Array<{ start: number; end: number }>
 }
 
 export interface PendingUpload {
@@ -28,8 +30,13 @@ export interface SoundAttachment {
 let raw: PendingRawMedia | null = null
 let upload: PendingUpload | null = null
 
-export function setPendingRawMedia(blob: Blob, name: string, kind: 'photo' | 'video') {
-  raw = { blob, name, kind }
+export function setPendingRawMedia(
+  blob: Blob,
+  name: string,
+  kind: 'photo' | 'video',
+  cuts?: Array<{ start: number; end: number }>,
+) {
+  raw = { blob, name, kind, cuts }
 }
 
 export function takePendingRawMedia(): PendingRawMedia | null {
