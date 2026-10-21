@@ -1,5 +1,55 @@
 /** Instagram-style color filters, baked into the photo via canvas before upload. */
 
+/** A text sticker placed on media — positions are normalized 0..1. */
+export interface TextOverlay {
+  id: string
+  text: string
+  x: number
+  y: number
+  color: string
+  scale: number
+}
+
+export const OVERLAY_COLORS = ['#FFFFFF', '#45C8FF', '#FFD166', '#FF5D6E', '#7CFFB2', '#191725']
+
+/** Draw text stickers onto a canvas at normalized positions. */
+export function drawTextOverlays(
+  ctx: CanvasRenderingContext2D,
+  texts: TextOverlay[],
+  w: number,
+  h: number,
+  sizeBasis: number = h,
+) {
+  for (const t of texts) {
+    const clean = t.text.trim()
+    if (!clean) continue
+    const size = Math.max(14, Math.round(sizeBasis * 0.062 * t.scale))
+    ctx.font = `900 ${size}px system-ui, -apple-system, 'Segoe UI', sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.lineWidth = Math.max(3, size / 7)
+    ctx.strokeStyle = 'rgba(10,10,18,0.85)'
+    const x = t.x * w
+    const y = t.y * h
+    ctx.strokeText(clean, x, y)
+    ctx.fillStyle = t.color
+    ctx.fillText(clean, x, y)
+  }
+}
+
+/** Canvas 2D filters are missing on older Safari — detect before offering them for video. */
+export function canvasFilterSupported(): boolean {
+  try {
+    const c = document.createElement('canvas')
+    const ctx = c.getContext('2d')
+    if (!ctx) return false
+    ctx.filter = 'grayscale(1)'
+    return ctx.filter === 'grayscale(1)'
+  } catch {
+    return false
+  }
+}
+
 export interface PhotoFilter {
   id: string
   name: string
@@ -19,7 +69,12 @@ export const PHOTO_FILTERS: PhotoFilter[] = [
 ]
 
 /** Render the blob through the filter on canvas and return a JPEG blob. */
-export function applyFilterToBlob(blob: Blob, css: string): Promise<Blob> {
+export function applyFilterToBlob(
+  blob: Blob,
+  css: string,
+  texts: TextOverlay[] = [],
+  textSizeBasis?: number,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
     const img = new Image()
@@ -33,6 +88,8 @@ export function applyFilterToBlob(blob: Blob, css: string): Promise<Blob> {
         if (!ctx) throw new Error('Canvas unavailable')
         if (css && css !== 'none') ctx.filter = css
         ctx.drawImage(img, 0, 0)
+        ctx.filter = 'none'
+        drawTextOverlays(ctx, texts, canvas.width, canvas.height, textSizeBasis ?? canvas.height)
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Could not process that photo.'))),
           'image/jpeg',

@@ -45,6 +45,12 @@ export default function Camera() {
   const [reviewBlob, setReviewBlob] = useState<Blob | null>(null) // photo under review (in-place, no page hop)
   const [flash, setFlash] = useState(false)
   const flashTimer = useRef<number | null>(null)
+  // countdown timer: 0 = off, else seconds before the shot/record starts
+  const [timerSec, setTimerSec] = useState(0)
+  const [counting, setCounting] = useState<number | null>(null)
+  const countdownIvRef = useRef<number | null>(null)
+  const pressTimerRef = useRef<number | null>(null)
+  const toggleRecRef = useRef(false) // recording started by countdown: tap again to stop
   // pinch zoom (software — iOS Safari exposes no hardware zoom control)
   const [zoom, setZoom] = useState(1)
   const [zoomFlash, setZoomFlash] = useState(false)
@@ -130,6 +136,8 @@ export default function Camera() {
       teardownPipe()
       if (flashTimer.current) clearTimeout(flashTimer.current)
       if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current)
+      if (countdownIvRef.current) window.clearInterval(countdownIvRef.current)
+      if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, user])
@@ -337,9 +345,88 @@ export default function Camera() {
     )
   }
 
+  const clearCountdown = () => {
+    if (countdownIvRef.current) window.clearInterval(countdownIvRef.current)
+    countdownIvRef.current = null
+    setCounting(null)
+  }
+
+  /** Big-number countdown, then fire `then` (photo or record start). */
+  const runCountdown = (seconds: number, then: () => void) => {
+    clearCountdown()
+    setCounting(seconds)
+    let n = seconds
+    countdownIvRef.current = window.setInterval(() => {
+      n -= 1
+      if (n <= 0) {
+        clearCountdown()
+        then()
+      } else {
+        setCounting(n)
+      }
+    }, 1000)
+  }
+
+  /** Start (or resume) the segment recorder and the progress ring. */
+  const startSegmentRecording = () => {
+    const rec = ensureRecorder()
+    if (!rec) return false
+    try {
+      segStartRef.current = Date.now()
+      if (rec.state === 'paused') rec.resume()
+      else if (rec.state === 'inactive') rec.start(250)
+      setRecording(true)
+      rafRef.current = requestAnimationFrame(tick)
+      return true
+    } catch {
+      setError('Video recording is not supported here — try a photo instead.')
+      return false
+    }
+  }
+
+  /** Release-to-pause: bank the current segment. */
+  const bankSegment = () => {
+    const rec = recRef.current
+    cancelAnimationFrame(rafRef.current)
+    setRecording(false)
+    if (!rec) return
+    const segMs = Date.now() - segStartRef.current
+    recordedMsRef.current += segMs
+    setSegments((s) => [...s, segMs / 1000])
+    setElapsed(recordedMsRef.current / 1000)
+    try {
+      if (rec.state === 'recording') rec.pause()
+    } catch {
+      /* already stopped */
+    }
+  }
+
   const onPressDown = (e: React.PointerEvent) => {
     e.preventDefault()
+    if (counting != null) {
+      // a press during the countdown cancels it
+      clearCountdown()
+      return
+    }
+    if (recording && toggleRecRef.current) {
+      toggleRecRef.current = false
+      bankSegment()
+      return
+    }
     if (camState !== 'live' || recording) return
+    if (timerSec > 0 && segments.length === 0) {
+      // Timer mode: a quick tap counts down to a photo; holding counts
+      // down to a hands-free recording (tap again to stop it).
+      pressStartRef.current = Date.now()
+      pressTimerRef.current = window.setTimeout(() => {
+        pressTimerRef.current = null
+        runCountdown(timerSec, () => {
+          toggleRecRef.current = true
+          if (!startSegmentRecording()) toggleRecRef.current = false
+        })
+      }, TAP_MS)
+      return
+    }
     pressStartRef.current = Date.now()
     segStartRef.current = Date.now()
     const rec = ensureRecorder()
@@ -355,6 +442,15 @@ export default function Camera() {
   }
 
   const onPressUp = () => {
+    if (counting != null) return
+    if (pressTimerRef.current) {
+      // released before the hold threshold in timer mode: photo countdown
+      window.clearTimeout(pressTimerRef.current)
+      pressTimerRef.current = null
+      runCountdown(timerSec, takePhoto)
+      return
+    }
+    if (toggleRecRef.current) return // countdown recording stops on the next press
     if (!recording) return
     const pressMs = Date.now() - pressStartRef.current
     const rec = recRef.current
@@ -383,7 +479,7 @@ export default function Camera() {
   }
 
   const flip = () => {
-    if (recording || segments.length > 0) return
+    if (recording || segments.length > 0 || counting != null) return
     setFacing((f) => (f === 'environment' ? 'user' : 'environment'))
   }
 
@@ -407,6 +503,16 @@ export default function Camera() {
         style={{ transform: `${facing === 'user' ? 'scaleX(-1) ' : ''}scale(${zoom})` }}
       />
       {flash && <div className="flash-out pointer-events-none absolute inset-0 z-20 bg-white" />}
+      {counting != null && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <span
+            key={counting}
+            className="seg-pop font-display text-[120px] font-black text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
+          >
+            {counting}
+          </span>
+        </div>
+      )}
       {zoomFlash && zoom > 1.01 && (
         <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-black text-white backdrop-blur-sm">
           {zoom.toFixed(1)}×
@@ -431,6 +537,20 @@ export default function Camera() {
           </div>
         )}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTimerSec((t) => (t === 0 ? 3 : t === 3 ? 10 : 0))}
+            aria-label="Countdown timer"
+            disabled={camState !== 'live' || recording || segments.length > 0}
+            className={`press flex h-10 items-center gap-1 rounded-full px-3 backdrop-blur-sm disabled:opacity-40 ${
+              timerSec > 0 ? 'bg-sig font-black text-ink' : 'bg-black/40 font-bold text-white'
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4.5 w-4.5">
+              <circle cx="12" cy="13" r="8" />
+              <path strokeLinecap="round" d="M12 9v4l2.5 2.5M9 2h6" />
+            </svg>
+            <span className="text-xs">{timerSec > 0 ? `${timerSec}s` : 'Timer'}</span>
+          </button>
           <button
             onClick={() => navigate('/create')}
             aria-label="Write a text drop instead"
