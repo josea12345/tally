@@ -26,7 +26,7 @@ export async function shareDrop(drop: Drop): Promise<'shared' | 'copied' | 'dism
     }
   }
   try {
-    await navigator.clipboard.writeText(url)
+    await (navigator as Navigator).clipboard.writeText(url)
     return 'copied'
   } catch {
     return 'failed'

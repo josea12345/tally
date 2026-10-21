@@ -28,36 +28,14 @@ import Leaderboard from './pages/Leaderboard'
 import ListPage from './pages/ListPage'
 import Camera from './pages/Camera'
 
-export interface Route {
-  name: 'home' | 'auth' | 'onboarding' | 'drop' | 'create' | 'edit' | 'filter' | 'video' | 'camera' | 'saved' | 'profile' | 'people' | 'search' | 'notifications' | 'settings' | 'followers' | 'following' | 'topic' | 'leaderboard' | 'list'
-  param?: string
-}
+import { parseHashString } from './lib/routes'
+import type { Route } from './lib/routes'
+
+export type { Route }
+export { parseHashString }
 
 export function parseHash(): Route {
-  const h = window.location.hash.replace(/^#/, '') || '/'
-  const parts = h.split('/').filter(Boolean)
-  if (parts.length === 0) return { name: 'home' }
-  const [a, b] = parts
-  if (a === 'drop' && b) return { name: 'drop', param: b }
-  if (a === 'topic' && b) return { name: 'topic', param: decodeURIComponent(b) }
-  if (a === 'edit' && b) return { name: 'edit', param: b }
-  if (a === 'followers' && b) return { name: 'followers', param: b }
-  if (a === 'following' && b) return { name: 'following', param: b }
-  if (a === 'profile' && b) return { name: 'profile', param: decodeURIComponent(b) }
-  if (a === 'profile') return { name: 'profile' }
-  if (a === 'create') return { name: 'create' }
-  if (a === 'filter') return { name: 'filter' }
-  if (a === 'video') return { name: 'video' }
-  if (a === 'camera') return { name: 'camera' }
-  if (a === 'saved') return { name: 'saved' }
-  if (a === 'search') return { name: 'search' }
-  if (a === 'leaderboard') return { name: 'leaderboard' }
-  if (a === 'list' && b) return { name: 'list', param: b }
-  if (a === 'notifications') return { name: 'notifications' }
-  if (a === 'settings') return { name: 'settings' }
-  if (a === 'onboarding') return { name: 'onboarding' }
-  if (a === 'auth') return { name: 'auth' }
-  return { name: 'home' }
+  return parseHashString(window.location.hash)
 }
 
 export function navigate(path: string) {

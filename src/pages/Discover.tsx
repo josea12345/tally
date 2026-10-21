@@ -263,7 +263,7 @@ export default function Discover() {
           .gte('created_at', railSince)
         if (!live) return
         const perAuthor = new Map<string, Verdict[]>()
-        for (const v of (railVerdicts ?? []) as Array<Verdict & { drop: { author_id: string } }>) {
+        for (const v of (railVerdicts ?? []) as unknown as Array<Verdict & { drop: { author_id: string } }>) {
           const a = v.drop.author_id
           if (!perAuthor.has(a)) perAuthor.set(a, [])
           perAuthor.get(a)!.push(v)

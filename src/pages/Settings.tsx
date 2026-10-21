@@ -166,7 +166,7 @@ export default function Settings() {
       .eq('followee_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (live) setRequests((data ?? []) as FollowRequest[])
+        if (live) setRequests((data ?? []) as unknown as FollowRequest[])
       })
     supabase
       .from('blocks')
@@ -174,7 +174,7 @@ export default function Settings() {
       .eq('blocker_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (live) setBlocked((data ?? []) as BlockedRow[])
+        if (live) setBlocked((data ?? []) as unknown as BlockedRow[])
       })
     return () => {
       live = false

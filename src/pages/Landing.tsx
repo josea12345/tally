@@ -285,7 +285,6 @@ function DemoCard() {
     setTimeout(() => setSlam(null), 450)
   }
 
-  const total = wins + losses
   const score = tasteScoreFor(wins, losses)
 
   return (

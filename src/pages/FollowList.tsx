@@ -48,7 +48,7 @@ export default function FollowList({ profileId, kind }: { profileId: string; kin
       ])
       if (!live) return
       setOwner((p ?? null) as Profile | null)
-      const list = ((rel ?? []) as Array<{ follower?: Row | null; followee?: Row | null }>)
+      const list = ((rel ?? []) as unknown as Array<{ follower?: Row | null; followee?: Row | null }>)
         .map((r) => (tab === 'followers' ? r.follower : r.followee))
         .filter((x): x is Row => !!x)
       setRows(list)

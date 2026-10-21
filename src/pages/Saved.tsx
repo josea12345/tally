@@ -50,7 +50,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
         .order('created_at', { ascending: false })
         .limit(200)
       if (!live) return
-      const list = ((data ?? []) as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
+      const list = ((data ?? []) as unknown as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
       setDrops(list)
       if (list.length > 0) {
         // Which of my tallies have I actually tried? (verdicts.tried)

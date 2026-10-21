@@ -36,7 +36,7 @@ export default function MediaViewer({
   const tapTimer = useRef<number | null>(null)
   const flashTimer = useRef<number | null>(null)
   const [muted, setMuted] = useState(false)
-  const [playing, setPlaying] = useState(true)
+  const [, setPlaying] = useState(true)
   const [progress, setProgress] = useState(0)
   const [flash, setFlash] = useState<'play' | 'pause' | 'w' | null>(null)
   const [failed, setFailed] = useState(false)
