@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import type { CarouselItem } from '../lib/types'
 import { overlayTextStyle } from '../lib/filters'
 import { hiResArtwork } from './ArtworkImage'
-import { isCurrentSound, pauseSound, playSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
+import { claimSound, isCurrentSound, pauseSound, playSound, releaseSound, stopSound, toggleSound as togglePreview, useSoundState } from '../lib/sound'
 
 /**
  * TikTok-style fullscreen media viewer. One viewer for both photos and video:
@@ -29,6 +29,10 @@ export default function MediaViewer({
 }) {
   const isVideo = item.type === 'video'
   const vidRef = useRef<HTMLVideoElement | null>(null)
+  /** Set before the player's own seeks (loop wrap, restart) so the
+   *  seeked handler doesn't mistake them for a user scrub and yank
+   *  the song to a new position mid-play. */
+  const wrapSeekRef = useRef(false)
   const tapTimer = useRef<number | null>(null)
   const flashTimer = useRef<number | null>(null)
   const [muted, setMuted] = useState(false)
@@ -103,16 +107,29 @@ export default function MediaViewer({
     }
   }
 
-  // Soundtrack: auto-play the drop's preview while the viewer is open;
-  // stop it when the viewer closes.
+  // Soundtrack: photos autoplay the drop's preview while the viewer
+  // is open; videos start it themselves via onPlay so the song lands
+  // with the picture instead of racing it. Stop on close.
   const soundSeg = sound ? { start: sound.start ?? 0, end: sound.end ?? null } : null
   const soundPlaying = useSoundState(sound?.previewUrl ?? null, soundSeg)
   useEffect(() => {
-    if (!sound) return
-    playSound(sound.previewUrl, soundSeg, -1, edit?.soundVolume)
-    return () => stopSound()
+    if (!sound || isVideo) return
+    playSound(sound.previewUrl, soundSeg, -1, edit?.soundVolume, 'viewer')
+    return () => stopSound('viewer')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sound?.previewUrl, sound?.start, sound?.end])
+  }, [sound?.previewUrl, sound?.start, sound?.end, isVideo])
+
+  // While the viewer is open it exclusively drives the soundtrack —
+  // a feed video still playing underneath must not restart the song.
+  useEffect(() => {
+    if (!sound) return
+    claimSound('viewer')
+    return () => {
+      stopSound('viewer')
+      releaseSound('viewer')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sound?.previewUrl])
 
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
@@ -226,10 +243,10 @@ export default function MediaViewer({
         <button
           onClick={(e) => {
             e.stopPropagation()
-            togglePreview(sound.previewUrl, soundSeg)
+            togglePreview(sound.previewUrl, soundSeg, 'viewer')
           }}
           aria-label={soundPlaying ? 'Mute soundtrack' : 'Play soundtrack'}
-          className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-xs font-black text-white backdrop-blur-md"
+          className="absolute left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-xs font-black text-white backdrop-blur-md"
         >
           {soundPlaying ? (
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
@@ -262,25 +279,37 @@ export default function MediaViewer({
               const v = e.currentTarget
               v.volume = edit?.origVolume ?? 1
               if (edit?.speed) v.playbackRate = edit.speed
-              if (regionStart > 0 && v.currentTime < regionStart) v.currentTime = regionStart
+              if (regionStart > 0 && v.currentTime < regionStart) {
+                wrapSeekRef.current = true
+                v.currentTime = regionStart
+              }
             }}
             onPlay={(e) => {
               if (sound && soundSeg) {
-                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart), edit?.soundVolume)
+                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart), edit?.soundVolume, 'viewer')
               }
             }}
             onPause={() => {
-              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) pauseSound()
+              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) pauseSound('viewer')
             }}
             onSeeked={(e) => {
-              if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
-                playSound(sound.previewUrl, soundSeg, Math.max(0, e.currentTarget.currentTime - regionStart), edit?.soundVolume)
+              // The player's own seeks (loop wrap, restart, open jump)
+              // are marked — only a real user scrub resyncs the song,
+              // and only while the video is actually playing.
+              if (wrapSeekRef.current) {
+                wrapSeekRef.current = false
+                return
+              }
+              const v = e.currentTarget
+              if (sound && soundSeg && !v.paused && isCurrentSound(sound.previewUrl, soundSeg)) {
+                playSound(sound.previewUrl, soundSeg, Math.max(0, v.currentTime - regionStart), edit?.soundVolume, 'viewer')
               }
             }}
             onTimeUpdate={(e) => {
               const v = e.currentTarget
               const end = regionEnd(v)
               if (end > regionStart && v.currentTime >= end - 0.02 && !v.paused) {
+                wrapSeekRef.current = true
                 v.currentTime = regionStart
               }
               const span = Math.max(end - regionStart, 0.01)
@@ -290,10 +319,11 @@ export default function MediaViewer({
               // If the end slips past the region wrap, restart the
               // region and the song together — never one without the other.
               const v = e.currentTarget
+              wrapSeekRef.current = true
               v.currentTime = regionStart
               v.play().catch(() => {})
               if (sound && soundSeg && isCurrentSound(sound.previewUrl, soundSeg)) {
-                playSound(sound.previewUrl, soundSeg, 0, edit?.soundVolume)
+                playSound(sound.previewUrl, soundSeg, 0, edit?.soundVolume, 'viewer')
               }
             }}
             onError={() => setFailed(true)}

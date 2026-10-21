@@ -8,7 +8,7 @@ import MusicSearch from '../components/MusicSearch'
 import WaveformTrimmer from '../components/WaveformTrimmer'
 import FilmTrim from '../components/FilmTrim'
 import type { MusicTrack } from '../lib/music'
-import { isCurrentSound, pauseSound, playSound, stopSound } from '../lib/sound'
+import { claimSound, isCurrentSound, pauseSound, playSound, releaseSound, stopSound } from '../lib/sound'
 import { CLIP_MAX_SECONDS, formatDuration, getVideoDuration, probeHasAudio, probeTrueEnd } from '../lib/video'
 import { captureFrameFromElement } from '../lib/poster'
 import {
@@ -54,7 +54,7 @@ export default function VideoReview() {
     setSound({ title: t.name, artist: t.artists, previewUrl: t.preview, coverUrl: t.image, start: 0, end: null })
     const vid = previewRef.current
     if (vid && !vid.paused) {
-      playSound(t.preview, { start: 0, end: null }, Math.max(0, vid.currentTime - trimStart), soundVol)
+      playSound(t.preview, { start: 0, end: null }, Math.max(0, vid.currentTime - trimStart), soundVol, 'editor')
     }
   }
   // --- edit state ---
@@ -117,9 +117,14 @@ export default function VideoReview() {
     return () => URL.revokeObjectURL(url)
   }, [user])
 
-  // Leaving the editor silences its soundtrack preview.
+  // While the editor is open it exclusively drives the soundtrack;
+  // leaving silences its preview and hands the song back.
   useEffect(() => {
-    return () => stopSound()
+    claimSound('editor')
+    return () => {
+      stopSound('editor')
+      releaseSound('editor')
+    }
   }, [])
 
   const end = trimEnd ?? duration ?? 0
@@ -191,7 +196,7 @@ export default function VideoReview() {
       vid.currentTime = trimStart
       // Loop point: the song restarts its part with the picture.
       if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) {
-        playSound(sound.previewUrl, { start: sound.start, end: sound.end }, 0, soundVol)
+        playSound(sound.previewUrl, { start: sound.start, end: sound.end }, 0, soundVol, 'editor')
       }
     }
     if (!vid.paused && !scrubbingRef.current) {
@@ -375,12 +380,12 @@ export default function VideoReview() {
             onPlay={() => {
               setPlaying(true)
               if (sound) {
-                playSound(sound.previewUrl, { start: sound.start, end: sound.end }, Math.max(0, (previewRef.current?.currentTime ?? trimStart) - trimStart), soundVol)
+                playSound(sound.previewUrl, { start: sound.start, end: sound.end }, Math.max(0, (previewRef.current?.currentTime ?? trimStart) - trimStart), soundVol, 'editor')
               }
             }}
             onPause={() => {
               setPlaying(false)
-              if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) pauseSound()
+              if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) pauseSound('editor')
             }}
             onTimeUpdate={onTimeUpdate}
             className="max-h-full w-auto max-w-full"
@@ -742,7 +747,7 @@ export default function VideoReview() {
                     </span>
                     <button
                       onClick={() => {
-                        if (isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) stopSound()
+                        if (isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) stopSound('editor')
                         setSound(null)
                       }}
                       aria-label="Remove soundtrack"
@@ -783,7 +788,7 @@ export default function VideoReview() {
                     const vid = previewRef.current
                     if (vid && !muted) vid.volume = o
                     if (isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) {
-                      playSound(sound.previewUrl, { start: sound.start, end: sound.end }, -1, s)
+                      playSound(sound.previewUrl, { start: sound.start, end: sound.end }, -1, s, 'editor')
                     }
                   }
                   return (
@@ -861,7 +866,7 @@ export default function VideoReview() {
                     const v = parseInt(e.target.value, 10) / 100
                     setSoundVol(v)
                     if (sound && isCurrentSound(sound.previewUrl, { start: sound.start, end: sound.end })) {
-                      playSound(sound.previewUrl, { start: sound.start, end: sound.end }, -1, v)
+                      playSound(sound.previewUrl, { start: sound.start, end: sound.end }, -1, v, 'editor')
                     }
                   }}
                   className="w-full accent-butter disabled:opacity-40"

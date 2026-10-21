@@ -22,6 +22,24 @@ let segment: SoundSegment | null = null
 let playing = false
 let mutedFlag = false
 let volumeLevel = 1
+/**
+ * Exclusive driver: while an owner is claimed (the fullscreen viewer,
+ * the editor), sound calls from anyone else are ignored — a feed video
+ * still playing under an overlay must not restart the song mid-play.
+ */
+let soundOwner: string | null = null
+
+export function claimSound(owner: string) {
+  soundOwner = owner
+}
+
+export function releaseSound(owner: string) {
+  if (soundOwner === owner) soundOwner = null
+}
+
+function mayDrive(owner?: string): boolean {
+  return soundOwner == null || owner === soundOwner
+}
 let unlocked = false
 const listeners = new Set<() => void>()
 
@@ -130,7 +148,8 @@ export function segmentPosition(seg: SoundSegment | null, videoTime: number): nu
   return seg.start + (Math.max(0, videoTime) % len)
 }
 
-export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1, volume?: number) {
+export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1, volume?: number, owner?: string) {
+  if (!mayDrive(owner)) return
   const a = ensure()
   if (volume != null) setSoundVolume(volume)
   const key = keyFor(url, seg)
@@ -152,21 +171,23 @@ export function playSound(url: string, seg?: SoundSegment | null, offsetSec = -1
   emit()
 }
 
-export function pauseSound() {
+export function pauseSound(owner?: string) {
+  if (!mayDrive(owner)) return
   if (audio && !audio.paused) audio.pause()
 }
 
-export function toggleSound(url: string, seg?: SoundSegment | null) {
+export function toggleSound(url: string, seg?: SoundSegment | null, owner?: string) {
+  if (!mayDrive(owner)) return
   const a = ensure()
   if (currentKey === keyFor(url, seg) && !a.paused) {
     a.pause()
     return
   }
-  playSound(url, seg)
+  playSound(url, seg, -1, undefined, owner)
 }
 
-export function stopSound() {
-  pauseSound()
+export function stopSound(owner?: string) {
+  pauseSound(owner)
 }
 
 /** True when this exact song+segment is the one loaded in the player. */
