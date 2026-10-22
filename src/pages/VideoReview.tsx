@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { IMMUTABLE_CACHE_CONTROL } from '../lib/media'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import { SoundOffIcon, SoundOnIcon } from '../components/MediaViewer'
@@ -303,7 +304,7 @@ export default function VideoReview() {
       const ppath = `${user.id}/${crypto.randomUUID()}.jpg`
       const { error: pErr } = await supabase.storage
         .from('drop-media')
-        .upload(ppath, poster, { contentType: 'image/jpeg', upsert: false })
+        .upload(ppath, poster, { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE_CONTROL, upsert: false })
       if (pErr) throw pErr
       return supabase.storage.from('drop-media').getPublicUrl(ppath).data.publicUrl
     } catch {
@@ -344,7 +345,7 @@ export default function VideoReview() {
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`
       const { error: upErr } = await supabase.storage
         .from('drop-media')
-        .upload(path, blob, { contentType: blob.type || 'video/mp4', upsert: false })
+        .upload(path, blob, { contentType: blob.type || 'video/mp4', cacheControl: IMMUTABLE_CACHE_CONTROL, upsert: false })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
       setPendingUpload({ url: data.publicUrl, type: 'video', posterUrl, edit, sound })

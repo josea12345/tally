@@ -17,6 +17,7 @@ import MediaCarousel from '../components/MediaCarousel'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
 import { dropMedia } from '../lib/types'
+import { deleteDropFiles, fetchVerdictProofUrls } from '../lib/media'
 import { shareDrop } from '../lib/share'
 import { tapHaptic } from '../lib/haptics'
 import EmptyState from '../components/EmptyState'
@@ -300,7 +301,11 @@ export default function DropDetail({ id }: { id: string }) {
     if (!window.confirm('Delete this drop? This cannot be undone.')) return
     setDeleting(true)
     try {
+      // Verdict rows (and their proof photos) cascade away with the
+      // drop — grab the proof URLs first so the files can go too.
+      const proofUrls = await fetchVerdictProofUrls(drop.id)
       await supabase.from('drops').delete().eq('id', drop.id)
+      await deleteDropFiles(drop, proofUrls)
       navigate('/')
     } finally {
       setDeleting(false)

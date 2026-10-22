@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { IMMUTABLE_CACHE_CONTROL } from '../lib/media'
 import { MAX_CAROUSEL_ITEMS } from '../lib/types'
 import { prepareImageForUpload } from '../lib/image'
 
@@ -144,6 +145,7 @@ export default function MediaUpload({
           const path = `${userId}/${crypto.randomUUID()}.${ext}`
           const { error: upErr } = await supabase.storage.from('drop-media').upload(path, payload, {
             contentType: isVideo ? file.type : 'image/jpeg',
+            cacheControl: IMMUTABLE_CACHE_CONTROL,
             upsert: false,
           })
           if (upErr) throw upErr

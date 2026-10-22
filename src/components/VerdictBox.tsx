@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { IMMUTABLE_CACHE_CONTROL } from '../lib/media'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Drop, DropStats, Verdict } from '../lib/types'
 import { navigate } from '../App'
@@ -73,7 +74,7 @@ export default function VerdictBox({ drop, stats, myVerdict, onChanged }: Props)
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`
       const { error: upErr } = await supabase.storage
         .from('drop-media')
-        .upload(path, file, { contentType: file.type, upsert: false })
+        .upload(path, file, { contentType: file.type, cacheControl: IMMUTABLE_CACHE_CONTROL, upsert: false })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
       const { error } = await supabase.from('verdicts').upsert(

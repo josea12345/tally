@@ -7,6 +7,7 @@ import { useBadges } from '../lib/useBadges'
 import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
 import { getChoice, setChoice, type ThemeChoice } from '../lib/theme'
 import { deleteAccount } from '../lib/account'
+import { deleteDropFiles, fetchVerdictProofUrls } from '../lib/media'
 import { timeAgo } from '../lib/format'
 
 interface FollowRequest {
@@ -241,8 +242,20 @@ export default function Settings() {
   const deleteReportedDrop = async (r: ReportRow) => {
     if (!r.drop_id) return
     setActingReport(r.id)
+    // Fetch media fields + verdict proofs first so the drop's files
+    // can be removed with it (best effort — storage policies may
+    // still refuse for another user's files, which is fine).
+    const [{ data: dropRow }, proofUrls] = await Promise.all([
+      supabase
+        .from('drops')
+        .select('id, media_url, media_urls, media_poster_url, media_poster_urls')
+        .eq('id', r.drop_id)
+        .maybeSingle(),
+      fetchVerdictProofUrls(r.drop_id),
+    ])
     const { error } = await supabase.from('drops').delete().eq('id', r.drop_id)
     if (!error) {
+      if (dropRow) void deleteDropFiles(dropRow, proofUrls)
       await supabase.from('reports').update({ status: 'actioned' }).eq('id', r.id)
       setReports((rs) => (rs ?? []).filter((x) => x.id !== r.id))
     }

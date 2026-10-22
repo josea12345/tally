@@ -29,13 +29,18 @@ function pickActiveVideo() {
   }
   for (const e of videoEntries) {
     if (e === best) {
-      // Only the on-screen clip earns a full buffer. (Never downgrade
-      // preload back afterwards — flipping it makes browsers drop
-      // buffers, which reads as "stuck" on the way back.)
+      // Only the on-screen clip earns a full buffer.
       if (e.vid.preload !== 'auto') e.vid.preload = 'auto'
       e.vid.play().catch(() => {})
-    } else if (!e.vid.paused) {
-      e.vid.pause()
+    } else {
+      if (!e.vid.paused) e.vid.pause()
+      // Off-screen clips hand their buffer back. A feed full of
+      // fully-buffered videos is what storage egress bills for —
+      // browsers re-requesting ranges on mounted-but-unwatched
+      // clips was a prime suspect in the Oct 2026 quota blowout.
+      // Coming back re-buffers from the poster frame, which reads
+      // as a normal load, not a stall.
+      if (e.ratio <= 0 && e.vid.preload !== 'metadata') e.vid.preload = 'metadata'
     }
   }
 }

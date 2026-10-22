@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { IMMUTABLE_CACHE_CONTROL } from '../lib/media'
 import { useAuth } from '../context/AuthContext'
 import {
   PHOTO_FILTERS,
@@ -128,7 +129,7 @@ export default function PhotoReview({
       const path = `${user.id}/${crypto.randomUUID()}.jpg`
       const { error: upErr } = await supabase.storage
         .from('drop-media')
-        .upload(path, filtered, { contentType: 'image/jpeg', upsert: false })
+        .upload(path, filtered, { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE_CONTROL, upsert: false })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('drop-media').getPublicUrl(path)
       setPendingUpload({ url: data.publicUrl, type: 'photo', sound })
