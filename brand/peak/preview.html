@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body { margin:0; font-family:"Liberation Sans","DejaVu Sans",sans-serif; }
+  .panel { padding:56px 64px; }
+  .dark { background:#0A0D18; }
+  .light { background:#FFFFFF; }
+  .iconpanel { background:#141824; display:flex; gap:48px; align-items:center; }
+  .label { font-size:20px; letter-spacing:.18em; text-transform:uppercase; opacity:.45; margin-bottom:28px; font-weight:700;}
+  .dark .label { color:#fff } .light .label { color:#000 } .iconpanel .label { color:#fff }
+</style></head>
+<body>
+
+<div class="panel dark">
+  <div class="label">Wordmark — dark</div>
+  <svg width="780" height="286" viewBox="0 0 520 220">
+    <text x="76" y="160" font-size="128" font-weight="700" letter-spacing="2" fill="#F5F8FF">PE</text>
+    <!-- back peak -->
+    <path d="M 312 160 L 336 100 L 360 160 Z" fill="#45C8FF" opacity="0.35"/>
+    <!-- mountain A -->
+    <path d="M 254 160 L 300 68 L 311 92 L 322 78 L 352 160 Z" fill="#45C8FF"/>
+    <!-- snowcap -->
+    <path d="M 300 68 L 311 92 L 303 87 L 298 95 L 292 85 L 288 92 Z" fill="#FFFFFF"/>
+    <text x="360" y="160" font-size="128" font-weight="700" letter-spacing="2" fill="#F5F8FF">K</text>
+  </svg>
+</div>
+
+<div class="panel light">
+  <div class="label">Wordmark — light</div>
+  <svg width="780" height="286" viewBox="0 0 520 220">
+    <text x="76" y="160" font-size="128" font-weight="700" letter-spacing="2" fill="#0B1220">PE</text>
+    <!-- back peak -->
+    <path d="M 312 160 L 336 100 L 360 160 Z" fill="#0A6FA3" opacity="0.35"/>
+    <!-- mountain A -->
+    <path d="M 254 160 L 300 68 L 311 92 L 322 78 L 352 160 Z" fill="#0A6FA3"/>
+    <!-- snowcap -->
+    <path d="M 300 68 L 311 92 L 303 87 L 298 95 L 292 85 L 288 92 Z" fill="#FFFFFF"/>
+    <text x="360" y="160" font-size="128" font-weight="700" letter-spacing="2" fill="#0B1220">K</text>
+  </svg>
+</div>
+
+<div class="panel iconpanel">
+  <div>
+    <div class="label">App icon</div>
+    <svg width="300" height="300" viewBox="0 0 512 512">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#5BD2FF"/>
+          <stop offset="1" stop-color="#1E9FE0"/>
+        </linearGradient>
+      </defs>
+      <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#g)"/>
+      <path d="M 262 368 L 318 240 L 392 368 Z" fill="#FFFFFF" opacity="0.35"/>
+      <path d="M 106 368 L 222 148 L 246 200 L 264 168 L 348 368 Z" fill="#FFFFFF"/>
+      <path d="M 222 148 L 246 200 L 233 192 L 222 210 L 209 184 Z" fill="#1E9FE0"/>
+    </svg>
+  </div>
+  <div>
+    <div class="label">Mark only</div>
+    <svg width="300" height="300" viewBox="0 0 512 512">
+      <path d="M 262 368 L 318 240 L 392 368 Z" fill="#45C8FF" opacity="0.35"/>
+      <path d="M 106 368 L 222 148 L 246 200 L 264 168 L 348 368 Z" fill="#45C8FF"/>
+      <path d="M 222 148 L 246 200 L 233 192 L 222 210 L 209 184 Z" fill="#FFFFFF"/>
+    </svg>
+  </div>
+</div>
+
+</body></html>

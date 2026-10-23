@@ -19,7 +19,7 @@ export default async function handler(request) {
   const origin = url.origin
   const target = `${origin}/#/list/${id}`
 
-  let title = 'TALLY'
+  let title = 'Peak'
   let desc = 'Good taste deserves a track record.'
   let image = `${origin}/icons/icon-512.png`
 
@@ -37,8 +37,8 @@ export default async function handler(request) {
         const c = rows && rows[0]
         if (c) {
           const owner = (c.owner && (c.owner.display_name || c.owner.username)) || 'Someone'
-          title = `${c.name} — a TALLY list`
-          desc = `A list by ${owner} on TALLY — drops with a track record.`
+          title = `${c.name} — a Peak list`
+          desc = `A list by ${owner} on Peak — drops with a track record.`
           const itemsRes = await fetch(
             `${sbUrl}/rest/v1/collection_items?select=drop:drops(media_urls,media_types,media_poster_urls,media_url,media_type,media_poster_url)&collection_id=eq.${id}&order=added_at.desc&limit=1`,
             { headers }
@@ -67,7 +67,7 @@ export default async function handler(request) {
     `<title>${esc(title)}</title>` +
     `<meta name="description" content="${esc(desc)}">` +
     `<meta property="og:type" content="article">` +
-    `<meta property="og:site_name" content="TALLY">` +
+    `<meta property="og:site_name" content="Peak">` +
     `<meta property="og:title" content="${esc(title)}">` +
     `<meta property="og:description" content="${esc(desc)}">` +
     `<meta property="og:image" content="${esc(image)}">` +
@@ -75,7 +75,7 @@ export default async function handler(request) {
     `<meta name="twitter:card" content="summary_large_image">` +
     `<meta http-equiv="refresh" content="0; url=${esc(target)}">` +
     `</head><body style="background:#191725;color:#fffcf7;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">` +
-    `<p>Opening TALLY… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
+    `<p>Opening Peak… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
     `<script>location.replace(${JSON.stringify(target)})</script>` +
     `</body></html>`
 

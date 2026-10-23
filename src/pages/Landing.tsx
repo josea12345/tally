@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PeakWordmark } from '../components/PeakWordmark'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import Reveal from '../components/Reveal'
@@ -17,7 +18,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
     return (
       <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
         <button onClick={() => navigate('/')} className="wordmark mb-8 text-4xl">
-          TALLY<span className="text-sig">.</span>
+          <PeakWordmark className="h-[1.2em] w-auto text-sig" />
         </button>
         <AuthForm />
         <button onClick={() => navigate('/')} className="mt-8 w-full text-center text-xs text-mute hover:text-fog">
@@ -32,7 +33,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
       {/* top bar */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <div className="wordmark text-3xl">
-          TALLY<span className="text-sig">.</span>
+          <PeakWordmark className="h-[1.2em] w-auto text-sig" />
         </div>
         <button
           onClick={() => navigate('/auth')}
@@ -259,7 +260,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
 
       <footer className="border-t border-line px-5 py-8 text-center text-xs text-mute">
         <div className="wordmark mb-2 text-xl text-fog">
-          TALLY<span className="text-sig">.</span>
+          <PeakWordmark className="h-[1.2em] w-auto text-sig" />
         </div>
         Good taste deserves a track record. © 2026
       </footer>

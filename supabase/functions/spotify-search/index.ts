@@ -1,7 +1,7 @@
 // Supabase Edge Function: spotify-search
 //
 // Proxies Spotify track search so the Client Secret never ships to the app.
-// Requires a logged-in TALLY user (prevents open-proxy quota abuse).
+// Requires a logged-in Peak user (prevents open-proxy quota abuse).
 //
 // Secrets (Edge Functions -> Secrets): SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 // (SUPABASE_URL + SUPABASE_ANON_KEY are provided automatically.)
@@ -56,7 +56,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
-  // Must be a logged-in TALLY user. NOTE: getUser() with no argument
+  // Must be a logged-in Peak user. NOTE: getUser() with no argument
   // throws AuthSessionMissingError in the edge runtime even when the
   // Authorization header is set globally — pass the token explicitly.
   const authHeader = req.headers.get('Authorization') ?? ''

@@ -415,7 +415,7 @@ export default function Profile({ id }: { id?: string }) {
     const url = `${window.location.origin}/u/${profile.id}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: `@${profile.username} on TALLY`, url })
+        await navigator.share({ title: `@${profile.username} on Peak`, url })
         return
       }
       throw new Error('no native share')

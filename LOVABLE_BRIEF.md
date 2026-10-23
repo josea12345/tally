@@ -1,8 +1,8 @@
-# TALLY — redesign brief for Lovable
+# Peak — redesign brief for Lovable
 
 ## What this is
 
-TALLY is a live social web app where people prove they have great taste.
+Peak is a live social web app where people prove they have great taste.
 Users publish recommendations ("drops") — places, food & drink, movies,
 TV, music, shops, recipes — other users save ("tally") them, try them,
 and vote W or L. Your reputation is a transparent track record: win rate

@@ -562,7 +562,7 @@ export default function Comments({
           onClick={() => navigate('/auth')}
           className="w-full rounded-full border border-line py-2.5 text-sm font-bold text-mute"
         >
-          Join TALLY to comment
+          Join Peak to comment
         </button>
       )}
     </div>

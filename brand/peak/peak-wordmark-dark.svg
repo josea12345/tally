@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220">
+  <text x="76" y="160" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="128" font-weight="700" letter-spacing="2" fill="#F5F8FF">PE</text>
+  <path d="M 312 160 L 336 100 L 360 160 Z" fill="#45C8FF" opacity="0.35"/>
+  <path d="M 254 160 L 300 68 L 311 92 L 322 78 L 352 160 Z" fill="#45C8FF"/>
+  <path d="M 300 68 L 311 92 L 303 87 L 298 95 L 292 85 L 288 92 Z" fill="#FFFFFF"/>
+  <text x="360" y="160" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="128" font-weight="700" letter-spacing="2" fill="#F5F8FF">K</text>
+</svg>

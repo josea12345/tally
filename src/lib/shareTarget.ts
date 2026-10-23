@@ -1,5 +1,5 @@
 /**
- * Web Share Target intake: another app shares a link/text to TALLY,
+ * Web Share Target intake: another app shares a link/text to Peak,
  * landing on /share?title=&text=&url=. We stash it, bounce to the
  * composer, and prefill. (Android/Chrome PWAs; iOS doesn't support
  * share targets for web apps yet.)

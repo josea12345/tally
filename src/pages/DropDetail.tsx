@@ -359,13 +359,13 @@ export default function DropDetail({ id }: { id: string }) {
       {!user && (
         <div className="border-b border-line bg-sig px-4 py-3 text-center">
           <p className="text-sm font-black text-ink">
-            Someone put you on — join TALLY to save it and call W or L.
+            Someone put you on — join Peak to save it and call W or L.
           </p>
           <button
             onClick={() => navigate('/auth')}
             className="mt-2 rounded-full bg-ink px-6 py-2 text-sm font-black text-sig"
           >
-            Join TALLY
+            Join Peak
           </button>
         </div>
       )}
@@ -818,7 +818,7 @@ export default function DropDetail({ id }: { id: string }) {
           <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">
             <h3 className="mb-2 text-xl font-black">Don't sleep on this</h3>
             <p className="mb-4 text-sm text-mute">
-              Join TALLY to save this drop, try it, and put your own W/L on the record.
+              Join Peak to save this drop, try it, and put your own W/L on the record.
             </p>
             <button
               onClick={() => navigate('/auth')}

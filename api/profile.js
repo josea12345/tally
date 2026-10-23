@@ -1,6 +1,6 @@
 // Per-profile Open Graph preview page for /u/<id> links; bounces into
 // the app at /#/profile/<id>. Anon reads — an unreadable profile falls
-// back to generic TALLY tags.
+// back to generic Peak tags.
 export const config = { runtime: 'edge' }
 
 const esc = (s) =>
@@ -18,7 +18,7 @@ export default async function handler(request) {
   const origin = url.origin
   const target = `${origin}/#/profile/${id}`
 
-  let title = 'TALLY'
+  let title = 'Peak'
   let desc = 'Good taste deserves a track record.'
   let image = `${origin}/icons/icon-512.png`
 
@@ -34,8 +34,8 @@ export default async function handler(request) {
         const rows = await res.json()
         const p = rows && rows[0]
         if (p) {
-          title = `${p.display_name || p.username} (@${p.username}) — TALLY`
-          desc = p.bio || `${p.display_name || p.username}'s put-ons, verdicts and track record on TALLY.`
+          title = `${p.display_name || p.username} (@${p.username}) — Peak`
+          desc = p.bio || `${p.display_name || p.username}'s put-ons, verdicts and track record on Peak.`
           if (p.avatar_url) image = p.avatar_url
         }
       }
@@ -49,7 +49,7 @@ export default async function handler(request) {
     `<title>${esc(title)}</title>` +
     `<meta name="description" content="${esc(desc)}">` +
     `<meta property="og:type" content="profile">` +
-    `<meta property="og:site_name" content="TALLY">` +
+    `<meta property="og:site_name" content="Peak">` +
     `<meta property="og:title" content="${esc(title)}">` +
     `<meta property="og:description" content="${esc(desc)}">` +
     `<meta property="og:image" content="${esc(image)}">` +
@@ -57,7 +57,7 @@ export default async function handler(request) {
     `<meta name="twitter:card" content="summary_large_image">` +
     `<meta http-equiv="refresh" content="0; url=${esc(target)}">` +
     `</head><body style="background:#191725;color:#fffcf7;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">` +
-    `<p>Opening TALLY… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
+    `<p>Opening Peak… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
     `<script>location.replace(${JSON.stringify(target)})</script>` +
     `</body></html>`
 

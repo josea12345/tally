@@ -1,5 +1,5 @@
 /**
- * AlertIcon — TALLY's original notification mark: tally strokes with broadcast
+ * AlertIcon — Peak's original notification mark: tally strokes with broadcast
  * arcs rising off them. "News about your record." Drawn in the same stroke
  * language as TallyIcon; uses currentColor.
  */

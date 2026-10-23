@@ -1,4 +1,4 @@
-/* TALLY service worker — minimal. Exists so the PWA install prompt can fire
+/* Peak service worker — minimal. Exists so the PWA install prompt can fire
    and to keep navigation working offline-ish. No precache manifest needed. */
 const CACHE = 'tally-v1'
 
@@ -55,7 +55,7 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {}
   }
-  const title = data.title || 'TALLY'
+  const title = data.title || 'Peak'
   const body = data.body || 'Something happened on your record.'
   const url = data.url || '/'
   event.waitUntil(

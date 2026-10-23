@@ -1,5 +1,5 @@
 /**
- * Blip — TALLY's weird-cute mascot. A small original SVG: a hot-light-blue
+ * Blip — Peak's weird-cute mascot. A small original SVG: a hot-light-blue
  * blob with oversized eyes and tiny butter-yellow sneakers. Lightweight
  * (single inline SVG, no assets), used only for onboarding, empty states,
  * and celebration moments — never obstructing content.
@@ -12,7 +12,7 @@ export default function Mascot({
   className?: string
 }) {
   return (
-    <svg viewBox="0 0 120 120" className={className} role="img" aria-label="Blip, the TALLY mascot">
+    <svg viewBox="0 0 120 120" className={className} role="img" aria-label="Blip, the Peak mascot">
       {/* sneakers */}
       <g>
         <ellipse cx="44" cy="106" rx="13" ry="8" fill="#ffe66d" stroke="#191725" strokeWidth="3" />

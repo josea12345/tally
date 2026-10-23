@@ -38,7 +38,7 @@ export default function LocationStrip({ state, effectiveLabel, fromGps, profileC
   }
 
   const explainer: Record<string, string> = {
-    denied: `Location's blocked for TALLY, so results are based on ${profileCity ?? 'Miami'} (your profile city). Allow location in your browser settings, then tap Locate me.`,
+    denied: `Location's blocked for Peak, so results are based on ${profileCity ?? 'Miami'} (your profile city). Allow location in your browser settings, then tap Locate me.`,
     unavailable: `Couldn't get your location on this device, so results are based on ${profileCity ?? 'Miami'} (your profile city).`,
     timeout: `Location timed out, so results are based on ${profileCity ?? 'Miami'} (your profile city). Try again.`,
     off: `Results are based on ${effectiveLabel} — your profile city, not where you are right now.`,

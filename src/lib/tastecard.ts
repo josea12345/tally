@@ -99,8 +99,8 @@ export async function renderTasteCard(
   // wordmark
   ctx.fillStyle = '#fffcf7'
   ctx.font = '900 64px Inter, sans-serif'
-  ctx.fillText('TALLY.', pad, y)
-  const wm = ctx.measureText('TALLY.').width
+  ctx.fillText('PEAK.', pad, y)
+  const wm = ctx.measureText('PEAK.').width
   ctx.fillStyle = '#45c8ff'
   ctx.beginPath()
   ctx.arc(pad + wm + 24, y - 14, 12, 0, Math.PI * 2)
@@ -194,7 +194,7 @@ export async function shareTasteCard(blob: Blob, title: string): Promise<'shared
   const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void>; canShare?: (d: ShareData) => boolean }
   if (nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'TALLY taste card' })
+      await nav.share({ files: [file], title: 'Peak taste card' })
       return 'shared'
     } catch {
       /* user dismissed — fall through to download */

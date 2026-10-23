@@ -129,12 +129,12 @@ export default function Settings() {
     typeof window !== 'undefined'
       ? `${window.location.origin}/?ref=${encodeURIComponent(profile?.username ?? '')}#/auth`
       : 'https://tally-rho-ten.vercel.app'
-  const inviteText = `I'm on TALLY — good taste deserves a track record. Come get put on: ${inviteUrl}`
+  const inviteText = `I'm on Peak — good taste deserves a track record. Come get put on: ${inviteUrl}`
 
   const shareInvite = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'TALLY', text: inviteText, url: inviteUrl })
+        await navigator.share({ title: 'Peak', text: inviteText, url: inviteUrl })
       } catch {
         /* user dismissed the sheet */
       }
@@ -545,7 +545,7 @@ export default function Settings() {
             <div className="min-w-0">
               <div className="text-sm font-bold">Push notifications</div>
               <div className="mt-0.5 text-xs leading-relaxed text-mute">
-                W/L calls, follows, and comments — even when TALLY is closed.
+                W/L calls, follows, and comments — even when Peak is closed.
               </div>
             </div>
             <button
@@ -573,7 +573,7 @@ export default function Settings() {
           )}
           {isIOS && pushState !== 'on' && (
             <p className="mt-2 text-xs text-mute">
-              iPhone note: install TALLY to your Home Screen first (needs iOS 16.4+), then flip this on.
+              iPhone note: install Peak to your Home Screen first (needs iOS 16.4+), then flip this on.
             </p>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PeakWordmark } from './components/PeakWordmark'
 import type { ReactNode } from 'react'
 import { useAuth } from './context/AuthContext'
 import { applyTheme, getChoice, initTheme, systemTheme } from './lib/theme'
@@ -136,7 +137,7 @@ function DesktopRail() {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-line p-6 md:flex">
       <button onClick={() => navigate('/')} className="wordmark mb-8 text-left text-4xl">
-        TALLY<span className="text-sig">.</span>
+        <PeakWordmark className="h-[1.2em] w-auto text-sig" />
       </button>
       {items.map((i) => (
         <button
@@ -262,7 +263,7 @@ export default function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink">
         <div className="wordmark text-5xl">
-          TALLY<span className="text-sig">.</span>
+          <PeakWordmark className="h-[1.2em] w-auto text-sig" />
         </div>
       </div>
     )

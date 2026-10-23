@@ -1,5 +1,5 @@
 /**
- * TALLY's original icon set — hand-drawn stroke icons in the brand language
+ * Peak's original icon set — hand-drawn stroke icons in the brand language
  * (2px strokes, round caps, currentColor). No stock emoji.
  */
 

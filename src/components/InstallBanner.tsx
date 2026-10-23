@@ -63,7 +63,7 @@ export default function InstallBanner() {
           T
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold">TALLY, on your home screen</div>
+          <div className="text-sm font-bold">Peak, on your home screen</div>
           <div className="truncate text-xs text-mute">Good taste deserves a track record.</div>
           {showIOSHelp && (
             <div className="mt-1 text-xs text-mute">

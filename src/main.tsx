@@ -24,7 +24,7 @@ function ConfigErrorScreen({ message }: { message: string }) {
       }}
     >
       <div style={{ maxWidth: 420, textAlign: 'center' }}>
-        <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: 2 }}>TALLY</div>
+        <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: 2 }}>PEAK</div>
         <p style={{ marginTop: 14, fontWeight: 700 }}>This build isn’t connected to its backend.</p>
         <p style={{ marginTop: 8, opacity: 0.75, fontSize: 14, lineHeight: 1.55 }}>
           {message} Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> (in{' '}

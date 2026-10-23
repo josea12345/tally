@@ -19,7 +19,7 @@ export async function shareDrop(drop: Drop): Promise<'shared' | 'copied' | 'dism
   const url = dropShareUrl(drop.id)
   if (typeof navigator !== 'undefined' && 'share' in navigator) {
     try {
-      await navigator.share({ title: 'TALLY', text: `Put on: ${drop.title}`, url })
+      await navigator.share({ title: 'Peak', text: `Put on: ${drop.title}`, url })
       return 'shared'
     } catch {
       return 'dismissed' // user closed the sheet — not an error

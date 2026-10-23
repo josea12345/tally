@@ -69,12 +69,12 @@ serve(async (req) => {
     mention: `${name} mentioned you on ${title}`,
     like: `${name} liked your comment on ${title}`,
     reminder: `${name} put you on: ${title} — today's the day to try it`,
-    recap: 'Your week on TALLY is ready — see how your drops did',
+    recap: 'Your week on Peak is ready — see how your drops did',
     streak: 'Your streak ends tonight — one verdict saves it',
     approved: `${name} approved your follow request`,
     requested: `${name} requested to follow you`,
   }
-  const body = bodies[record.kind] ?? 'Something happened on TALLY.'
+  const body = bodies[record.kind] ?? 'Something happened on Peak.'
   const url = record.drop_id ? `/#/drop/${record.drop_id}` : '/#/notifications'
 
   const { data: subs } = await supabase
@@ -87,7 +87,7 @@ serve(async (req) => {
       webpush
         .sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          JSON.stringify({ title: 'TALLY', body, url, tag: record.id }),
+          JSON.stringify({ title: 'Peak', body, url, tag: record.id }),
         )
         .catch(async (err: any) => {
           // Prune dead subscriptions so we don't keep pushing to ghosts.

@@ -94,7 +94,7 @@ export default function ListPage({ id }: { id: string }) {
     const url = `${window.location.origin}/list/${id}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: col?.name ?? 'TALLY list', url })
+        await navigator.share({ title: col?.name ?? 'Peak list', url })
         return
       }
       throw new Error('no native share')

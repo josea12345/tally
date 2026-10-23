@@ -1,4 +1,4 @@
-/** Canvas-rendered 1080×1920 "My week on TALLY" recap card for stories. */
+/** Canvas-rendered 1080×1920 "My week on Peak" recap card for stories. */
 import type { Profile } from './types'
 
 const W = 1080

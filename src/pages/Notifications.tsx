@@ -77,7 +77,7 @@ function textFor(n: Notification): string {
     case 'reminder':
       return `${name} put you on — today's the day to try it`
     case 'recap':
-      return 'Your week on TALLY is ready — see your recap'
+      return 'Your week on Peak is ready — see your recap'
     case 'streak':
       return 'Your streak ends tonight — one verdict saves it'
     case 'approved':

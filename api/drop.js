@@ -4,7 +4,7 @@
 // bounces the visitor into the app at /#/drop/<id>. Crawlers read the
 // meta tags; humans get redirected instantly. Reads go through the anon
 // key, so RLS decides what's shareable — invisible drops fall back to
-// generic TALLY tags without leaking anything.
+// generic Peak tags without leaking anything.
 export const config = { runtime: 'edge' }
 
 const esc = (s) =>
@@ -22,7 +22,7 @@ export default async function handler(request) {
   const origin = url.origin
   const target = `${origin}/#/drop/${id}`
 
-  let title = 'TALLY'
+  let title = 'Peak'
   let desc = 'Good taste deserves a track record.'
   let image = `${origin}/icons/icon-512.png`
 
@@ -39,7 +39,7 @@ export default async function handler(request) {
         const d = rows && rows[0]
         if (d) {
           const author = (d.author && (d.author.display_name || d.author.username)) || 'Someone'
-          title = `${d.title} — TALLY`
+          title = `${d.title} — Peak`
           desc =
             `${author} put you on` +
             (d.score != null ? ` · their call: ${d.score}/10` : '') +
@@ -63,7 +63,7 @@ export default async function handler(request) {
     `<title>${esc(title)}</title>` +
     `<meta name="description" content="${esc(desc)}">` +
     `<meta property="og:type" content="article">` +
-    `<meta property="og:site_name" content="TALLY">` +
+    `<meta property="og:site_name" content="Peak">` +
     `<meta property="og:title" content="${esc(title)}">` +
     `<meta property="og:description" content="${esc(desc)}">` +
     `<meta property="og:image" content="${esc(image)}">` +
@@ -71,7 +71,7 @@ export default async function handler(request) {
     `<meta name="twitter:card" content="summary_large_image">` +
     `<meta http-equiv="refresh" content="0; url=${esc(target)}">` +
     `</head><body style="background:#191725;color:#fffcf7;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">` +
-    `<p>Opening TALLY… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
+    `<p>Opening Peak… <a href="${esc(target)}" style="color:#45c8ff">tap here if it doesn't open</a></p>` +
     `<script>location.replace(${JSON.stringify(target)})</script>` +
     `</body></html>`
 

@@ -2,7 +2,7 @@
 //
 // Proxies Deezer track search for the composer's music picker. Deezer's
 // public API needs no key, so there are no secrets to hold — the function
-// exists to require a logged-in TALLY user (prevents open-proxy abuse)
+// exists to require a logged-in Peak user (prevents open-proxy abuse)
 // and to normalize results into the app's track shape.
 //
 // (This replaced spotify-search: Spotify has new developer app creation
@@ -30,7 +30,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
-  // Must be a logged-in TALLY user. NOTE: getUser() with no argument
+  // Must be a logged-in Peak user. NOTE: getUser() with no argument
   // throws AuthSessionMissingError in the edge runtime even when the
   // Authorization header is set globally — pass the caller's token
   // explicitly (verified live 2026-10-20).

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PeakWordmark } from '../components/PeakWordmark'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { navigate, Avatar } from '../App'
@@ -110,7 +111,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-lg px-6 pb-16 pt-10">
       <div className="wordmark mb-6 text-4xl">
-        TALLY<span className="text-sig">.</span>
+        <PeakWordmark className="h-[1.2em] w-auto text-sig" />
       </div>
       <div className="mb-6 flex items-center gap-4">
         <Mascot mood="happy" className="pop-in h-20 w-20 shrink-0 -rotate-6" />
