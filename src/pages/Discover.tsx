@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useFeedVotes } from '../lib/feedVotes'
-import type { Category, Drop, DropStats, Profile, Verdict } from '../lib/types'
+import { useRatings } from '../lib/useRatings'
+import type { Category, Drop, DropStats, Profile } from '../lib/types'
 import { MEDIA_CATEGORIES, CATEGORY_GROUPS, isPlaceCategory } from '../lib/types'
-import { winRateFor } from '../lib/stats'
+import { ratingSummaryFor } from '../lib/stats'
+import RateSheet from '../components/RateSheet'
+import { formatAvg } from '../lib/ratings'
 import { haversineKm } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { tapHaptic } from '../lib/haptics'
@@ -43,7 +45,8 @@ function AlertsBell() {
 
 export default function Discover() {
   const { user, profile } = useAuth()
-  const { myVotes, setVotesFromRows, mergeVotesFromRows, vote } = useFeedVotes()
+  const { myRatings, setRatingsFromRows, mergeRatingsFromRows, rate, unrate } = useRatings()
+  const [rateTarget, setRateTarget] = useState<{ drop: Drop; prefill: number | null } | null>(null)
   const [tab, setTab] = useState<Tab>('putons')
   const [nearView, setNearView] = useState<'list' | 'map'>('list')
   const [group, setGroup] = useState<string>('all')
@@ -66,9 +69,9 @@ export default function Discover() {
   const [mySaves, setMySaves] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState<Set<string>>(new Set())
   const [topicDrops, setTopicDrops] = useState<Drop[]>([])
-  const [yday, setYday] = useState<{ drop: Drop; wins: number; losses: number } | null>(null)
+  const [yday, setYday] = useState<{ drop: Drop; avg: number; count: number; peaks: number } | null>(null)
 
-  // Yesterday's top call: the drop with yesterday's best verdict record.
+  // Yesterday's top call: the drop with yesterday's best rating record.
   useEffect(() => {
     let live = true
     ;(async () => {
@@ -77,31 +80,36 @@ export default function Discover() {
       const startYday = new Date(startToday)
       startYday.setDate(startYday.getDate() - 1)
       const { data: rows } = await supabase
-        .from('verdicts')
-        .select('verdict, drop_id')
-        .not('verdict', 'is', null)
+        .from('drop_ratings')
+        .select('score, drop_id')
         .gte('created_at', startYday.toISOString())
         .lt('created_at', startToday.toISOString())
         .limit(2000)
       if (!live) return
-      const agg = new Map<string, { w: number; l: number }>()
-      for (const r of (rows ?? []) as Array<{ verdict: 'W' | 'L'; drop_id: string }>) {
-        const e = agg.get(r.drop_id) ?? { w: 0, l: 0 }
-        if (r.verdict === 'W') e.w += 1
-        else e.l += 1
-        agg.set(r.drop_id, e)
+      const agg = new Map<string, number[]>()
+      for (const r of (rows ?? []) as Array<{ score: number; drop_id: string }>) {
+        const arr = agg.get(r.drop_id) ?? []
+        arr.push(r.score)
+        agg.set(r.drop_id, arr)
       }
-      const best = [...agg.entries()]
-        .filter(([, e]) => e.w + e.l >= 2)
-        .sort((a, b) => b[1].w - b[1].l - (a[1].w - a[1].l) || b[1].w - a[1].w)[0]
+      const scored = [...agg.entries()]
+        .filter(([, scores]) => scores.length >= 2)
+        .map(([id, scores]) => ({
+          id,
+          avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+          count: scores.length,
+          peaks: scores.filter((x) => x === 10).length,
+        }))
+        .sort((a, b) => b.avg - a.avg || b.peaks - a.peaks || b.count - a.count)
+      const best = scored[0]
       if (!best) return
       const { data: d } = await supabase
         .from('drops')
         .select('*, author:profiles!drops_author_id_fkey(*)')
-        .eq('id', best[0])
+        .eq('id', best.id)
         .maybeSingle()
       if (!live || !d) return
-      setYday({ drop: d as Drop, wins: best[1].w, losses: best[1].l })
+      setYday({ drop: d as Drop, avg: best.avg, count: best.count, peaks: best.peaks })
     })()
     return () => {
       live = false
@@ -151,9 +159,9 @@ export default function Discover() {
   const fetchStatsFor = async (list: Drop[]) => {
     const ids = list.map((d) => d.id)
     const tkeys = [...new Set(list.map((d) => d.topic_key).filter(Boolean))] as string[]
-    const [{ data: saves }, { data: verdicts }, { data: cmts }, { data: trows }] = await Promise.all([
+    const [{ data: saves }, { data: ratings }, { data: cmts }, { data: trows }] = await Promise.all([
       supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
-      supabase.from('verdicts').select('drop_id,verdict,user_id').in('drop_id', ids).limit(5000),
+      supabase.from('drop_ratings').select('drop_id,score,user_id').in('drop_id', ids).limit(5000),
       supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
       // one lightweight query for every visible topic's post count
       // (RLS hides blocked/private drops, so counts stay honest)
@@ -166,18 +174,24 @@ export default function Discover() {
       tc.set(r.topic_key, (tc.get(r.topic_key) ?? 0) + 1)
     }
     const m = new Map<string, DropStats>()
-    for (const id of ids) m.set(id, { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
+    for (const id of ids) m.set(id, { saves: 0, comments: 0, ratingAvg: null, ratingCount: 0, peaks: 0 })
     for (const s of (saves ?? []) as Array<{ drop_id: string }>) m.get(s.drop_id)!.saves++
-    for (const v of (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null }>) {
+    const sums = new Map<string, number>()
+    for (const v of (ratings ?? []) as Array<{ drop_id: string; score: number }>) {
       const e = m.get(v.drop_id)!
-      if (v.verdict === 'W') e.wins++
-      else if (v.verdict === 'L') e.losses++
+      e.ratingCount++
+      if (v.score === 10) e.peaks++
+      sums.set(v.drop_id, (sums.get(v.drop_id) ?? 0) + v.score)
+    }
+    for (const [id, sum] of sums) {
+      const e = m.get(id)!
+      e.ratingAvg = sum / e.ratingCount
     }
     for (const c of (cmts ?? []) as Array<{ drop_id: string }>) m.get(c.drop_id)!.comments++
     return {
       m,
       tc,
-      verdictRows: (verdicts ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>,
+      ratingRows: (ratings ?? []) as Array<{ drop_id: string; score: number; user_id: string }>,
     }
   }
 
@@ -199,11 +213,11 @@ export default function Discover() {
         setHasMore(list.length === PAGE_SIZE)
 
         if (list.length > 0) {
-          const { m, tc, verdictRows } = await fetchStatsFor(list)
+          const { m, tc, ratingRows } = await fetchStatsFor(list)
           if (!live) return
           setTopicCounts(tc)
           setStats(m)
-          setVotesFromRows(verdictRows)
+          setRatingsFromRows(ratingRows)
         } else {
           setStats(new Map())
           setTopicCounts(new Map())
@@ -243,39 +257,37 @@ export default function Discover() {
               if (!live) return
               setStats((prev) => new Map([...prev, ...extra.m]))
               setTopicCounts((prev) => new Map([...prev, ...extra.tc]))
-              mergeVotesFromRows(extra.verdictRows)
+              mergeRatingsFromRows(extra.ratingRows)
             }
           }
         }
 
-        // Tastemaker rail: authors with a real win rate, top 10.
+        // Tastemaker rail: authors with a real rating record, top 10.
         //
-        // Scoped EXPLICITLY to verdicts from the last 90 days. An exact
-        // all-time per-author win rate can't be computed client-side past
-        // table scale (it would need every verdict row ever), so the rail
+        // Scoped EXPLICITLY to ratings from the last 90 days. An exact
+        // all-time per-author average can't be computed client-side past
+        // table scale (it would need every rating row ever), so the rail
         // ranks on a fixed recent window instead of pretending to cover all
-        // time. The exact all-time source is proposed (not applied) in
-        // tally-audit/proposed-migrations/round2/author_win_rates.sql.
+        // time.
         const railSince = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString()
-        const { data: railVerdicts } = await supabase
-          .from('verdicts')
-          .select('verdict, drop:drops!inner(author_id)')
+        const { data: railRatings } = await supabase
+          .from('drop_ratings')
+          .select('score, drop:drops!inner(author_id)')
           .gte('created_at', railSince)
         if (!live) return
-        const perAuthor = new Map<string, Verdict[]>()
-        for (const v of (railVerdicts ?? []) as unknown as Array<Verdict & { drop: { author_id: string } }>) {
+        const perAuthor = new Map<string, number[]>()
+        for (const v of (railRatings ?? []) as unknown as Array<{ score: number; drop: { author_id: string } }>) {
           const a = v.drop.author_id
           if (!perAuthor.has(a)) perAuthor.set(a, [])
-          perAuthor.get(a)!.push(v)
+          perAuthor.get(a)!.push(v.score)
         }
         const rated = [...perAuthor.entries()]
-          .map(([authorId, vs]) => ({ authorId, hr: winRateFor(vs) }))
-          .filter((x) => x.hr.rate != null)
-          // Ranked by Taste Score (the same Wilson lower bound profiles
-          // show), not raw win rate — a lucky 5-0 can't outrank a proven
-          // record with real volume. The ≥5-verdict minimum still gates
-          // entry via rate != null.
-          .sort((a, b) => b.hr.score - a.hr.score || b.hr.total - a.hr.total)
+          .map(([authorId, scores]) => ({ authorId, hr: ratingSummaryFor(scores) }))
+          .filter((x) => x.hr.enough)
+          // Ranked by Taste Score (the same credibility-weighted average
+          // profiles show), not the raw mean — a couple of friendly 10s
+          // can't outrank a proven record with real volume.
+          .sort((a, b) => b.hr.score - a.hr.score || b.hr.count - a.hr.count)
           .slice(0, 10)
         if (rated.length > 0) {
           const { data: profs } = await supabase
@@ -323,12 +335,12 @@ export default function Discover() {
       setHasMore(page.length === PAGE_SIZE)
       const fresh = page.filter((d) => !drops.some((x) => x.id === d.id))
       if (fresh.length > 0) {
-        const { m, tc, verdictRows } = await fetchStatsFor(fresh)
+        const { m, tc, ratingRows } = await fetchStatsFor(fresh)
         if (gen !== genRef.current) return
         setDrops((prev) => [...prev, ...fresh.filter((d) => !prev.some((x) => x.id === d.id))])
         setStats((prev) => new Map([...prev, ...m]))
         setTopicCounts((prev) => new Map([...prev, ...tc]))
-        mergeVotesFromRows(verdictRows)
+        mergeRatingsFromRows(ratingRows)
       }
     } catch {
       /* keep what's loaded; scrolling again retries */
@@ -390,11 +402,13 @@ export default function Discover() {
     if (tab === 'putons' && !debounced) {
       // Ranked feed (Put Ons only — Following, Near me and search stay
       // chronological): real engagement floats a drop up, and a freshness
-      // bonus keeps brand-new posts in the mix before they have verdicts.
+      // bonus keeps brand-new posts in the mix before they have ratings.
       const now = Date.now()
       const rank = (d: Drop) => {
         const s = stats.get(d.id)
-        const engage = s ? s.wins * 3 + s.losses * 2 + s.saves * 2 + s.comments : 0
+        const engage = s
+          ? (s.ratingAvg ?? 0) * Math.log2(1 + s.ratingCount) * 2 + s.peaks * 3 + s.saves * 2 + s.comments
+          : 0
         const ageH = Math.max(0, (now - new Date(d.created_at).getTime()) / 3.6e6)
         const fresh = ageH < 12 ? 6 : ageH < 48 ? 3 : ageH < 168 ? 1 : 0
         return engage + fresh
@@ -617,9 +631,9 @@ export default function Discover() {
           <span className="mt-0.5 block truncate text-[15px] font-bold">
             {yday.drop.title}
             <span className="ml-2 text-sm font-black">
-              <span className="text-win">{yday.wins} W</span>
+              <span className="text-sig">{formatAvg(yday.avg)} avg</span>
               <span className="text-mute"> · </span>
-              <span className="text-miss">{yday.losses} L</span>
+              <span className="text-mute">{yday.count} ratings{yday.peaks > 0 ? ` · ${yday.peaks} peaked` : ''}</span>
             </span>
           </span>
           <span className="block text-xs text-mute">
@@ -690,17 +704,28 @@ export default function Discover() {
           <DropCard
             key={d.id}
             drop={d}
-            stats={stats.get(d.id) ?? { saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 }}
+            stats={stats.get(d.id) ?? { saves: 0, comments: 0, ratingAvg: null, ratingCount: 0, peaks: 0 }}
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
-            myVote={myVotes.get(d.id) ?? null}
-            onVote={(v) => vote(d.id, v, setStats, d.author_id)}
+            myRating={myRatings.get(d.id) ?? null}
+            onRate={(prefill) => setRateTarget({ drop: d, prefill: prefill ?? null })}
             revealDelay={(i % 6) * 70}
             onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
             topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}
             viaTopic={viaTopicIds.has(d.id)}
           />
         ))
+      )}
+
+      {rateTarget && (
+        <RateSheet
+          title={rateTarget.drop.title}
+          current={myRatings.get(rateTarget.drop.id) ?? null}
+          prefill={rateTarget.prefill}
+          onRate={(score) => void rate(rateTarget.drop.id, score, setStats)}
+          onRemove={() => void unrate(rateTarget.drop.id, setStats)}
+          onClose={() => setRateTarget(null)}
+        />
       )}
 
       {hasMore && !loading && visible.length > 0 && (

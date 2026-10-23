@@ -1,43 +1,39 @@
-/** Reputation math: win rates, badges, leaderboard, taste twins. All from real verdict data. */
-import type { Drop, Profile, Verdict } from './types'
+/** Reputation math: ratings summaries, Taste Score, Trust, badges, leaderboard,
+ *  taste twins. All from real typed ratings (0.0–10.0; a 10.0 is a peak). */
+import type { Drop, DropRating, Profile } from './types'
 import { normKey } from './format'
+import { aggregateScores, tasteScoreFromScores, RATINGS_MINIMUM } from './ratings'
 
-export interface WinRate {
-  wins: number
-  losses: number
-  total: number
-  rate: number | null // null when not enough data
-  /** Taste Score (0–100): the low end of your win rate's 95% confidence interval. Volume earns trust. */
+export interface RatingSummary {
+  count: number
+  peaks: number
+  /** Raw mean of every rating received; null when unrated. */
+  avg: number | null
+  /** Taste Score (0–100): the credibility-weighted average, ×10. Volume earns trust. */
   score: number
+  /** True once there's enough rating volume to show the score as a number. */
+  enough: boolean
 }
-
-export const WIN_RATE_MINIMUM = 5
 
 /**
- * Taste Score: Wilson score interval lower bound (95% confidence), scaled 0–100.
- * Your score is the worst your win rate plausibly is — so 5 lucky Ws (score 57)
- * can't touch 850 Ws out of 1000 (score 83). At the same win rate, more verdicts
- * always scores higher: volume earns trust. The raw W/L stays visible next to
- * it as the audit trail.
+ * An author's rating record across all their drops. The raw average stays
+ * visible as the audit trail; the Taste Score is the weighted version, so
+ * a couple of friendly 10s can't crown anyone (see ratings.ts).
  */
-export function tasteScoreFor(wins: number, losses: number): number {
-  const n = wins + losses
-  if (n === 0) return 0
-  const z = 1.96
-  const z2 = z * z
-  const p = wins / n
-  const denom = 1 + z2 / n
-  const centre = p + z2 / (2 * n)
-  const delta = z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))
-  const score = (100 * (centre - delta)) / denom
-  return Math.max(0, Math.min(100, Math.round(score)))
+export function ratingSummaryFor(scores: number[]): RatingSummary {
+  const a = aggregateScores(scores)
+  return {
+    count: a.count,
+    peaks: a.peaks,
+    avg: a.avg,
+    score: tasteScoreFromScores(scores),
+    enough: a.count >= RATINGS_MINIMUM,
+  }
 }
 
-export function winRateFor(verdicts: Verdict[]): WinRate {
-  const wins = verdicts.filter((v) => v.verdict === 'W').length
-  const losses = verdicts.filter((v) => v.verdict === 'L').length
-  const total = wins + losses
-  return { wins, losses, total, rate: total >= WIN_RATE_MINIMUM ? wins / total : null, score: tasteScoreFor(wins, losses) }
+/** Taste Score (0–100) from a pile of received scores. */
+export function tasteScoreFor(scores: number[]): number {
+  return tasteScoreFromScores(scores)
 }
 
 export interface TrustBreakdown {
@@ -55,12 +51,12 @@ export interface TrustBreakdown {
 export const TRUST_MIN_DROPS = 2
 
 /**
- * Trust Score: do your ratings hold up?
+ * Trust Score: do your calls hold up?
  *
  * 70% rating accuracy — across your drops that have your own score plus at
  * least 2 community (non-author) comment ratings, how close is your score to
- * the community's mean? A 1-point miss on the 1–10 scale costs ~11 points of
- * accuracy. 30% engagement — log-scaled interactions (verdicts + comments +
+ * the community's mean? A 1-point miss on the 0–10 scale costs 10 points of
+ * accuracy. 30% engagement — log-scaled interactions (ratings + comments +
  * saves) on your drops, maxing out at ~100. Both halves are earned, never
  * given: no community ratings, no score.
  */
@@ -86,7 +82,7 @@ export function trustScoreFor(
     }
   }
   const meanDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length
-  const accuracy = Math.max(0, 1 - meanDiff / 9)
+  const accuracy = Math.max(0, 1 - meanDiff / 10)
   return {
     score: Math.round(100 * (0.7 * accuracy + 0.3 * engagement)),
     qualifyingDrops: diffs.length,
@@ -103,45 +99,47 @@ export interface Badge {
   detail: string
 }
 
-interface VerdictWithDrop extends Verdict {
+interface RatingWithDrop extends DropRating {
   drop: Drop
 }
 
 /** Earned badges, each printing the numbers that earned it. Thresholds are deliberate and shown. */
 export function badgesFor(
   drops: Drop[],
-  verdictsReceived: VerdictWithDrop[],
+  ratingsReceived: RatingWithDrop[],
   savesPerDrop: Map<string, number>,
   firstCount: number
 ): Badge[] {
   const badges: Badge[] = []
-  const decided = verdictsReceived
-    .filter((v) => v.verdict === 'W' || v.verdict === 'L')
-    .sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at))
 
-  // W streak: consecutive Ws from the most recent verdict.
-  let streak = 0
-  for (const v of decided) {
-    if (v.verdict === 'W') streak++
-    else break
-  }
-  if (streak >= 3) {
-    badges.push({ id: 'streak', title: `${streak} Ws in a row`, detail: `Last ${streak} verdicts were all Ws` })
+  // Mountain magnet: 5+ peaks (10.0 ratings) earned across your drops.
+  const peaks = ratingsReceived.filter((r) => r.score === 10).length
+  if (peaks >= 5) {
+    badges.push({
+      id: 'peaks',
+      title: 'Mountain magnet',
+      detail: `${peaks} peaks (10.0 ratings) earned across your drops`,
+    })
   }
 
-  // Neighborhood oracle: a neighborhood with >=5 verdicts, all W.
-  const byHood = new Map<string, { wins: number; total: number }>()
-  for (const v of decided) {
-    const hood = v.drop.neighborhood?.trim()
+  // Neighborhood oracle: a neighborhood with >=5 ratings averaging 9.0+.
+  const byHood = new Map<string, number[]>()
+  for (const r of ratingsReceived) {
+    const hood = r.drop.neighborhood?.trim()
     if (!hood) continue
-    const e = byHood.get(hood) ?? { wins: 0, total: 0 }
-    e.total++
-    if (v.verdict === 'W') e.wins++
-    byHood.set(hood, e)
+    const arr = byHood.get(hood) ?? []
+    arr.push(r.score)
+    byHood.set(hood, arr)
   }
-  for (const [hood, e] of byHood) {
-    if (e.total >= 5 && e.wins === e.total) {
-      badges.push({ id: `oracle-${hood}`, title: `${hood} Oracle`, detail: `${e.wins} of ${e.total} verdicts were Ws` })
+  for (const [hood, scores] of byHood) {
+    if (scores.length < 5) continue
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+    if (avg >= 9) {
+      badges.push({
+        id: `oracle-${hood}`,
+        title: `${hood} Oracle`,
+        detail: `Averaging ${avg.toFixed(1)} across ${scores.length} ratings in ${hood}`,
+      })
       break
     }
   }
@@ -155,14 +153,14 @@ export function badgesFor(
     })
   }
 
-  // Crowd favorite: a drop with >= 5 saves.
+  // Crowd favorite: a drop with >= 5 saves (bets).
   let best: { title: string; saves: number } | null = null
   for (const [dropId, n] of savesPerDrop) {
     const d = drops.find((x) => x.id === dropId)
     if (d && n >= 5 && (!best || n > best.saves)) best = { title: d.title, saves: n }
   }
   if (best) {
-    badges.push({ id: 'crowd', title: 'Crowd favorite', detail: `${best.saves} saves on “${best.title}”` })
+    badges.push({ id: 'crowd', title: 'Crowd favorite', detail: `${best.saves} bets on “${best.title}”` })
   }
 
   return badges
@@ -190,48 +188,45 @@ export function firstDropCount(authorId: string, allDrops: Drop[]): number {
 
 export interface LeaderboardRow {
   profile: Profile
-  winRate: number
-  /** Taste Score — the leaderboard sorts by this, not raw win rate. */
+  /** Raw mean rating in the window; null when unrated. */
+  avg: number | null
+  /** Taste Score — the leaderboard sorts by this, not the raw average. */
   score: number
-  wins: number
-  losses: number
-  verdicts: number
+  peaks: number
+  ratings: number
   charted: boolean
 }
 
 export const LEADERBOARD_MINIMUM = 3
 
-/** Weekly city leaderboard rows, computed from verdicts in the window. */
+/** Weekly city leaderboard rows, computed from ratings in the window. */
 export function buildLeaderboard(
   profiles: Map<string, Profile>,
-  verdicts: Array<Verdict & { drop: Drop }>,
+  ratings: Array<DropRating & { drop: Drop }>,
   sinceIso: string
 ): LeaderboardRow[] {
-  const per = new Map<string, { wins: number; losses: number }>()
-  for (const v of verdicts) {
-    if (v.created_at < sinceIso) continue
-    if (v.verdict !== 'W' && v.verdict !== 'L') continue
-    const e = per.get(v.drop.author_id) ?? { wins: 0, losses: 0 }
-    if (v.verdict === 'W') e.wins++
-    else e.losses++
-    per.set(v.drop.author_id, e)
+  const per = new Map<string, number[]>()
+  for (const r of ratings) {
+    if (r.created_at < sinceIso) continue
+    const arr = per.get(r.drop.author_id) ?? []
+    arr.push(r.score)
+    per.set(r.drop.author_id, arr)
   }
   const rows: LeaderboardRow[] = []
-  for (const [authorId, e] of per) {
+  for (const [authorId, scores] of per) {
     const profile = profiles.get(authorId)
     if (!profile) continue
-    const total = e.wins + e.losses
+    const a = aggregateScores(scores)
     rows.push({
       profile,
-      winRate: total ? e.wins / total : 0,
-      score: tasteScoreFor(e.wins, e.losses),
-      wins: e.wins,
-      losses: e.losses,
-      verdicts: total,
-      charted: total >= LEADERBOARD_MINIMUM,
+      avg: a.avg,
+      score: tasteScoreFromScores(scores),
+      peaks: a.peaks,
+      ratings: a.count,
+      charted: a.count >= LEADERBOARD_MINIMUM,
     })
   }
-  rows.sort((a, b) => b.score - a.score || b.verdicts - a.verdicts)
+  rows.sort((a, b) => b.score - a.score || b.ratings - a.ratings)
   return rows
 }
 
@@ -241,22 +236,22 @@ export interface TasteTwin {
   sharedPlaces: string[]
 }
 
-/** People who called W on the same drops I did — a discovery graph from verdicts. */
+/** People who rated the same drops 9.0+ that I did — a discovery graph from ratings. */
 export function tasteTwins(
   myId: string,
-  myWinDropIds: Set<string>,
-  allVerdicts: Verdict[],
+  myHighDropIds: Set<string>,
+  allRatings: DropRating[],
   dropsById: Map<string, Drop>,
   profilesById: Map<string, Profile>
 ): TasteTwin[] {
   const per = new Map<string, { places: Set<string> }>()
-  for (const v of allVerdicts) {
-    if (v.user_id === myId || v.verdict !== 'W') continue
-    if (!myWinDropIds.has(v.drop_id)) continue
-    const e = per.get(v.user_id) ?? { places: new Set<string>() }
-    const d = dropsById.get(v.drop_id)
+  for (const r of allRatings) {
+    if (r.user_id === myId || r.score < 9) continue
+    if (!myHighDropIds.has(r.drop_id)) continue
+    const e = per.get(r.user_id) ?? { places: new Set<string>() }
+    const d = dropsById.get(r.drop_id)
     if (d) e.places.add(d.title)
-    per.set(v.user_id, e)
+    per.set(r.user_id, e)
   }
   const twins: TasteTwin[] = []
   for (const [uid, e] of per) {

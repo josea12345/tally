@@ -7,6 +7,7 @@ import { mapsUrlForPlace, mapsUrlForQuery } from '../lib/geo'
 import { useDeviceLocation } from '../hooks/useLocation'
 import { navigate } from '../App'
 import PlaceAutocomplete from '../components/PlaceAutocomplete'
+import { ScoreField } from '../components/RateSheet'
 import MediaUpload, { type UploadedMedia } from '../components/MediaUpload'
 import TitleSearch from '../components/TitleSearch'
 import MusicSearch from '../components/MusicSearch'
@@ -595,20 +596,10 @@ export default function Composer({ editId }: { editId?: string }) {
             )}
           </label>
         </div>
-        <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <button
-              key={n}
-              onClick={() => setScore(n)}
-              className={`h-10 w-10 shrink-0 rounded-full text-sm font-black transition ${
-                score === n ? 'bg-sig text-ink' : 'border border-line bg-ink-3 text-mute hover:text-fog'
-              }`}
-            >
-              {n}
-            </button>
-          ))}
+        <div className="py-1">
+          <ScoreField value={score} onChange={setScore} />
         </div>
-        <p className="mt-1.5 text-[11px] text-mute">Calling your shot: how hard are you putting people on?</p>
+        <p className="mt-1.5 text-[11px] text-mute">Calling your shot: type it — decimals and all. A 10 is a mountain.</p>
       </div>
 
       <div className="mt-3">
@@ -779,7 +770,7 @@ export default function Composer({ editId }: { editId?: string }) {
         <p className="mt-2 text-center text-xs text-mute">
           {title.trim().length === 0 || description.trim().length === 0
             ? `Add a ${isPlace ? 'place name' : 'title'} and one line on why it's worth it.`
-            : 'Make your call — pick a score from 1 to 10 to post.'}
+            : 'Make your call — type your score (0 to 10) to post.'}
         </p>
       )}
     </div>

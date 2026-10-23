@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, Profile, Verdict } from '../lib/types'
+import type { Drop, DropRating, Profile } from '../lib/types'
 import { dropMedia } from '../lib/types'
-import { winRateFor, WIN_RATE_MINIMUM, trustScoreFor, TRUST_MIN_DROPS, type TrustBreakdown } from '../lib/stats'
+import { ratingSummaryFor, trustScoreFor, TRUST_MIN_DROPS, type RatingSummary, type TrustBreakdown } from '../lib/stats'
+import { formatAvg, formatScore, RATINGS_MINIMUM } from '../lib/ratings'
 import { renderRecapCard } from '../lib/recapcard'
 import { fetchStreak } from '../lib/streak'
 import ProfileLists from '../components/ProfileLists'
@@ -17,15 +18,14 @@ import ProfileMenu from '../components/ProfileMenu'
 import BadgeList from '../components/BadgeList'
 import Mascot from '../components/Mascot'
 import { GearIcon, CameraIcon } from '../components/icons'
-import TallyMarks from '../components/TallyMarks'
 import CountUp from '../components/CountUp'
 import Saved from './Saved'
 
 interface ProfileStats {
   drops: number
   savedByOthers: number
-  verdictsReceived: number
-  rate: ReturnType<typeof winRateFor>
+  ratingsReceived: number
+  rate: RatingSummary
 }
 
 function DropsList({
@@ -37,24 +37,23 @@ function DropsList({
   profile: Profile
   isOwn: boolean
 }) {
-  const [dropSort, setDropSort] = useState<'new' | 'score' | 'verdicts'>('new')
-  const [verdictCounts, setVerdictCounts] = useState<Map<string, number>>(new Map())
+  const [dropSort, setDropSort] = useState<'new' | 'score' | 'ratings'>('new')
+  const [ratingCounts, setRatingCounts] = useState<Map<string, number>>(new Map())
   useEffect(() => {
-    if (dropSort !== 'verdicts' || drops.length === 0) return
+    if (dropSort !== 'ratings' || drops.length === 0) return
     let live = true
     ;(async () => {
       const { data } = await supabase
-        .from('verdicts')
+        .from('drop_ratings')
         .select('drop_id')
         .in('drop_id', drops.map((d) => d.id))
-        .not('verdict', 'is', null)
         .limit(5000)
       if (!live) return
       const counts = new Map<string, number>()
       for (const r of (data ?? []) as Array<{ drop_id: string }>) {
         counts.set(r.drop_id, (counts.get(r.drop_id) ?? 0) + 1)
       }
-      setVerdictCounts(counts)
+      setRatingCounts(counts)
     })()
     return () => {
       live = false
@@ -63,8 +62,8 @@ function DropsList({
   const sortedDrops =
     dropSort === 'score'
       ? [...drops].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
-      : dropSort === 'verdicts'
-        ? [...drops].sort((a, b) => (verdictCounts.get(b.id) ?? 0) - (verdictCounts.get(a.id) ?? 0))
+      : dropSort === 'ratings'
+        ? [...drops].sort((a, b) => (ratingCounts.get(b.id) ?? 0) - (ratingCounts.get(a.id) ?? 0))
         : drops
 
   if (drops.length === 0) {
@@ -110,7 +109,7 @@ function DropsList({
             <span className="absolute inset-x-0 bottom-0 block bg-gradient-to-t from-black/80 via-black/35 to-transparent p-4 pt-12">
               <span className="block truncate text-lg font-black text-white">{pinned.title}</span>
               <span className="block text-xs font-bold text-white/80">
-                {pinned.score != null ? `Their call: ${pinned.score}/10` : 'No score given'}
+                {pinned.score != null ? `Their call: ${formatScore(pinned.score)}/10` : 'No score given'}
                 {pinned.city ? ` · ${pinned.city}` : ''}
               </span>
             </span>
@@ -123,7 +122,7 @@ function DropsList({
             [
               { id: 'new', label: 'Newest' },
               { id: 'score', label: 'Top scored' },
-              { id: 'verdicts', label: 'Most verdicts' },
+              { id: 'ratings', label: 'Most rated' },
             ] as const
           ).map((s) => (
             <button
@@ -161,7 +160,7 @@ export default function Profile({ id }: { id?: string }) {
   const [showFormula, setShowFormula] = useState(false)
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
   const [streak, setStreak] = useState(0)
-  const [week, setWeek] = useState<{ w: number; l: number; tallies: number; comments: number; followers: number } | null>(null)
+  const [week, setWeek] = useState<{ ratings: number; avg: number | null; peaks: number; bets: number; comments: number; followers: number } | null>(null)
   const [recapBusy, setRecapBusy] = useState(false)
   const [profileCopied, setProfileCopied] = useState(false)
   const [showTrustInfo, setShowTrustInfo] = useState(false)
@@ -239,19 +238,19 @@ export default function Profile({ id }: { id?: string }) {
       const ids = list.map((d) => d.id)
       let savedByOthers = 0
       let savesCache: Array<{ drop_id: string; created_at: string }> = []
-      let verdictsReceived: Verdict[] = []
+      let ratingsReceived: DropRating[] = []
       let commentCount = 0
       let communityByDrop = new Map<string, number[]>()
       if (ids.length > 0) {
         const [{ data: saves }, { data: vts }, { count: cc }, { data: rated }] = await Promise.all([
           supabase.from('saves').select('drop_id,created_at').in('drop_id', ids).limit(5000),
-          supabase.from('verdicts').select('*').in('drop_id', ids).limit(5000),
+          supabase.from('drop_ratings').select('*').in('drop_id', ids).limit(5000),
           supabase.from('comments').select('id', { count: 'exact', head: true }).in('drop_id', ids),
           supabase.from('comments').select('drop_id,user_id,rating').in('drop_id', ids).not('rating', 'is', null).limit(2000),
         ])
         savedByOthers = (saves ?? []).length
         savesCache = (saves ?? []) as Array<{ drop_id: string; created_at: string }>
-        verdictsReceived = (vts ?? []) as Verdict[]
+        ratingsReceived = (vts ?? []) as DropRating[]
         commentCount = cc ?? 0
         for (const rc of (rated ?? []) as Array<{ drop_id: string; user_id: string; rating: number }>) {
           // The author's own comment ratings don't count — their take is the drop's score.
@@ -265,14 +264,14 @@ export default function Profile({ id }: { id?: string }) {
       setStats({
         drops: list.length,
         savedByOthers,
-        verdictsReceived: verdictsReceived.filter((v) => v.verdict === 'W' || v.verdict === 'L').length,
-        rate: winRateFor(verdictsReceived),
+        ratingsReceived: ratingsReceived.length,
+        rate: ratingSummaryFor(ratingsReceived.map((x) => x.score)),
       })
       if (live) {
         setTrust(
           trustScoreFor(
             list.map((d) => ({ score: d.score, community: communityByDrop.get(d.id) ?? [] })),
-            verdictsReceived.length + commentCount + savedByOthers
+            ratingsReceived.length + commentCount + savedByOthers
           )
         )
       }
@@ -282,11 +281,11 @@ export default function Profile({ id }: { id?: string }) {
         })
         .catch(() => {})
 
-      // "This week" recap — own profile only: new verdicts, tallies,
+      // "This week" recap — own profile only: new ratings, bets,
       // comments, and followers in the last 7 days.
       if (live && user && user.id === profileId) {
         const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-        const wv = verdictsReceived.filter((v) => v.created_at >= weekAgo)
+        const wv = ratingsReceived.filter((v) => v.created_at >= weekAgo)
         const [{ count: cw }, { count: fw }] = await Promise.all([
           ids.length > 0
             ? supabase
@@ -303,9 +302,10 @@ export default function Profile({ id }: { id?: string }) {
         ])
         if (live) {
           setWeek({
-            w: wv.filter((v) => v.verdict === 'W').length,
-            l: wv.filter((v) => v.verdict === 'L').length,
-            tallies: savesCache.filter((s) => s.created_at >= weekAgo).length,
+            ratings: wv.length,
+            avg: wv.length ? wv.reduce((a, v) => a + v.score, 0) / wv.length : null,
+            peaks: wv.filter((v) => v.score === 10).length,
+            bets: savesCache.filter((s) => s.created_at >= weekAgo).length,
             comments: cw ?? 0,
             followers: fw ?? 0,
           })
@@ -391,7 +391,7 @@ export default function Profile({ id }: { id?: string }) {
 
   // Overall: the average of whichever scores exist (Taste + Trust), shown as a
   // compact badge by the name. Null until at least one score has data.
-  const tasteScore = r && r.rate != null ? Math.round(r.score) : null
+  const tasteScore = r && r.enough ? Math.round(r.score) : null
   const trustScore = trust && trust.score != null ? Math.round(trust.score) : null
   const overallScore =
     tasteScore != null && trustScore != null
@@ -568,7 +568,7 @@ export default function Profile({ id }: { id?: string }) {
               <div className="relative h-28 w-28">
                 <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
                   <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
-                  {r && r.rate != null && (
+                  {r && r.enough && (
                     <circle
                       cx="50"
                       cy="50"
@@ -584,16 +584,16 @@ export default function Profile({ id }: { id?: string }) {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-4xl font-black tabular-nums text-sig">
-                    {r && r.rate != null ? <CountUp value={r.score} /> : '—'}
+                    {r && r.enough ? <CountUp value={r.score} /> : '—'}
                   </span>
                 </div>
               </div>
               <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute">
                 Taste Score
               </div>
-              {r && r.rate == null && (
+              {r && !r.enough && (
                 <p className="mt-1 text-center text-[11px] leading-snug text-mute">
-                  Appears after {WIN_RATE_MINIMUM} verdicts
+                  Appears after {RATINGS_MINIMUM} ratings
                 </p>
               )}
               <button
@@ -654,13 +654,13 @@ export default function Profile({ id }: { id?: string }) {
           {showFormula && (
             <div className="mx-auto mt-3 w-full max-w-[320px] rounded-2xl border border-line bg-ink-2 p-4">
               <div className="mb-2 text-center text-sm font-black tracking-tight">
-                Score = the low end of your win rate's 95% confidence range × 100
+                Score = your average rating, credibility-weighted, × 10
               </div>
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
-                <li>· Your score is the worst your win rate plausibly is — not the raw percentage.</li>
-                <li>· 5 lucky Ws score 57. 850 Ws out of 1,000 score 83. Volume earns trust.</li>
-                <li>· Only W/L verdicts move it. Saves, views, and missing verdicts never count.</li>
-                <li>· Your score appears after {WIN_RATE_MINIMUM} verdicts.</li>
+                <li>· Your average, pulled toward 7.0 until real volume arrives — the raw average stays visible as the audit trail.</li>
+                <li>· Two friendly 10s barely move it. Two hundred ratings speak at full volume. Volume earns trust.</li>
+                <li>· Only ratings move it. Bets, views, and saves never count.</li>
+                <li>· Your score appears after {RATINGS_MINIMUM} ratings.</li>
               </ul>
             </div>
           )}
@@ -670,25 +670,25 @@ export default function Profile({ id }: { id?: string }) {
                 Do your ratings hold up?
               </div>
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
-                <li>· 70% rating accuracy — how close your 1–10 score lands to the community's mean rating on your drops.</li>
-                <li>· 30% engagement — verdicts, comments, and tallies on your drops (log-scaled, maxes out around 100).</li>
+                <li>· 70% rating accuracy — how close your 0–10 score lands to the community's mean rating on your drops.</li>
+                <li>· 30% engagement — ratings, comments, and bets on your drops (log-scaled, maxes out around 100).</li>
                 <li>· Only drops with your score + at least 2 community ratings count. Your own comment ratings never count.</li>
                 <li>· Rate other people's drops in the comments to feed their Trust.</li>
               </ul>
             </div>
           )}
 
-          {r && r.rate != null && (r.wins > 0 || r.losses > 0) && (
-            <div className="mx-auto mt-4 w-full max-w-[300px]">
-              <TallyMarks wins={r.wins} losses={r.losses} />
-              <p className="mt-2 text-center text-xs text-mute">
-                {r.wins} W · {r.losses} L across {r.total} verdicts · tallied by {stats?.savedByOthers ?? 0}
+          {r && r.enough && (
+            <div className="mx-auto mt-4 w-full max-w-[340px]">
+              <p className="text-center text-xs text-mute">
+                <span className="font-black text-sig">{r.avg != null ? formatAvg(r.avg) : '—'} avg</span> across{' '}
+                {r.count} ratings · {r.peaks} peaks · betted by {stats?.savedByOthers ?? 0}
               </p>
             </div>
           )}
-          {r && r.rate != null && (
+          {r && r.enough && (
             <p className="mt-1 text-center text-[11px] text-mute/70">
-              Only verdicts move it — and more verdicts move it more. Saves don't count.
+              Only ratings move it — and more ratings move it more. Bets don't count.
             </p>
           )}
         </div>
@@ -699,7 +699,7 @@ export default function Profile({ id }: { id?: string }) {
             <div className="mb-1.5 text-center text-[9px] font-black uppercase tracking-[0.22em] text-mute">
               This week
             </div>
-            {week.w + week.l + week.tallies + week.comments + week.followers === 0 ? (
+            {week.ratings + week.bets + week.comments + week.followers === 0 ? (
               <p className="text-center text-[11px] text-mute">
                 Quiet so far — no new action on your drops yet.
               </p>
@@ -707,15 +707,16 @@ export default function Profile({ id }: { id?: string }) {
               <div className="flex items-start justify-between gap-2 text-center">
                 <div className="min-w-0 flex-1">
                   <div className="whitespace-nowrap text-sm font-black tabular-nums">
-                    <span className="text-win">{week.w} W</span>
-                    <span className="text-mute"> · </span>
-                    <span className="text-miss">{week.l} L</span>
+                    <span className="text-sig">{week.avg != null ? formatAvg(week.avg) : '—'}</span>
+                    <span className="text-mute"> avg</span>
                   </div>
-                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">verdicts</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">
+                    {week.ratings} ratings · {week.peaks} peaks
+                  </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-black tabular-nums text-fog">{week.tallies}</div>
-                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">tallies</div>
+                  <div className="text-sm font-black tabular-nums text-fog">{week.bets}</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">bets</div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-black tabular-nums text-fog">{week.comments}</div>
@@ -727,7 +728,7 @@ export default function Profile({ id }: { id?: string }) {
                 </div>
               </div>
             )}
-            {week.w + week.l + week.tallies + week.comments + week.followers > 0 && (
+            {week.ratings + week.bets + week.comments + week.followers > 0 && (
               <button
                 onClick={shareWeek}
                 disabled={recapBusy}
@@ -781,7 +782,7 @@ export default function Profile({ id }: { id?: string }) {
                     tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                   }`}
                 >
-                  {t === 'drops' ? 'Drops' : 'Tallies'}
+                  {t === 'drops' ? 'Drops' : 'Bets'}
                   {tab === t && (
                     <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
                   )}

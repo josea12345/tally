@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, Profile, Verdict } from '../lib/types'
+import type { Drop, DropRating, Profile } from '../lib/types'
 import { CATEGORY_GROUPS } from '../lib/types'
 import { buildLeaderboard, LEADERBOARD_MINIMUM } from '../lib/stats'
 import { fetchTrustBreakdown } from '../lib/trustData'
+import { formatAvg } from '../lib/ratings'
 import { Avatar, navigate } from '../App'
 
 /**
  * The city leaderboard, full-page: this week's tastemakers ranked by
- * Taste Score (Wilson lower bound over the last 7 days of verdicts on
- * drops in the city). Falls back to all cities when the city has no
+ * Taste Score (credibility-weighted average over the last 7 days of
+ * ratings on drops in the city). Falls back to all cities when the city has no
  * charted action yet — same rule as the desktop rail.
  */
 export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
   const { user } = useAuth()
   const [board, setBoard] = useState<{
     profById: Map<string, Profile>
-    base: Array<Verdict & { drop: Drop }>
+    base: Array<DropRating & { drop: Drop }>
     since: string
   } | null>(null)
   const [group, setGroup] = useState<string>('all')
@@ -40,8 +41,8 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
       const followsPromise = user
         ? supabase.from('follows').select('followee_id').eq('follower_id', user.id).limit(2000)
         : Promise.resolve({ data: [] as Array<{ followee_id: string }> })
-      const [{ data: verdicts }, { data: drops }, { data: profiles }, { data: follows }] = await Promise.all([
-        supabase.from('verdicts').select('*').gte('created_at', since).limit(2000),
+      const [{ data: ratings }, { data: drops }, { data: profiles }, { data: follows }] = await Promise.all([
+        supabase.from('drop_ratings').select('*').gte('created_at', since).limit(2000),
         supabase.from('drops').select('*').gte('created_at', since).limit(2000),
         supabase.from('profiles').select('*').limit(500),
         followsPromise,
@@ -53,9 +54,9 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
         (p) => !p.is_private || p.id === user?.id || followingIds.has(p.id),
       )
       const profById = new Map(visible.map((p) => [p.id, p]))
-      const withDrops = ((verdicts ?? []) as Verdict[])
+      const withDrops = ((ratings ?? []) as DropRating[])
         .map((v) => ({ ...v, drop: dropById.get(v.drop_id) }))
-        .filter((v): v is Verdict & { drop: Drop } => !!v.drop)
+        .filter((v): v is DropRating & { drop: Drop } => !!v.drop)
       const cityLower = city.trim().toLowerCase()
       const cityRows = withDrops.filter((v) => (v.drop.city ?? '').trim().toLowerCase() === cityLower)
       const useCity = cityRows.length > 0
@@ -103,11 +104,11 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
         )}
       </h1>
       <p className="mt-1 text-sm text-mute">
-        Ranked by Taste Score from this week's verdicts
-        {scopedCity ? ` on ${scopedCity} drops` : ''}. {LEADERBOARD_MINIMUM}+ verdicts to chart.
+        Ranked by Taste Score from this week's ratings
+        {scopedCity ? ` on ${scopedCity} drops` : ''}. {LEADERBOARD_MINIMUM}+ ratings to chart.
       </p>
 
-      {/* Category champions: same board, verdicts filtered to the group. */}
+      {/* Category champions: same board, ratings filtered to the group. */}
       <div className="mt-4 flex flex-wrap gap-2">
         {[{ id: 'all', label: 'All' }, ...CATEGORY_GROUPS].map((g) => (
           <button
@@ -130,7 +131,7 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
         </div>
       ) : charted.length === 0 && onDeck.length === 0 ? (
         <p className="mt-8 text-center text-sm text-mute">
-          No verdicts yet this week — the board is wide open. Drop something and get judged.
+          No ratings yet this week — the board is wide open. Drop something and get rated.
         </p>
       ) : (
         <>
@@ -155,8 +156,8 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
                       <span className="font-normal text-mute">@{r.profile.username}</span>
                     </span>
                     <span className="block text-xs text-mute">
-                      <span className="font-bold text-win">{r.wins} W</span> ·{' '}
-                      <span className="font-bold text-miss">{r.losses} L</span> this week
+                      <span className="font-bold text-sig">{r.avg != null ? formatAvg(r.avg) : '—'} avg</span> ·{' '}
+                      {r.ratings} ratings · {r.peaks} peaks this week
                       {trust.has(r.profile.id) && (
                         <span className="font-bold text-[#69e7cf]"> · Trust {trust.get(r.profile.id)}</span>
                       )}
@@ -184,11 +185,11 @@ export default function Leaderboard({ city = 'Miami' }: { city?: string }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold">@{r.profile.username}</span>
                       <span className="block text-xs text-mute">
-                        {r.verdicts} of {LEADERBOARD_MINIMUM} verdicts needed to chart
+                        {r.ratings} of {LEADERBOARD_MINIMUM} ratings needed to chart
                       </span>
                     </span>
                     <span className="text-xs font-bold text-mute">
-                      {r.wins} W · {r.losses} L
+                      {r.ratings} ratings · {r.peaks} peaks
                     </span>
                   </li>
                 ))}

@@ -7,13 +7,13 @@ const DISMISS_KEY = 'tally-checklist-dismissed'
 
 /**
  * New-user setup checklist for the feed: five steps that teach the loop
- * (photo → drop → tally → verdict → follow). Auto-hides when all five are
+ * (photo → drop → bet → rate → follow). Auto-hides when all five are
  * done or when dismissed (remembered per device). Steps without a
  * destination just check themselves off as the user does them in the feed.
  */
 export default function OnboardingChecklist() {
   const { user, profile } = useAuth()
-  const [counts, setCounts] = useState<{ drops: number; saves: number; verdicts: number; follows: number } | null>(null)
+  const [counts, setCounts] = useState<{ drops: number; saves: number; ratings: number; follows: number } | null>(null)
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(DISMISS_KEY) === '1'
@@ -29,11 +29,11 @@ export default function OnboardingChecklist() {
       const [d, s, v, f] = await Promise.all([
         supabase.from('drops').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
         supabase.from('saves').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('verdicts').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('verdict', 'is', null),
+        supabase.from('drop_ratings').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', user.id),
       ])
       if (!live) return
-      setCounts({ drops: d.count ?? 0, saves: s.count ?? 0, verdicts: v.count ?? 0, follows: f.count ?? 0 })
+      setCounts({ drops: d.count ?? 0, saves: s.count ?? 0, ratings: v.count ?? 0, follows: f.count ?? 0 })
     })()
     return () => {
       live = false
@@ -50,8 +50,8 @@ export default function OnboardingChecklist() {
       action: () => navigate(`/profile/${user.id}`),
     },
     { id: 'drop', label: 'Drop your first put-on', done: counts.drops > 0, action: () => navigate('/camera') },
-    { id: 'tally', label: 'Tally something that looks good', done: counts.saves > 0 },
-    { id: 'verdict', label: 'Try something and call it — W or L', done: counts.verdicts > 0 },
+    { id: 'bet', label: 'Bet on something that looks good', done: counts.saves > 0 },
+    { id: 'rate', label: 'Rate something — type your score', done: counts.ratings > 0 },
     { id: 'follow', label: 'Follow someone with taste', done: counts.follows > 0, action: () => navigate('/search') },
   ]
   const doneCount = steps.filter((s) => s.done).length

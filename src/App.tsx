@@ -22,7 +22,7 @@ import UpdatePill from './components/UpdatePill'
 import { captureInviteRef, consumeInviteRef, dropInviteRef } from './lib/invite'
 import { captureSharedContent } from './lib/shareTarget'
 import { isPlaceholderUsername } from './lib/format'
-import TallyIcon from './components/TallyIcon'
+import BetIcon from './components/BetIcon'
 import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
 import Leaderboard from './pages/Leaderboard'
@@ -100,7 +100,7 @@ function MobileNav({ route }: { route: Route }) {  const { profile } = useAuth()
         }`}
       >
         {n.name === 'saved' ? (
-          <TallyIcon saved={active(n.name)} className="h-5 w-5" />
+          <BetIcon saved={active(n.name)} className="h-5 w-5" />
         ) : n.name === 'profile' && profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
         ) : (
@@ -113,7 +113,7 @@ function MobileNav({ route }: { route: Route }) {  const { profile } = useAuth()
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {tab({ name: 'home', label: 'Discover', icon: <HomeIcon className="h-6 w-6" /> })}
-        {tab({ name: 'saved', label: 'Tallies', icon: <TallyIcon saved={false} className="h-5 w-5" /> })}
+        {tab({ name: 'saved', label: 'Bets', icon: <BetIcon saved={false} className="h-5 w-5" /> })}
         <div className="flex items-start justify-center">
           <CreateButton />
         </div>
@@ -130,7 +130,7 @@ function DesktopRail() {
   const items = [
     { label: 'Discover', path: '/', match: 'home' },
     { label: 'Search', path: '/search', match: 'search' },
-    { label: 'Tallies', path: '/saved', match: 'saved' },
+    { label: 'Bets', path: '/saved', match: 'saved' },
     { label: 'Alerts', path: '/notifications', match: 'notifications' },
     { label: 'Profile', path: '/profile', match: 'profile' },
   ]

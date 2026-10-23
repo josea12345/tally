@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import TallyIcon from './TallyIcon'
+import BetIcon from './BetIcon'
+import { PeakMark } from './PeakWordmark'
 
-/** Full-screen verdict slam: a giant W or L bursts over the whole screen. */
-export function VerdictBurst({ v, onDone }: { v: 'W' | 'L'; onDone: () => void }) {
+/** Full-screen peak burst: a giant mountain slams over the screen when a 10.0 lands. */
+export function PeakBurst({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 950)
     return () => clearTimeout(t)
@@ -12,24 +13,18 @@ export function VerdictBurst({ v, onDone }: { v: 'W' | 'L'; onDone: () => void }
     <div className="pointer-events-none fixed inset-0 z-[200] flex items-center justify-center">
       <div className="verdict-burst-bg absolute inset-0 bg-black/35" />
       <span
-        className={`verdict-burst relative font-black leading-none ${v === 'W' ? 'text-win' : 'text-miss'}`}
-        style={{
-          fontSize: 'min(44vw, 26rem)',
-          filter:
-            v === 'W'
-              ? 'drop-shadow(0 0 60px rgba(105,231,207,0.45))'
-              : 'drop-shadow(0 0 60px rgba(255,93,110,0.45))',
-        }}
+        className="verdict-burst relative text-sig"
+        style={{ filter: 'drop-shadow(0 0 60px rgba(69,200,255,0.5))' }}
       >
-        {v}
+        <PeakMark className="h-auto w-[min(52vw,22rem)]" />
       </span>
     </div>,
     document.body
   )
 }
 
-/** Fly-to-tab: the tally icon arcs from the tapped button into the Tallies nav tab. */
-export function FlyToTally({ from, onDone }: { from: DOMRect; onDone: () => void }) {
+/** Fly-to-tab: the bet icon arcs from the tapped button into the Bets nav tab. */
+export function FlyToBet({ from, onDone }: { from: DOMRect; onDone: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -74,7 +69,7 @@ export function FlyToTally({ from, onDone }: { from: DOMRect; onDone: () => void
   }, [])
   return createPortal(
     <div ref={ref} className="pointer-events-none fixed left-0 top-0 z-[200]">
-      <TallyIcon saved className="h-7 w-7 text-sig drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]" />
+      <BetIcon saved className="h-7 w-7 text-sig drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]" />
     </div>,
     document.body
   )

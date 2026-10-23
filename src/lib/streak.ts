@@ -12,7 +12,7 @@ export function weekKey(d: Date): string {
 
 /**
  * Consecutive active weeks up to now. A week counts when the user
- * posted a drop, cast a verdict, or commented. If this week has no
+ * posted a drop, rated a drop, or commented. If this week has no
  * activity yet, the streak still counts through last week (it breaks
  * when the week ends quiet).
  */
@@ -38,7 +38,7 @@ export async function fetchStreak(userId: string): Promise<number> {
   const iso = since.toISOString()
   const [d, v, c] = await Promise.all([
     supabase.from('drops').select('created_at').eq('author_id', userId).gte('created_at', iso).limit(2000),
-    supabase.from('verdicts').select('created_at').eq('user_id', userId).gte('created_at', iso).limit(2000),
+    supabase.from('drop_ratings').select('created_at').eq('user_id', userId).gte('created_at', iso).limit(2000),
     supabase.from('comments').select('created_at').eq('user_id', userId).gte('created_at', iso).limit(2000),
   ])
   const dates: Date[] = []

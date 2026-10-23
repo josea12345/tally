@@ -6,6 +6,8 @@ import { timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
 import MentionText from './MentionText'
+import { ScoreField } from './RateSheet'
+import { formatScore } from '../lib/ratings'
 
 /** Threaded conversation on a drop: list + post + delete-own. */
 export default function Comments({
@@ -311,7 +313,7 @@ export default function Comments({
           </span>
           {c.rating != null && (
             <span className="shrink-0 rounded-full bg-sig/15 px-1.5 py-px text-[10px] font-black text-sig">
-              ★ {c.rating}
+              ★ {formatScore(c.rating)}
             </span>
           )}
           <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
@@ -489,31 +491,27 @@ export default function Comments({
                       : 'border-line text-mute hover:border-sig/50 hover:text-sig'
                   }`}
                 >
-                  {picked != null ? `★ ${picked}` : '★ Rate'}
+                  {picked != null ? `★ ${formatScore(picked)}` : '★ Rate'}
                 </button>
                 {rateOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setRateOpen(false)} />
-                    <div className="absolute bottom-full left-0 z-20 mb-2 w-[212px] rounded-2xl border border-line bg-ink-3 p-2 shadow-xl">
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => {
-                              pickedTouched.current = true
-                              setPicked(n)
-                              setRateOpen(false)
-                            }}
-                            className={`rounded-xl py-2 text-sm font-black transition ${
-                              picked === n
-                                ? 'bg-sig text-ink'
-                                : 'bg-ink-2 text-fog hover:bg-sig/20 hover:text-sig'
-                            }`}
-                          >
-                            {n}
-                          </button>
-                        ))}
+                    <div className="absolute bottom-full left-0 z-20 mb-2 w-[248px] rounded-2xl border border-line bg-ink-3 p-3 shadow-xl">
+                      <div className="flex justify-center py-1">
+                        <ScoreField
+                          value={picked}
+                          onChange={(v) => {
+                            pickedTouched.current = true
+                            setPicked(v)
+                          }}
+                        />
                       </div>
+                      <button
+                        onClick={() => setRateOpen(false)}
+                        className="mt-1 w-full rounded-xl bg-sig py-2 text-sm font-black text-ink"
+                      >
+                        Done
+                      </button>
                       {myRated != null && (
                         <button
                           onClick={() => {

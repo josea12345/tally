@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, Profile, Verdict } from '../lib/types'
+import type { Drop, DropRating, Profile } from '../lib/types'
 import { buildLeaderboard, LEADERBOARD_MINIMUM, type LeaderboardRow } from '../lib/stats'
 import { Avatar, navigate } from '../App'
 
-/** Weekly city leaderboard: win rate over the last 7 days, 3-verdict minimum to chart. */
+/** Weekly city leaderboard: Taste Score over the last 7 days, 3-rating minimum to chart. */
 export default function LeaderboardRail({ city }: { city: string }) {
   const { user } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null)
@@ -17,8 +17,8 @@ export default function LeaderboardRail({ city }: { city: string }) {
       const followsPromise = user
         ? supabase.from('follows').select('followee_id').eq('follower_id', user.id).limit(2000)
         : Promise.resolve({ data: [] as Array<{ followee_id: string }> })
-      const [{ data: verdicts }, { data: drops }, { data: profiles }, { data: follows }] = await Promise.all([
-        supabase.from('verdicts').select('*').gte('created_at', since).limit(2000),
+      const [{ data: ratings }, { data: drops }, { data: profiles }, { data: follows }] = await Promise.all([
+        supabase.from('drop_ratings').select('*').gte('created_at', since).limit(2000),
         supabase.from('drops').select('*').gte('created_at', since).limit(2000),
         supabase.from('profiles').select('*').limit(500),
         followsPromise,
@@ -31,9 +31,9 @@ export default function LeaderboardRail({ city }: { city: string }) {
         (p) => !p.is_private || p.id === user?.id || followingIds.has(p.id)
       )
       const profById = new Map(visible.map((p) => [p.id, p]))
-      const withDrops = ((verdicts ?? []) as Verdict[])
+      const withDrops = ((ratings ?? []) as DropRating[])
         .map((v) => ({ ...v, drop: dropById.get(v.drop_id) }))
-        .filter((v): v is Verdict & { drop: Drop } => !!v.drop)
+        .filter((v): v is DropRating & { drop: Drop } => !!v.drop)
       // City filter: leaderboard is per the viewer's city (drop city match).
       const cityLower = city.trim().toLowerCase()
       const cityRows = withDrops.filter((v) => (v.drop.city ?? '').trim().toLowerCase() === cityLower)
@@ -61,11 +61,11 @@ export default function LeaderboardRail({ city }: { city: string }) {
     <div className="rounded-2xl border border-line bg-ink-2 p-4">
       <div className="mb-1 text-sm font-black">This week's tastemakers</div>
       <p className="mb-3 text-xs text-mute">
-        {city} · taste score, last 7 days · {LEADERBOARD_MINIMUM}+ verdicts to chart
+        {city} · taste score, last 7 days · {LEADERBOARD_MINIMUM}+ ratings to chart
       </p>
       {rows.length === 0 ? (
         <p className="text-xs text-mute">
-          Nobody's on the board yet — verdicts from this week will show up here.
+          Nobody's on the board yet — ratings from this week will show up here.
         </p>
       ) : (
         <ol className="space-y-2">
@@ -77,7 +77,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">@{r.profile.username}</span>
                   <span className="block text-xs text-mute">
-                    <b className="text-sig">{r.score}</b> · {r.verdicts} verdicts
+                    <b className="text-sig">{r.score}</b> · {r.ratings} ratings · {r.peaks} peaks
                   </span>
                 </span>
               </button>
@@ -90,7 +90,7 @@ export default function LeaderboardRail({ city }: { city: string }) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-bold">@{r.profile.username}</span>
                 <span className="block text-[11px] text-mute">
-                  on deck — {r.verdicts}/{LEADERBOARD_MINIMUM} verdicts
+                  on deck — {r.ratings}/{LEADERBOARD_MINIMUM} ratings
                 </span>
               </span>
             </li>

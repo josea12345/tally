@@ -2,7 +2,7 @@ import { useBadges } from '../lib/useBadges'
 import { SparkIcon } from './icons'
 
 /**
- * "Earned on the record" — transparent badges computed from real verdict data.
+ * "Earned on the record" — transparent badges computed from real rating data.
  * Presented as collectible stickers: chunky outline, candy fill, pop-in.
  * The profile owner can dismiss a badge (×); dismissal is stored on the
  * profile so it stays gone (restorable in Settings).

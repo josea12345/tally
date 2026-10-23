@@ -70,7 +70,8 @@ serve(async (req) => {
     like: `${name} liked your comment on ${title}`,
     reminder: `${name} put you on: ${title} — today's the day to try it`,
     recap: 'Your week on Peak is ready — see how your drops did',
-    streak: 'Your streak ends tonight — one verdict saves it',
+    peak: `${name} peaked ${title} — a 10.0`,
+    streak: 'Your streak ends tonight — one rating saves it',
     approved: `${name} approved your follow request`,
     requested: `${name} requested to follow you`,
   }

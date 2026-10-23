@@ -6,7 +6,10 @@ import { CATEGORY_GROUPS, dropMedia } from '../lib/types'
 import { navigate } from '../App'
 import DropGrid from '../components/DropGrid'
 import EmptyState from '../components/EmptyState'
-import { useFeedVotes } from '../lib/feedVotes'
+import { useRatings } from '../lib/useRatings'
+import RateSheet from '../components/RateSheet'
+import { PeakMark } from '../components/PeakWordmark'
+import { formatScore } from '../lib/ratings'
 import MyLists from '../components/MyLists'
 import ReminderButton from '../components/ReminderButton'
 
@@ -27,17 +30,12 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
   const [group, setGroup] = useState('all')
   const [sort, setSort] = useState<Sort>('recent')
   const [status, setStatus] = useState<Status>('all')
-  // One-tap verdicts from the To Try checklist (the hook wants a stats
-  // sink for optimistic counts — Tallies doesn't display counts, so the
-  // map is write-only here).
-  const { myVotes, setVotesFromRows, vote } = useFeedVotes()
+  // Rating from the To Try checklist (the hook wants a stats sink for
+  // optimistic counts — Bets doesn't display counts, so the map is
+  // write-only here). Rating a bet = you tried it: the row moves to Tried.
+  const { myRatings, setRatingsFromRows, rate, unrate } = useRatings()
   const [, setStatsSink] = useState<Map<string, DropStats>>(new Map())
-
-  const quickVote = (d: Drop, v: 'W' | 'L') => {
-    void vote(d.id, v, setStatsSink, d.author_id)
-    // Voting implies tried — the row leaves To Try immediately.
-    setTriedIds((s) => new Set(s).add(d.id))
-  }
+  const [rateTarget, setRateTarget] = useState<Drop | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -53,26 +51,17 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       const list = ((data ?? []) as unknown as Array<{ drop: Drop }>).map((r) => r.drop).filter(Boolean)
       setDrops(list)
       if (list.length > 0) {
-        // Which of my tallies have I actually tried? (verdicts.tried)
-        const { data: vrows } = await supabase
-          .from('verdicts')
-          .select('drop_id,tried,verdict,user_id')
+        // Which of my bets have I actually tried? The ones I've rated.
+        const { data: rrows } = await supabase
+          .from('drop_ratings')
+          .select('drop_id,score,user_id')
           .eq('user_id', user.id)
           .in('drop_id', list.map((d) => d.id))
           .limit(1000)
         if (!live) return
-        setVotesFromRows(
-          ((vrows ?? []) as Array<{ drop_id: string; verdict: string | null; user_id: string }>).map(
-            (v) => ({ drop_id: v.drop_id, verdict: v.verdict, user_id: v.user_id }),
-          ),
-        )
-        setTriedIds(
-          new Set(
-            ((vrows ?? []) as Array<{ drop_id: string; tried: boolean }>)
-              .filter((v) => v.tried)
-              .map((v) => v.drop_id)
-          )
-        )
+        const rows = (rrows ?? []) as Array<{ drop_id: string; score: number; user_id: string }>
+        setRatingsFromRows(rows)
+        setTriedIds(new Set(rows.map((r) => r.drop_id)))
       }
       setLoading(false)
     }
@@ -112,7 +101,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     <div>
       {!bare && (
         <div className="border-b border-line px-4 pb-3 pt-5">
-          <h1 className="wordmark text-3xl">Tallies</h1>
+          <h1 className="wordmark text-3xl">Bets</h1>
           <p className="text-sm text-mute">Everything people put you on to.</p>
         </div>
       )}
@@ -120,7 +109,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       {drops.length === 0 ? (
         <EmptyState
           title="Nothing in the vault yet"
-          body="When someone puts you on to something, tally it here — your shortlist of things worth trying."
+          body="When someone puts you on to something, bet on it here — your shortlist of things worth trying."
           mood="happy"
           action={
             <button onClick={() => navigate('/')} className="btn-pop press px-6 py-2.5 text-sm">
@@ -130,7 +119,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
         />
       ) : (
         <>
-          {/* To try / Tried split — your tallies as a checklist */}
+          {/* To try / Tried split — your bets as a checklist */}
           <div className="px-4 pt-3">
             <div className="flex rounded-full border border-line bg-ink-2 p-1">
               {(
@@ -184,16 +173,15 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           {visible.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-mute">
               {status === 'totry'
-                ? 'Nothing waiting. Tally drops from the feed and they queue up here.'
+                ? 'Nothing waiting. Bet on drops from the feed and they queue up here.'
                 : status === 'tried'
-                  ? "Nothing tried yet — your to-try list is waiting."
+                  ? "Nothing tried yet — rate a bet once you've tried it and it lands here."
                   : 'Nothing here under this filter yet.'}
             </p>
           ) : status === 'totry' ? (
             <ul className="divide-y divide-line">
               {visible.map((d) => {
                 const media = dropMedia(d)[0]
-                const mine = myVotes.get(d.id)
                 return (
                   <li key={d.id} className="flex items-center gap-2 px-4 py-3">
                     <button
@@ -221,26 +209,14 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
                       </span>
                     </button>
                     {d.author_id !== user?.id && (
-                      <span className="flex shrink-0 gap-1.5">
-                        <button
-                          onClick={() => quickVote(d, 'W')}
-                          aria-label={`Call ${d.title} a W`}
-                          className={`press h-10 w-10 rounded-full text-sm font-black ${
-                            mine === 'W' ? 'bg-win text-ink' : 'border border-win/60 text-win'
-                          }`}
-                        >
-                          W
-                        </button>
-                        <button
-                          onClick={() => quickVote(d, 'L')}
-                          aria-label={`Call ${d.title} an L`}
-                          className={`press h-10 w-10 rounded-full text-sm font-black ${
-                            mine === 'L' ? 'bg-miss text-white' : 'border border-miss/60 text-miss'
-                          }`}
-                        >
-                          L
-                        </button>
-                      </span>
+                      <button
+                        onClick={() => setRateTarget(d)}
+                        aria-label={`Rate ${d.title}`}
+                        className="press flex shrink-0 items-center gap-1.5 rounded-full border border-sig/60 px-4 py-2.5 text-sm font-black text-sig"
+                      >
+                        <PeakMark className="h-3.5 w-auto" />
+                        {myRatings.get(d.id) != null ? formatScore(myRatings.get(d.id)!) : 'Rate it'}
+                      </button>
                     )}
                     {status === 'totry' && d.author_id !== user?.id && <ReminderButton dropId={d.id} slim />}
                   </li>
@@ -251,6 +227,25 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
             <DropGrid drops={visible} showScores={sort === 'top'} />
           )}
         </>
+      )}
+      {rateTarget && (
+        <RateSheet
+          title={rateTarget.title}
+          current={myRatings.get(rateTarget.id) ?? null}
+          onRate={(score) => {
+            void rate(rateTarget.id, score, setStatsSink)
+            setTriedIds((s) => new Set(s).add(rateTarget.id))
+          }}
+          onRemove={() => {
+            void unrate(rateTarget.id, setStatsSink)
+            setTriedIds((s) => {
+              const n = new Set(s)
+              n.delete(rateTarget.id)
+              return n
+            })
+          }}
+          onClose={() => setRateTarget(null)}
+        />
       )}
     </div>
   )

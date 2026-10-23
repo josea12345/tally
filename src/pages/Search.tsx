@@ -7,6 +7,7 @@ import { Avatar, navigate } from '../App'
 import FollowButton from '../components/FollowButton'
 import EmptyState from '../components/EmptyState'
 import { timeAgo } from '../lib/format'
+import { formatAvg } from '../lib/ratings'
 
 type Tab = 'people' | 'drops'
 
@@ -24,7 +25,7 @@ export default function Search() {
   const [drops, setDrops] = useState<DropHit[]>([])
   const [fresh, setFresh] = useState<DropHit[]>([])
   const [topics, setTopics] = useState<Array<{ key: string; label: string; count: number }>>([])
-  const [topRated, setTopRated] = useState<Array<DropHit & { wins: number; losses: number }>>([])
+  const [topRated, setTopRated] = useState<Array<DropHit & { avg: number; count: number; peaks: number }>>([])
   const [active, setActive] = useState<Array<{ profile: Profile; drops: number }>>([])
   const [suggested, setSuggested] = useState<Array<{ profile: Profile; note: string }>>([])
 
@@ -124,23 +125,27 @@ export default function Search() {
       const week = (weekDrops ?? []) as unknown as DropHit[]
       if (week.length > 0) {
         const { data: vrows } = await supabase
-          .from('verdicts')
-          .select('drop_id, verdict')
+          .from('drop_ratings')
+          .select('drop_id, score')
           .in('drop_id', week.map((d) => d.id))
           .limit(2000)
         if (!live) return
-        const rec = new Map<string, { wins: number; losses: number }>()
-        for (const v of (vrows ?? []) as Array<{ drop_id: string; verdict: string | null }>) {
-          const e = rec.get(v.drop_id) ?? { wins: 0, losses: 0 }
-          if (v.verdict === 'W') e.wins++
-          else if (v.verdict === 'L') e.losses++
+        const rec = new Map<string, { sum: number; count: number; peaks: number }>()
+        for (const v of (vrows ?? []) as Array<{ drop_id: string; score: number }>) {
+          const e = rec.get(v.drop_id) ?? { sum: 0, count: 0, peaks: 0 }
+          e.sum += v.score
+          e.count++
+          if (v.score === 10) e.peaks++
           rec.set(v.drop_id, e)
         }
         setTopRated(
           week
-            .map((d) => ({ ...d, ...(rec.get(d.id) ?? { wins: 0, losses: 0 }) }))
-            .filter((d) => d.wins + d.losses >= 2)
-            .sort((a, b) => b.wins - b.losses - (a.wins - a.losses) || b.wins - a.wins)
+            .map((d) => {
+              const e = rec.get(d.id)
+              return { ...d, avg: e ? e.sum / e.count : 0, count: e?.count ?? 0, peaks: e?.peaks ?? 0 }
+            })
+            .filter((d) => d.count >= 2)
+            .sort((a, b) => b.avg - a.avg || b.peaks - a.peaks || b.count - a.count)
             .slice(0, 5),
         )
       }
@@ -284,7 +289,7 @@ export default function Search() {
               <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Top rated this week</h2>
               <ul className="space-y-2.5">
                 {topRated.map((d) => (
-                  <DropRow key={d.id} drop={d} record={`${d.wins} W · ${d.losses} L`} />
+                  <DropRow key={d.id} drop={d} record={`${formatAvg(d.avg)} avg · ${d.count} ratings`} />
                 ))}
               </ul>
             </section>

@@ -1,9 +1,9 @@
 /** Canvas-rendered 1080×1920 taste card PNG for sharing drops to stories. */
 import type { Drop } from './types'
-import { winRateFor, type WinRate } from './stats'
+import type { RatingSummary } from './stats'
+import { formatAvg, formatScore } from './ratings'
 import { dropMedia } from './types'
 import { hiResArtwork } from '../components/ArtworkImage'
-import type { Verdict } from './types'
 
 const W = 1080
 const H = 1920
@@ -39,9 +39,9 @@ export async function renderTasteCard(
   drop: Drop,
   authorName: string,
   authorHandle: string,
-  verdicts: Verdict[],
+  dropAgg: { avg: number | null; count: number; peaks: number },
   trustScore?: number | null,
-  authorRate?: WinRate | null
+  authorSummary?: RatingSummary | null
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -135,25 +135,27 @@ export async function renderTasteCard(
   ctx.fillText(`put you on by ${authorName} · @${authorHandle}`, pad, y)
   y += 90
 
-  // reputation pills: this drop's honest W–L record (blue), the author's
+  // reputation pills: this drop's honest rating record (blue), the author's
   // OVERALL Taste Score when they have one (dark), and Trust (mint),
-  // flowed with wrap. An earlier version labeled the single-drop record
-  // as the author's "Taste Score" — the two numbers are different things.
-  const hr = winRateFor(verdicts)
+  // flowed with wrap. The single-drop record and the author's Taste Score
+  // are different numbers — the pills label each for what it is.
   const pills: Array<{ text: string; bg: string; fg: string }> = [
     {
-      text: hr.wins + hr.losses === 0 ? 'No verdicts yet' : `${hr.wins} W · ${hr.losses} L on this drop`,
+      text:
+        dropAgg.count === 0
+          ? 'No ratings yet'
+          : `${formatAvg(dropAgg.avg ?? 0)} avg · ${dropAgg.count} ratings${dropAgg.peaks > 0 ? ` · ${dropAgg.peaks} peaks` : ''} on this drop`,
       bg: '#45c8ff',
       fg: '#191725',
     },
   ]
-  if (authorRate && authorRate.rate != null) {
-    pills.push({ text: `Taste Score ${authorRate.score}`, bg: '#262338', fg: '#f2eefc' })
+  if (authorSummary && authorSummary.enough) {
+    pills.push({ text: `Taste Score ${authorSummary.score}`, bg: '#262338', fg: '#f2eefc' })
   }
   if (trustScore != null) {
     pills.push({ text: `Trust ${Math.round(trustScore)}`, bg: '#69e7cf', fg: '#191725' })
   }
-  const callText = drop.score != null ? `${authorName}'s call: ${drop.score}/10` : null
+  const callText = drop.score != null ? `${authorName}'s call: ${formatScore(drop.score)}/10` : null
   ctx.font = '700 40px Inter, sans-serif'
   const ph = 84
   let pillX = pad

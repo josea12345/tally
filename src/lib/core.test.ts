@@ -1,41 +1,71 @@
 import { describe, expect, it } from 'vitest'
 import { parseHashString } from './routes'
-import { tasteScoreFor, trustScoreFor, winRateFor, WIN_RATE_MINIMUM } from './stats'
+import { ratingSummaryFor, tasteScoreFor, trustScoreFor } from './stats'
+import { parseScoreInput, RATINGS_MINIMUM } from './ratings'
 import { scaleFilterCss, textVisibleAt, type TextOverlay } from './filters'
 import { cutEndAt, keptSeconds } from './video'
 import { segmentPosition } from './sound'
 
-describe('tasteScoreFor (Wilson lower bound)', () => {
-  it('is 0 with no verdicts', () => {
-    expect(tasteScoreFor(0, 0)).toBe(0)
+describe('tasteScoreFor (credibility-weighted average)', () => {
+  it('is 0 with no ratings', () => {
+    expect(tasteScoreFor([])).toBe(0)
   })
-  it('more verdicts at the same rate always scores higher', () => {
-    expect(tasteScoreFor(50, 50)).toBeGreaterThan(tasteScoreFor(5, 5))
-    expect(tasteScoreFor(500, 500)).toBeGreaterThan(tasteScoreFor(50, 50))
+  it('more ratings at the same high average always scores higher', () => {
+    const five = Array.from({ length: 5 }, () => 9)
+    const fifty = Array.from({ length: 50 }, () => 9)
+    expect(tasteScoreFor(fifty)).toBeGreaterThan(tasteScoreFor(five))
   })
-  it('a perfect record beats a losing one; output is bounded 0..100', () => {
-    expect(tasteScoreFor(10, 0)).toBeGreaterThan(tasteScoreFor(0, 10))
-    for (const [w, l] of [
-      [0, 100],
-      [100, 0],
-      [3, 7],
-    ] as const) {
-      const s = tasteScoreFor(w, l)
-      expect(s).toBeGreaterThanOrEqual(0)
-      expect(s).toBeLessThanOrEqual(100)
-    }
+  it('a couple of friendly 10s cannot crown anyone', () => {
+    const two = tasteScoreFor([10, 10])
+    const proven = tasteScoreFor(Array.from({ length: 200 }, () => 10))
+    expect(two).toBeLessThan(proven)
+    expect(proven).toBeLessThanOrEqual(100)
+    expect(two).toBeGreaterThanOrEqual(0)
+  })
+  it('a low average sinks further as volume confirms it', () => {
+    const five = Array.from({ length: 5 }, () => 5)
+    const fifty = Array.from({ length: 50 }, () => 5)
+    expect(tasteScoreFor(fifty)).toBeLessThan(tasteScoreFor(five))
   })
 })
 
-describe('winRateFor', () => {
-  it('hides the rate below the verdict minimum but still counts', () => {
-    const few = winRateFor([{ verdict: 'W' }, { verdict: 'W' }] as never)
-    expect(few.total).toBe(2)
-    expect(few.rate).toBeNull()
-    const many = winRateFor(
-      Array.from({ length: WIN_RATE_MINIMUM }, () => ({ verdict: 'W' })) as never,
-    )
-    expect(many.rate).toBe(1)
+describe('ratingSummaryFor', () => {
+  it('gates the public score on the ratings minimum but still counts', () => {
+    const few = ratingSummaryFor([10, 9.5])
+    expect(few.count).toBe(2)
+    expect(few.enough).toBe(false)
+    expect(few.peaks).toBe(1)
+    const many = ratingSummaryFor(Array.from({ length: RATINGS_MINIMUM }, () => 8.4))
+    expect(many.enough).toBe(true)
+    expect(many.avg).toBeCloseTo(8.4)
+  })
+})
+
+describe('parseScoreInput (typed scores)', () => {
+  it('parses plain and decimal scores', () => {
+    expect(parseScoreInput('8.3')).toBe(8.3)
+    expect(parseScoreInput('8')).toBe(8)
+    expect(parseScoreInput('10')).toBe(10)
+    expect(parseScoreInput('10.0')).toBe(10)
+    expect(parseScoreInput('0')).toBe(0)
+    expect(parseScoreInput('0.4')).toBe(0.4)
+  })
+  it('reads bare integers 11-100 as tenths (the skipped-dot case)', () => {
+    expect(parseScoreInput('83')).toBe(8.3)
+    expect(parseScoreInput('85')).toBe(8.5)
+    expect(parseScoreInput('100')).toBe(10)
+  })
+  it('rounds extra precision to one decimal', () => {
+    expect(parseScoreInput('7.55')).toBe(7.6)
+    expect(parseScoreInput('7.54')).toBe(7.5)
+  })
+  it('rejects out-of-range and garbage', () => {
+    expect(parseScoreInput('10.5')).toBeNull()
+    expect(parseScoreInput('abc')).toBeNull()
+    expect(parseScoreInput('')).toBeNull()
+    expect(parseScoreInput('-3')).toBeNull()
+    expect(parseScoreInput('1.2.3')).toBeNull()
+    expect(parseScoreInput('.')).toBeNull()
   })
 })
 

@@ -1,0 +1,177 @@
+import { useEffect, useRef, useState } from 'react'
+import { parseScoreInput, formatScore } from '../lib/ratings'
+import { PeakMark } from './PeakWordmark'
+import { PeakBurst } from './VoteFx'
+import { tapHaptic } from '../lib/haptics'
+
+interface RateSheetProps {
+  /** The drop being rated (title shown in the sheet header). */
+  title: string
+  /** My current rating on this drop, if any. */
+  current: number | null
+  /** Value pre-loaded into the field (double-tap loads 10). */
+  prefill?: number | null
+  onRate: (score: number) => void
+  onRemove: () => void
+  onClose: () => void
+}
+
+/**
+ * The rating ritual: a scorecard, not a form. The decimal keyboard is
+ * already up, the number is huge, and typing a 10 lights the mountain.
+ * Three keystrokes and one confirm puts it on the record.
+ */
+export default function RateSheet({ title, current, prefill, onRate, onRemove, onClose }: RateSheetProps) {
+  const [text, setText] = useState(() =>
+    prefill != null ? formatScore(prefill) : current != null ? formatScore(current) : '',
+  )
+  const [burst, setBurst] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const parsed = parseScoreInput(text)
+  const isTen = parsed === 10
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }, 60)
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const submit = () => {
+    if (parsed == null) return
+    tapHaptic()
+    onRate(parsed)
+    if (parsed === 10) {
+      setBurst(true)
+      setTimeout(onClose, 780)
+    } else {
+      onClose()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[130]" role="dialog" aria-modal="true" aria-label={`Rate ${title}`}>
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+      <div className="animate-[pop-in_.25s_ease-out] absolute inset-x-0 bottom-0 mx-auto w-full max-w-lg rounded-t-[26px] border-t border-line bg-ink-2 px-5 pb-10 pt-3 shadow-2xl">
+        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-line" />
+        <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-mute">Your call on</p>
+        <p className="mt-1 truncate text-center text-base font-bold">{title}</p>
+
+        <div className="mt-5 flex justify-center">
+          <span
+            className={`transition-all duration-300 ${isTen ? 'text-sig' : 'text-mute/35'}`}
+            style={isTen ? { filter: 'drop-shadow(0 0 18px rgba(69,200,255,0.55))' } : undefined}
+          >
+            <PeakMark className="h-10 w-auto" />
+          </span>
+        </div>
+
+        <div className="mt-3 flex items-end justify-center gap-2">
+          <input
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit()
+            }}
+            inputMode="decimal"
+            enterKeyHint="done"
+            placeholder="8.3"
+            aria-label="Your score, 0 to 10"
+            className={`w-44 border-b-[3px] bg-transparent pb-1 text-center text-[56px] font-black leading-none outline-none transition-colors placeholder:text-mute/30 ${
+              isTen ? 'border-sig text-sig' : parsed != null ? 'border-fog/60' : 'border-line'
+            }`}
+          />
+          <span className="pb-2 text-lg font-black text-mute">/10</span>
+        </div>
+
+        <p className={`mt-3 h-5 text-center text-sm font-bold ${isTen ? 'text-sig' : 'text-mute'}`}>
+          {isTen
+            ? "That's a peak."
+            : parsed != null
+              ? `On the record as ${formatScore(parsed)}`
+              : text.trim()
+                ? 'Scores run 0 to 10 — decimals welcome'
+                : 'Type your score — 8.3, 9, 10…'}
+        </p>
+
+        <button
+          onClick={submit}
+          disabled={parsed == null || parsed === current}
+          className="press mt-4 w-full rounded-full bg-sig py-3.5 text-base font-black text-ink disabled:opacity-40"
+        >
+          Put it on the record
+        </button>
+        {current != null && (
+          <button
+            onClick={() => {
+              onRemove()
+              onClose()
+            }}
+            className="press mx-auto mt-3 block text-sm font-bold text-miss"
+          >
+            Remove my rating
+          </button>
+        )}
+      </div>
+      {burst && <PeakBurst onDone={() => setBurst(false)} />}
+    </div>
+  )
+}
+
+/**
+ * The inline typed-score field used where a score is part of a bigger form
+ * (the author's call in the composer, a comment's rating). Same parsing as
+ * the sheet: type "83" and it means 8.3; a 10 lights the mountain.
+ */
+export function ScoreField({
+  value,
+  onChange,
+  autoFocus = false,
+}: {
+  value: number | null
+  onChange: (v: number | null) => void
+  autoFocus?: boolean
+}) {
+  const [text, setText] = useState(() => (value != null ? formatScore(value) : ''))
+  useEffect(() => {
+    if (value !== parseScoreInput(text)) {
+      setText(value != null ? formatScore(value) : '')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+  const isTen = value === 10
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      <span className={isTen ? 'text-sig' : 'text-mute/50'}>
+        <PeakMark className="h-5 w-auto" />
+      </span>
+      <input
+        value={text}
+        autoFocus={autoFocus}
+        onChange={(e) => {
+          setText(e.target.value)
+          onChange(parseScoreInput(e.target.value))
+        }}
+        inputMode="decimal"
+        enterKeyHint="done"
+        placeholder="8.3"
+        aria-label="Score, 0 to 10"
+        className={`w-24 rounded-xl border bg-ink-3 px-3 py-2.5 text-center text-xl font-black outline-none placeholder:text-mute/30 ${
+          isTen ? 'border-sig/60 text-sig' : 'border-line'
+        }`}
+      />
+      <span className="text-sm font-black text-mute">/10</span>
+      {isTen && <span className="text-xs font-black uppercase tracking-wider text-sig">Peak</span>}
+    </span>
+  )
+}

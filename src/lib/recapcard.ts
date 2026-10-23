@@ -1,5 +1,6 @@
 /** Canvas-rendered 1080×1920 "My week on Peak" recap card for stories. */
 import type { Profile } from './types'
+import { formatAvg } from './ratings'
 
 const W = 1080
 const H = 1920
@@ -15,15 +16,17 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 export interface RecapStats {
-  w: number
-  l: number
-  tallies: number
+  /** Ratings received on my drops this week + their mean and peak count. */
+  ratings: number
+  avg: number | null
+  peaks: number
+  bets: number
   comments: number
   followers: number
 }
 
 /**
- * Story-sized recap: avatar + handle, the week's W–L headline, the
+ * Story-sized recap: avatar + handle, the week's average headline, the
  * supporting counts, and Taste/Trust scores when they exist.
  */
 export async function renderRecapCard(
@@ -50,7 +53,7 @@ export async function renderRecapCard(
   ctx.textAlign = 'center'
   ctx.fillStyle = '#45C8FF'
   ctx.font = '900 44px Inter, sans-serif'
-  ctx.fillText('T A L L Y', W / 2, 150)
+  ctx.fillText('P E A K', W / 2, 150)
 
   ctx.fillStyle = '#f2f0fa'
   ctx.font = '900 92px Inter, sans-serif'
@@ -89,8 +92,8 @@ export async function renderRecapCard(
   ctx.font = '600 38px Inter, sans-serif'
   ctx.fillText(`@${profile.username}`, W / 2, 785)
 
-  // Headline: the week's verdict record.
-  const wl = `${week.w} W · ${week.l} L`
+  // Headline: the week's average rating on my drops.
+  const wl = week.avg != null ? formatAvg(week.avg) : '—'
   let wlSize = 190
   ctx.font = `900 ${wlSize}px Inter, sans-serif`
   while (ctx.measureText(wl).width > W - 120 && wlSize > 90) {
@@ -101,11 +104,17 @@ export async function renderRecapCard(
   ctx.fillText(wl, W / 2, 1010)
   ctx.fillStyle = '#9a94b8'
   ctx.font = '700 36px Inter, sans-serif'
-  ctx.fillText('VERDICTS ON MY DROPS', W / 2, 1075)
+  ctx.fillText(
+    week.ratings > 0
+      ? `AVERAGE · ${week.ratings} RATING${week.ratings === 1 ? '' : 'S'} · ${week.peaks} PEAK${week.peaks === 1 ? '' : 'S'}`
+      : 'NO RATINGS YET THIS WEEK',
+    W / 2,
+    1075
+  )
 
   // Supporting counts, three across.
   const stats: Array<[string, string]> = [
-    [String(week.tallies), 'NEW TALLIES'],
+    [String(week.bets), 'NEW BETS'],
     [String(week.comments), 'COMMENTS'],
     [String(week.followers), 'NEW FOLLOWS'],
   ]

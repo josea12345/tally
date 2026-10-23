@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Drop, DropStats, Profile, Verdict } from '../lib/types'
+import type { Drop, DropRating, DropStats, Profile } from '../lib/types'
 import { timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
-import VerdictBox from '../components/VerdictBox'
 import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
@@ -22,26 +21,30 @@ import { shareDrop } from '../lib/share'
 import { tapHaptic } from '../lib/haptics'
 import EmptyState from '../components/EmptyState'
 import FollowButton from '../components/FollowButton'
-import TallyIcon from '../components/TallyIcon'
+import BetIcon from '../components/BetIcon'
 import { renderTasteCard, shareTasteCard } from '../lib/tastecard'
-import { fetchAuthorWinRate, fetchTrustBreakdown } from '../lib/trustData'
-import { WIN_RATE_MINIMUM } from '../lib/stats'
+import { fetchAuthorRatingSummary, fetchTrustBreakdown } from '../lib/trustData'
 import MentionText from '../components/MentionText'
 import RelatedDrops from '../components/RelatedDrops'
 import AddToListSheet from '../components/AddToListSheet'
 import { markSeen } from '../lib/seen'
 import ReminderButton from '../components/ReminderButton'
+import RateSheet from '../components/RateSheet'
+import { PeakMark } from '../components/PeakWordmark'
+import { formatAvg, formatScore } from '../lib/ratings'
+import { shiftRatingStats } from '../lib/useRatings'
 
 export default function DropDetail({ id }: { id: string }) {
   const { user, profile, refreshProfile } = useAuth()
   const [drop, setDrop] = useState<Drop | null>(null)
   /** Per-video edited-timeline position — gates timed text overlays. */
   const [videoPos, setVideoPos] = useState<Record<string, number>>({})
-  const [stats, setStats] = useState<DropStats>({ saves: 0, wins: 0, losses: 0, tried: 0, comments: 0 })
-  const [myVerdict, setMyVerdict] = useState<Verdict | null>(null)
+  const [stats, setStats] = useState<DropStats>({ saves: 0, comments: 0, ratingAvg: null, ratingCount: 0, peaks: 0 })
+  const [myRating, setMyRating] = useState<number | null>(null)
+  const [rateOpen, setRateOpen] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [verdicts, setVerdicts] = useState<Verdict[]>([])
-  const [authorRate, setAuthorRate] = useState<string | null>(null)
+  const [ratings, setRatings] = useState<Array<Omit<DropRating, 'user'> & { user: Profile | null }>>([])
+  const [authorLine, setAuthorLine] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cardBusy, setCardBusy] = useState(false)
@@ -52,55 +55,10 @@ export default function DropDetail({ id }: { id: string }) {
   const [relatedCount, setRelatedCount] = useState<number | null>(null)
   const [pinBusy, setPinBusy] = useState(false)
   const [pinError, setPinError] = useState(false)
-  // Receipts: verdicts carrying a proof photo, enriched with voter profiles.
-  const [proofs, setProofs] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
-  const [proofView, setProofView] = useState<string | null>(null)
   const [listing, setListing] = useState(false)
-  // Verdict notes ("the calls") + author-only view count.
-  const [callNotes, setCallNotes] = useState<Array<{ verdict: Verdict; profile: Profile | null }>>([])
+  // Author-only insights: view count + who betted on the drop.
   const [viewCount, setViewCount] = useState<number | null>(null)
   const [talliers, setTalliers] = useState<Profile[]>([])
-  useEffect(() => {
-    const withNote = verdicts.filter((v) => v.note)
-    if (withNote.length === 0) {
-      setCallNotes([])
-      return
-    }
-    let live = true
-    ;(async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', [...new Set(withNote.map((v) => v.user_id))])
-      if (!live) return
-      const byId = new Map(((data ?? []) as Profile[]).map((p) => [p.id, p]))
-      setCallNotes(withNote.map((v) => ({ verdict: v, profile: byId.get(v.user_id) ?? null })))
-    })()
-    return () => {
-      live = false
-    }
-  }, [verdicts])
-  useEffect(() => {
-    const withProof = verdicts.filter((v) => v.proof_url)
-    if (withProof.length === 0) {
-      setProofs([])
-      return
-    }
-    let live = true
-    ;(async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', [...new Set(withProof.map((v) => v.user_id))])
-      if (!live) return
-      const byId = new Map(((data ?? []) as Profile[]).map((p) => [p.id, p]))
-      setProofs(withProof.map((v) => ({ verdict: v, profile: byId.get(v.user_id) ?? null })))
-    })()
-    return () => {
-      live = false
-    }
-  }, [verdicts])
-
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -128,50 +86,44 @@ export default function DropDetail({ id }: { id: string }) {
         .eq('topic_key', tkey)
         .then(({ count }) => setRelatedCount(count ?? 1))
 
-      const [{ data: saves }, { data: vts }, { data: cmts }] = await Promise.all([
+      const [{ data: saves }, { data: rts }, { data: cmts }] = await Promise.all([
         supabase.from('saves').select('id').eq('drop_id', id).limit(5000),
-        supabase.from('verdicts').select('*').eq('drop_id', id).limit(5000),
+        supabase
+          .from('drop_ratings')
+          .select('*, user:profiles!drop_ratings_user_id_fkey(*)')
+          .eq('drop_id', id)
+          .order('score', { ascending: false })
+          .limit(5000),
         supabase.from('comments').select('id').eq('drop_id', id).limit(5000),
       ])
-      const vlist = (vts ?? []) as Verdict[]
-      setVerdicts(vlist)
+      const rlist = (rts ?? []) as Array<Omit<DropRating, 'user'> & { user: Profile | null }>
+      setRatings(rlist)
+      const sum = rlist.reduce((a, r) => a + r.score, 0)
       setStats({
         saves: (saves ?? []).length,
-        wins: vlist.filter((v) => v.verdict === 'W').length,
-        losses: vlist.filter((v) => v.verdict === 'L').length,
-        tried: vlist.filter((v) => v.tried).length,
         comments: (cmts ?? []).length,
+        ratingAvg: rlist.length ? sum / rlist.length : null,
+        ratingCount: rlist.length,
+        peaks: rlist.filter((r) => r.score === 10).length,
       })
 
       if (user) {
-        const [{ data: mine }, { data: mySave }] = await Promise.all([
-          supabase.from('verdicts').select('*').eq('drop_id', id).eq('user_id', user.id).maybeSingle(),
-          supabase.from('saves').select('id').eq('drop_id', id).eq('user_id', user.id).maybeSingle(),
-        ])
-        setMyVerdict((mine as Verdict | null) ?? null)
+        const { data: mySave } = await supabase
+          .from('saves')
+          .select('id')
+          .eq('drop_id', id)
+          .eq('user_id', user.id)
+          .maybeSingle()
         setSaved(!!mySave)
+        setMyRating(rlist.find((r) => r.user_id === user.id)?.score ?? null)
       }
 
-      // Author's win rate for the payoff banner — exact DB counts via the
-      // drop join (verified pattern: select … drop:drops!inner + head count),
-      // so it stays correct past any client-side row cap. Same rule as
-      // before: rate is null below WIN_RATE_MINIMUM verdicts.
-      const [{ count: aWins }, { count: aLosses }] = await Promise.all([
-        supabase
-          .from('verdicts')
-          .select('id, drop:drops!inner(author_id)', { count: 'exact', head: true })
-          .eq('verdict', 'W')
-          .eq('drop.author_id', d.author_id),
-        supabase
-          .from('verdicts')
-          .select('id, drop:drops!inner(author_id)', { count: 'exact', head: true })
-          .eq('verdict', 'L')
-          .eq('drop.author_id', d.author_id),
-      ])
-      const aTotal = (aWins ?? 0) + (aLosses ?? 0)
-      setAuthorRate(
-        aTotal >= WIN_RATE_MINIMUM
-          ? `${Math.round(((aWins ?? 0) / aTotal) * 100)}% win rate · ${aTotal} verdicts`
+      // The author's record line under the panel — their all-time rating
+      // summary (Taste Score gated on enough volume, like everywhere else).
+      const summary = await fetchAuthorRatingSummary(d.author_id)
+      setAuthorLine(
+        summary && summary.enough
+          ? `Taste Score ${summary.score} · ${summary.avg != null ? formatAvg(summary.avg) : '—'} avg · ${summary.count} ratings · ${summary.peaks} peaks`
           : null
       )
     } catch (e) {
@@ -216,6 +168,45 @@ export default function DropDetail({ id }: { id: string }) {
       }
     }
     setSaveBusy(false)
+  }
+
+  const applyRate = async (score: number) => {
+    if (!user || !drop) return
+    const prev = myRating
+    setMyRating(score)
+    setStats((st) => shiftRatingStats(st, prev, score))
+    setRatings((list) => {
+      const rest = list.filter((r) => r.user_id !== user.id)
+      const mine: Omit<DropRating, 'user'> & { user: Profile | null } = {
+        id: `local-${user.id}`,
+        user_id: user.id,
+        drop_id: drop.id,
+        score,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user: profile ?? null,
+      }
+      return [mine, ...rest].sort((a, b) => b.score - a.score)
+    })
+    const { error } = await supabase
+      .from('drop_ratings')
+      .upsert({ user_id: user.id, drop_id: drop.id, score }, { onConflict: 'user_id,drop_id' })
+    if (error) void load()
+  }
+
+  const removeRate = async () => {
+    if (!user || !drop) return
+    const prev = myRating
+    if (prev == null) return
+    setMyRating(null)
+    setStats((st) => shiftRatingStats(st, prev, null))
+    setRatings((list) => list.filter((r) => r.user_id !== user.id))
+    const { error } = await supabase
+      .from('drop_ratings')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('drop_id', drop.id)
+    if (error) void load()
   }
 
   const copyLink = async () => {
@@ -275,17 +266,17 @@ export default function DropDetail({ id }: { id: string }) {
     if (!drop?.author) return
     setCardBusy(true)
     try {
-      const [trust, authorRate] = await Promise.all([
+      const [trust, authorSummary] = await Promise.all([
         fetchTrustBreakdown(drop.author_id),
-        fetchAuthorWinRate(drop.author_id),
+        fetchAuthorRatingSummary(drop.author_id),
       ])
       const blob = await renderTasteCard(
         drop,
         drop.author.display_name ?? drop.author.username,
         drop.author.username,
-        verdicts,
+        { avg: stats.ratingAvg, count: stats.ratingCount, peaks: stats.peaks },
         trust?.score ?? null,
-        authorRate
+        authorSummary
       )
       const how = await shareTasteCard(blob, drop.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase())
       alert(how === 'shared' ? 'Taste card shared — story-sized and ready to post.' : 'Taste card saved — story-sized and ready to post.')
@@ -359,7 +350,7 @@ export default function DropDetail({ id }: { id: string }) {
       {!user && (
         <div className="border-b border-line bg-sig px-4 py-3 text-center">
           <p className="text-sm font-black text-ink">
-            Someone put you on — join Peak to save it and call W or L.
+            Someone put you on — join Peak to bet on it and put your own call on the record.
           </p>
           <button
             onClick={() => navigate('/auth')}
@@ -524,7 +515,7 @@ export default function DropDetail({ id }: { id: string }) {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {drop.score != null && (
               <div className="inline-flex items-center gap-2 rounded-full border border-sig/50 bg-sig/10 px-4 py-1.5">
-                <span className="text-xl font-black text-sig">{drop.score}</span>
+                <span className="text-xl font-black text-sig">{formatScore(drop.score)}</span>
                 <span className="text-xs font-bold text-mute">/10 — {author?.display_name ?? author?.username ?? 'author'}'s call</span>
               </div>
             )}
@@ -631,8 +622,8 @@ export default function DropDetail({ id }: { id: string }) {
               saved ? 'bg-sig text-ink' : 'border border-line bg-ink-2 text-fog hover:border-sig'
             }`}
           >
-            <TallyIcon saved={saved} className="h-4 w-4" />
-            {saved ? 'Tallied' : 'Tally'} · {stats.saves}
+            <BetIcon saved={saved} className="h-4 w-4" />
+            {saved ? 'Betted' : 'Bet'} · {stats.saves}
           </button>
           {!!user && user.id !== drop.author_id && <ReminderButton dropId={drop.id} />}
           {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
@@ -689,10 +680,99 @@ export default function DropDetail({ id }: { id: string }) {
         </div>
 
         <div className="mt-6">
-          <VerdictBox drop={drop} stats={stats} myVerdict={myVerdict} onChanged={load} />
-          {authorRate && (
+          <section className="rounded-3xl border border-line bg-ink-2 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-mute">The crowd's call</div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-5xl font-black leading-none text-sig">
+                    {stats.ratingAvg != null ? formatAvg(stats.ratingAvg) : '—'}
+                  </span>
+                  <span className="text-sm font-black text-mute">/10</span>
+                </div>
+                <div className="mt-1.5 text-xs font-bold text-mute">
+                  {stats.ratingCount === 0
+                    ? 'No ratings yet — be the first call'
+                    : `${stats.ratingCount} rating${stats.ratingCount === 1 ? '' : 's'} on the record`}
+                </div>
+                {stats.peaks > 0 && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-sig/15 px-3 py-1 text-xs font-black text-sig">
+                    <PeakMark className="h-3.5 w-auto" />
+                    Peaked ×{stats.peaks}
+                  </div>
+                )}
+              </div>
+              {stats.ratingCount > 0 && (
+                <div className="w-28 shrink-0 space-y-1 pt-1">
+                  {[
+                    { label: '10', test: (v: number) => v === 10 },
+                    { label: '9', test: (v: number) => v >= 9 && v < 10 },
+                    { label: '8', test: (v: number) => v >= 8 && v < 9 },
+                    { label: '7', test: (v: number) => v >= 7 && v < 8 },
+                    { label: '6', test: (v: number) => v >= 6 && v < 7 },
+                    { label: '<6', test: (v: number) => v < 6 },
+                  ].map((b) => {
+                    const n = ratings.filter((r) => b.test(r.score)).length
+                    return (
+                      <div key={b.label} className="flex items-center gap-1.5 text-[10px] font-bold text-mute">
+                        <span className="w-4 text-right">{b.label}</span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-3">
+                          <span
+                            className="block h-full rounded-full bg-sig"
+                            style={{ width: `${stats.ratingCount ? (n / stats.ratingCount) * 100 : 0}%` }}
+                          />
+                        </span>
+                        <span className="w-4">{n}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {ratings.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-3 border-t border-line pt-4">
+                {ratings.slice(0, 12).map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => r.user && navigate(`/profile/${r.user.id}`)}
+                    className="flex flex-col items-center gap-1"
+                    aria-label={`@${r.user?.username ?? '?'} rated it ${formatScore(r.score)}`}
+                  >
+                    <Avatar url={r.user?.avatar_url ?? null} name={r.user?.display_name ?? r.user?.username ?? '?'} size={36} />
+                    <span
+                      className={`flex items-center gap-0.5 text-[10px] font-black ${r.score === 10 ? 'text-sig' : 'text-mute'}`}
+                    >
+                      {r.score === 10 && <PeakMark className="h-2.5 w-auto" />}
+                      {formatScore(r.score)}
+                    </span>
+                  </button>
+                ))}
+                {ratings.length > 12 && (
+                  <span className="self-center text-xs font-bold text-mute">+{ratings.length - 12} more</span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4">
+              {isOwner ? (
+                <p className="text-center text-sm font-bold text-mute">
+                  Your call is on this one — authors don't rate their own drops.
+                </p>
+              ) : user ? (
+                <button onClick={() => setRateOpen(true)} className="btn-pop press w-full py-3 text-sm">
+                  {myRating != null ? `Your call: ${formatScore(myRating)} — tap to change it` : 'Rate this drop'}
+                </button>
+              ) : (
+                <button onClick={() => navigate('/auth')} className="btn-pop press w-full py-3 text-sm">
+                  Join Peak to rate it
+                </button>
+              )}
+            </div>
+          </section>
+          {authorLine && (
             <p className="mt-2 text-center text-xs text-mute">
-              @{author?.username}'s record: <span className="font-bold text-sig">{authorRate}</span>
+              @{author?.username}'s record: <span className="font-bold text-sig">{authorLine}</span>
             </p>
           )}
         </div>
@@ -703,15 +783,15 @@ export default function DropDetail({ id }: { id: string }) {
             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-bold text-fog">
               <span>{viewCount ?? '–'} views</span>
               <span className="text-mute/50">·</span>
-              <span>{stats.saves} tallies</span>
+              <span>{stats.saves} bets</span>
               <span className="text-mute/50">·</span>
-              <span>{stats.tried} tried</span>
+              <span>{stats.ratingCount} ratings</span>
               <span className="text-mute/50">·</span>
               <span>
-                <span className="text-win">{stats.wins} W</span>
-                <span className="text-mute"> – </span>
-                <span className="text-miss">{stats.losses} L</span>
+                avg <span className="text-sig">{stats.ratingAvg != null ? formatAvg(stats.ratingAvg) : '—'}</span>
               </span>
+              <span className="text-mute/50">·</span>
+              <span>{stats.peaks} peaks</span>
             </div>
             <p className="mt-1 text-[10px] text-mute">Views count from today onward — only you see this.</p>
             {talliers.length > 0 && (
@@ -724,68 +804,11 @@ export default function DropDetail({ id }: { id: string }) {
                   ))}
                 </div>
                 <span className="text-[11px] font-bold text-mute">
-                  Tallied by {talliers.slice(0, 2).map((p) => `@${p.username}`).join(', ')}
+                  Betted by {talliers.slice(0, 2).map((p) => `@${p.username}`).join(', ')}
                   {talliers.length > 2 ? ` +${talliers.length - 2}` : ''}
                 </span>
               </div>
             )}
-          </div>
-        )}
-
-        {proofs.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-3 text-lg font-black">Receipts</h2>
-            <div className="rail-scroll flex gap-3 overflow-x-auto pb-1">
-              {proofs.map(({ verdict: v, profile: p }) => (
-                <div key={v.id} className="w-[104px] shrink-0">
-                  <button onClick={() => setProofView(v.proof_url)} className="block">
-                    <img
-                      src={v.proof_url ?? ''}
-                      alt={`Proof from @${p?.username ?? 'a voter'}`}
-                      loading="lazy"
-                      className="h-[104px] w-[104px] rounded-2xl object-cover"
-                    />
-                  </button>
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
-                    {v.verdict && (
-                      <span
-                        className={`rounded-md px-1.5 py-0.5 font-black ${
-                          v.verdict === 'W' ? 'bg-win text-ink' : 'bg-miss text-white'
-                        }`}
-                      >
-                        {v.verdict}
-                      </span>
-                    )}
-                    <span className="truncate text-mute">@{p?.username ?? '?'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {callNotes.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-3 text-lg font-black">The calls</h2>
-            <ul className="space-y-2">
-              {callNotes.map(({ verdict: v, profile: p }) => (
-                <li key={v.id} className="flex items-start gap-2.5 rounded-2xl border border-line bg-ink-2 px-3.5 py-2.5">
-                  {v.verdict && (
-                    <span
-                      className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-black ${
-                        v.verdict === 'W' ? 'bg-win text-ink' : 'bg-miss text-white'
-                      }`}
-                    >
-                      {v.verdict}
-                    </span>
-                  )}
-                  <span className="min-w-0 text-sm">
-                    <span className="mr-1.5 font-bold text-sig">@{p?.username ?? '?'}</span>
-                    <span className="text-fog">{v.note}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
           </div>
         )}
 
@@ -804,21 +827,22 @@ export default function DropDetail({ id }: { id: string }) {
 
         <RelatedDrops drop={drop} />
 
-        {proofView && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-            onClick={() => setProofView(null)}
-          >
-            <img src={proofView} alt="Proof, full size" className="max-h-full max-w-full rounded-2xl object-contain" />
-          </div>
-        )}
         {listing && <AddToListSheet dropId={drop.id} onClose={() => setListing(false)} />}
+        {rateOpen && (
+          <RateSheet
+            title={drop.title}
+            current={myRating}
+            onRate={(score) => void applyRate(score)}
+            onRemove={() => void removeRate()}
+            onClose={() => setRateOpen(false)}
+          />
+        )}
 
         {!user && (
           <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">
             <h3 className="mb-2 text-xl font-black">Don't sleep on this</h3>
             <p className="mb-4 text-sm text-mute">
-              Join Peak to save this drop, try it, and put your own W/L on the record.
+              Join Peak to bet on this drop and put your own call on the record.
             </p>
             <button
               onClick={() => navigate('/auth')}

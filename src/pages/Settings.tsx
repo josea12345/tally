@@ -492,7 +492,7 @@ export default function Settings() {
         <div className="rounded-2xl border border-sig/40 bg-sig/5 p-4">
           <p className="text-sm font-bold">Taste is better with your people.</p>
           <p className="mt-1 text-xs leading-relaxed text-mute">
-            Put your friends on — the more of your circle that's here, the faster the W/L verdicts roll in.
+            Put your friends on — the more of your circle that's here, the faster the ratings roll in.
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -545,7 +545,7 @@ export default function Settings() {
             <div className="min-w-0">
               <div className="text-sm font-bold">Push notifications</div>
               <div className="mt-0.5 text-xs leading-relaxed text-mute">
-                W/L calls, follows, and comments — even when Peak is closed.
+                Peaks, follows, and comments — even when Peak is closed.
               </div>
             </div>
             <button
@@ -585,7 +585,7 @@ export default function Settings() {
         <div className="divide-y divide-line rounded-2xl border border-line bg-ink-2">
           {(
             [
-              { key: 'wl', title: 'W/L calls', body: 'When someone calls W or L on your drops.' },
+              { key: 'wl', title: 'Peaks', body: 'When someone rates your drop a 10 — a mountain.' },
               { key: 'follows', title: 'Followers', body: 'New followers and follow requests.' },
               { key: 'comments', title: 'Comments', body: 'When someone comments on your drops.' },
             ] as const
@@ -802,7 +802,7 @@ export default function Settings() {
           <div className="mt-5 rounded-2xl border border-miss/60 bg-miss/10 p-4">
             <p className="text-sm font-black text-miss">Delete your account permanently?</p>
             <p className="mt-1 text-xs leading-relaxed text-mute">
-              Every drop, verdict, comment and tally goes with it. There is no undo.
+              Every drop, rating, comment and bet goes with it. There is no undo.
             </p>
             {deleteError && <p className="mt-2 text-xs font-bold text-miss">{deleteError}</p>}
             <div className="mt-3 flex gap-2">

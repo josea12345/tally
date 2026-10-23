@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Drop, Profile, Save, Verdict } from '../lib/types'
+import type { Drop, DropRating, Profile, Save } from '../lib/types'
+import { formatScore } from '../lib/ratings'
 import { normKey, timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
 
 interface ChainEvent {
   at: string
-  kind: 'drop' | 'save' | 'tried' | 'verdict' | 'redrop'
+  kind: 'drop' | 'save' | 'rating' | 'redrop'
   actor: Profile | null
   label: string
   link?: string
@@ -16,16 +17,16 @@ interface Props {
   drop: Drop
 }
 
-/** Provenance thread: drop → saves → tried → verdicts → re-drops, time-ordered. */
+/** Provenance thread: drop → bets → ratings → re-drops, time-ordered. */
 export default function PutOnChain({ drop }: Props) {
   const [events, setEvents] = useState<ChainEvent[] | null>(null)
 
   useEffect(() => {
     let live = true
     const load = async () => {
-      const [savesRes, verdictsRes] = await Promise.all([
+      const [savesRes, ratingsRes] = await Promise.all([
         supabase.from('saves').select('*, user:profiles(*)').eq('drop_id', drop.id).order('created_at'),
-        supabase.from('verdicts').select('*, user:profiles(*)').eq('drop_id', drop.id).order('created_at'),
+        supabase.from('drop_ratings').select('*, user:profiles!drop_ratings_user_id_fkey(*)').eq('drop_id', drop.id).order('created_at'),
       ])
       // Re-drops: same normalized title+city by another author, created after this drop.
       const { data: siblings } = await supabase
@@ -45,18 +46,15 @@ export default function PutOnChain({ drop }: Props) {
         },
       ]
       for (const s of (savesRes.data ?? []) as Array<Save & { user: Profile }>) {
-        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'tallied it' })
+        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'bet on it' })
       }
-      for (const v of (verdictsRes.data ?? []) as Array<Verdict & { user: Profile }>) {
-        if (v.tried) evts.push({ at: v.updated_at, kind: 'tried', actor: v.user, label: 'tried it' })
-        if (v.verdict) {
-          evts.push({
-            at: v.updated_at,
-            kind: 'verdict',
-            actor: v.user,
-            label: `called ${v.verdict}`,
-          })
-        }
+      for (const v of (ratingsRes.data ?? []) as Array<DropRating & { user: Profile }>) {
+        evts.push({
+          at: v.updated_at,
+          kind: 'rating',
+          actor: v.user,
+          label: v.score === 10 ? 'peaked it — a 10' : `rated it ${formatScore(v.score)}`,
+        })
       }
       const key = normKey(drop.title, drop.city)
       for (const d of (siblings ?? []) as Drop[]) {
@@ -86,19 +84,13 @@ export default function PutOnChain({ drop }: Props) {
   if (events.length <= 1) {
     return (
       <p className="py-2 text-sm text-mute">
-        The chain starts here — tally it, try it, and call W or L to keep it going.
+        The chain starts here — bet on it, try it, and type your score to keep it going.
       </p>
     )
   }
 
   const dot = (kind: ChainEvent['kind']) =>
-    kind === 'verdict'
-      ? 'bg-sig'
-      : kind === 'redrop'
-        ? 'bg-fog'
-        : kind === 'tried'
-          ? 'bg-sig/60'
-          : 'bg-line'
+    kind === 'rating' ? 'bg-sig' : kind === 'redrop' ? 'bg-fog' : 'bg-line'
 
   return (
     <ol className="relative ml-2 border-l border-line pl-6">

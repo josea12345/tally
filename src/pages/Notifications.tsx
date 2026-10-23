@@ -6,6 +6,7 @@ import { Avatar, navigate } from '../App'
 import { timeAgo } from '../lib/format'
 import EmptyState from '../components/EmptyState'
 import ChatIcon from '../components/ChatIcon'
+import { PeakMark } from '../components/PeakWordmark'
 
 /** Playful accent chip per notification kind — original sticker language, no emoji. */
 function KindChip({ kind }: { kind: Notification['kind'] }) {
@@ -46,6 +47,12 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
           </svg>
         </span>
       )
+    case 'peak':
+      return (
+        <span className={`${base} bg-sig text-[#0b1520]`} aria-hidden>
+          <PeakMark className="h-4 w-auto" />
+        </span>
+      )
     case 'recap':
       return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>★</span>
     case 'streak':
@@ -62,6 +69,8 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
 function textFor(n: Notification): string {
   const name = n.actor?.display_name || `@${n.actor?.username ?? 'someone'}`
   switch (n.kind) {
+    case 'peak':
+      return `${name} peaked your drop — a 10.0`
     case 'W':
       return `${name} called W on your drop`
     case 'L':
@@ -79,7 +88,7 @@ function textFor(n: Notification): string {
     case 'recap':
       return 'Your week on Peak is ready — see your recap'
     case 'streak':
-      return 'Your streak ends tonight — one verdict saves it'
+      return 'Your streak ends tonight — one rating saves it'
     case 'approved':
       return `${name} approved your follow request`
     case 'requested':
@@ -94,7 +103,7 @@ export default function Notifications() {
   const [filter, setFilter] = useState<'all' | 'verdicts' | 'comments' | 'social'>('all')
 
   const FILTER_KINDS: Record<string, NotificationKind[]> = {
-    verdicts: ['W', 'L'],
+    verdicts: ['W', 'L', 'peak'],
     comments: ['comment', 'mention', 'like'],
     social: ['follow', 'approved', 'requested', 'reminder', 'recap', 'streak'],
   }
@@ -156,7 +165,7 @@ export default function Notifications() {
             {(
               [
                 { id: 'all', label: 'All' },
-                { id: 'verdicts', label: 'Verdicts' },
+                { id: 'verdicts', label: 'Ratings' },
                 { id: 'comments', label: 'Comments' },
                 { id: 'social', label: 'Activity' },
               ] as const

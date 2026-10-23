@@ -14,21 +14,24 @@ import SoundPill from './SoundPill'
 import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
 import { safeExternalUrl } from '../lib/urls'
-import TallyIcon from './TallyIcon'
+import BetIcon from './BetIcon'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
 import ShareButton from './ShareButton'
 import { tapHaptic } from '../lib/haptics'
-import { VerdictBurst, FlyToTally } from './VoteFx'
+import { FlyToBet } from './VoteFx'
 import MentionText from './MentionText'
+import { PeakMark } from './PeakWordmark'
+import { formatAvg, formatScore } from '../lib/ratings'
 
 interface Props {
   drop: Drop
   stats: DropStats
   saved: boolean
   onToggleSave: () => void
-  myVote: 'W' | 'L' | null
-  onVote: (v: 'W' | 'L') => void
+  myRating: number | null
+  /** Opens the rating sheet for this drop; prefill 10 comes from a double-tap. */
+  onRate: (prefill?: number) => void
   revealDelay?: number
   onAuthorBlocked?: (authorId: string) => void
   /** How many visible put-ons share this drop's topic (null = not loaded yet). */
@@ -37,7 +40,7 @@ interface Props {
   viaTopic?: boolean
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onVote, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myRating, onRate, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -46,11 +49,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const selfNoteTimer = useRef<number | null>(null)
   const open = () => navigate(`/drop/${drop.id}`)
   const [heartPop, setHeartPop] = useState(false)
-  const [slam, setSlam] = useState<'W' | 'L' | null>(null)
   const [showComments, setShowComments] = useState(false)
   const [commentCount, setCommentCount] = useState(stats.comments)
   const fxId = useRef(0)
-  const [burst, setBurst] = useState<{ v: 'W' | 'L'; id: number } | null>(null)
   const [fly, setFly] = useState<{ from: DOMRect; id: number } | null>(null)
   // Fullscreen viewer (photos + video share the same TikTok-style viewer).
   const [viewerItem, setViewerItem] = useState<(typeof items)[number] | null>(null)
@@ -69,16 +70,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
     if (!saved) {
       setHeartPop(false)
       requestAnimationFrame(() => setHeartPop(true))
-      // Fly the tally icon into the Tallies nav tab.
+      // Fly the bet icon into the Bets nav tab.
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
       if (rect.width > 0) setFly({ from: rect, id: ++fxId.current })
     }
     onToggleSave()
   }
 
-  // One tap = "I've tried it, calling it." Voting implies tried.
-  // Authors can't vote on their own drops — flash why instead of silently doing nothing.
-  const doVote = (v: 'W' | 'L') => {
+  // Rating opens the scorecard sheet (typed score). Authors can't rate
+  // their own drops — their call is already on it — so flash why instead.
+  const openRate = (prefill?: number) => {
     if (isAuthor) {
       setSelfNote(true)
       if (selfNoteTimer.current) clearTimeout(selfNoteTimer.current)
@@ -86,24 +87,17 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       return
     }
     tapHaptic()
-    setSlam(v)
-    setTimeout(() => setSlam((s) => (s === v ? null : s)), 420)
-    if (myVote !== v) setBurst({ v, id: ++fxId.current })
-    onVote(v)
-  }
-  const castVote = (e: React.MouseEvent, v: 'W' | 'L') => {
-    e.stopPropagation()
-    doVote(v)
+    onRate(prefill)
   }
 
-  // Double-tap on media = W (Instagram-style). Single/double disambiguated
+  // Double-tap on media opens the rating sheet with 10 loaded. Single/double disambiguated
   // with a short window so the fullscreen viewer doesn't open on a double-tap.
   const tapTimer = useRef<number | null>(null)
   const handleMediaTap = (isVideo: boolean, expandVideo?: () => void, expandPhoto?: () => void) => {
     if (tapTimer.current) {
       clearTimeout(tapTimer.current)
       tapTimer.current = null
-      if (myVote !== 'W') doVote('W')
+      openRate(10)
     } else {
       tapTimer.current = window.setTimeout(() => {
         tapTimer.current = null
@@ -114,24 +108,58 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   }
 
   // Score badge: glassy pill overlaid on the media's top-left (text-only drops keep it in the header).
-  const scoreBadge =
+  // Once the crowd has rated, the average leads and the author's call drops to
+  // a second line — the gap between the two is the drama. Unrated drops show
+  // the author's call alone, as before.
+  const extSegs = (dark: boolean) => (
+    <>
+      {drop.imdb_rating != null && (
+        <span className={`ml-1 border-l pl-2 text-[10px] font-bold ${dark ? 'border-white/25 text-white/80' : 'border-line text-mute'}`}>
+          IMDb {drop.imdb_rating}
+        </span>
+      )}
+      {drop.spotify_popularity != null && (
+        <span className={`ml-1 border-l pl-2 text-[10px] font-bold ${dark ? 'border-white/25 text-white/80' : 'border-line text-mute'}`}>
+          Deezer {drop.spotify_popularity}
+        </span>
+      )}
+    </>
+  )
+  const crowdLine = (dark: boolean) => (
+    <div className="flex items-baseline gap-1">
+      <span className="text-lg font-black leading-none text-sig">{formatAvg(stats.ratingAvg ?? 0)}</span>
+      <span className={`text-[10px] font-bold ${dark ? 'text-white/80' : 'text-mute'}`}>
+        /10 · {stats.ratingCount} rating{stats.ratingCount === 1 ? '' : 's'}
+      </span>
+      {stats.peaks > 0 && (
+        <span className="ml-1 flex items-center gap-1 border-l border-current/20 pl-2 text-[10px] font-bold text-sig">
+          <PeakMark className="h-3 w-auto" />×{stats.peaks}
+        </span>
+      )}
+      {extSegs(dark)}
+    </div>
+  )
+  const calledLine = (dark: boolean) =>
     drop.score != null ? (
+      <div className={`mt-0.5 text-[10px] font-bold ${dark ? 'text-white/70' : 'text-mute'}`}>
+        called it {formatScore(drop.score)}
+      </div>
+    ) : null
+
+  const scoreBadge =
+    stats.ratingCount > 0 ? (
+      <div className="sticker-flat rounded-2xl bg-black/55 px-3 py-1.5 backdrop-blur-sm" title="Crowd average">
+        {crowdLine(true)}
+        {calledLine(true)}
+      </div>
+    ) : drop.score != null ? (
       <div
         className="sticker-flat flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
         title="Author's call"
       >
-        <span className="text-lg font-black leading-none text-sig">{drop.score}</span>
+        <span className="text-lg font-black leading-none text-sig">{formatScore(drop.score)}</span>
         <span className="text-[10px] font-bold text-white/80">/10</span>
-        {drop.imdb_rating != null && (
-          <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
-            IMDb {drop.imdb_rating}
-          </span>
-        )}
-        {drop.spotify_popularity != null && (
-          <span className="ml-1 border-l border-white/25 pl-2 text-[10px] font-bold text-white/80">
-            Deezer {drop.spotify_popularity}
-          </span>
-        )}
+        {extSegs(true)}
       </div>
     ) : drop.imdb_rating != null ? (
       <div
@@ -145,23 +173,19 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
 
   // Compact header score for text-only drops (no media to overlay).
   const headerScore =
-    drop.score != null ? (
+    stats.ratingCount > 0 ? (
+      <div className="sticker-flat shrink-0 rounded-2xl border-sig/50 bg-sig/10 px-3 py-1.5" title="Crowd average">
+        {crowdLine(false)}
+        {calledLine(false)}
+      </div>
+    ) : drop.score != null ? (
       <div
         className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
         title="Author's call"
       >
-        <span className="text-xl font-black leading-none text-sig">{drop.score}</span>
+        <span className="text-xl font-black leading-none text-sig">{formatScore(drop.score)}</span>
         <span className="text-[11px] font-bold text-mute">/10</span>
-        {drop.imdb_rating != null && (
-          <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
-            IMDb {drop.imdb_rating}
-          </span>
-        )}
-        {drop.spotify_popularity != null && (
-          <span className="ml-1 border-l border-line pl-2 text-[11px] font-bold text-mute">
-            Deezer {drop.spotify_popularity}
-          </span>
-        )}
+        {extSegs(false)}
       </div>
     ) : drop.imdb_rating != null ? (
       <div
@@ -232,19 +256,26 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10"
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={toggleSave} aria-label={saved ? 'Untally' : 'Tally'} className="press flex items-center gap-1.5">
+      <button onClick={toggleSave} aria-label={saved ? 'Remove bet' : 'Bet on it'} className="press flex items-center gap-1.5">
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-sig' : 'text-white'}`}>
-          <TallyIcon saved={saved} className="h-6 w-6" />
+          <BetIcon saved={saved} className="h-6 w-6" />
         </span>
         <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.saves)}</span>
       </button>
-      <button onClick={(e) => castVote(e, 'W')} aria-label="Vote W" className="press flex items-center gap-1.5">
-        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'W' ? 'text-win' : 'text-white'}`}>W</span>
-        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.wins)}</span>
-      </button>
-      <button onClick={(e) => castVote(e, 'L')} aria-label="Vote L" className="press flex items-center gap-1.5">
-        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-xl font-black leading-none drop-shadow-lg ${myVote === 'L' ? 'text-miss' : 'text-white'}`}>L</span>
-        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.losses)}</span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          openRate()
+        }}
+        aria-label="Rate this drop"
+        className="press flex items-center gap-1.5"
+      >
+        <span className={`inline-block drop-shadow-lg ${myRating != null ? 'text-sig' : 'text-white'}`}>
+          <PeakMark className="h-[18px] w-auto" />
+        </span>
+        <span className="text-xs font-bold text-white drop-shadow-md">
+          {myRating != null ? formatScore(myRating) : 'Rate'}
+        </span>
       </button>
       <button onClick={toggleComments} aria-label="Comments" className="press flex items-center gap-1.5">
         <ChatIcon className="h-6 w-6 text-white drop-shadow-lg" />
@@ -258,20 +289,17 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
   const textActions = (
     <div className="flex items-center gap-5 px-4 pt-3" onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={(e) => castVote(e, 'W')}
-        aria-label="Vote W"
+        onClick={(e) => {
+          e.stopPropagation()
+          openRate()
+        }}
+        aria-label="Rate this drop"
         className="press flex items-center gap-1.5"
       >
-        <span className={`${slam === 'W' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'W' ? 'text-win' : 'text-fog'}`}>W</span>
-        <span className="text-sm font-bold text-mute">{formatCount(stats.wins)}</span>
-      </button>
-      <button
-        onClick={(e) => castVote(e, 'L')}
-        aria-label="Vote L"
-        className="press flex items-center gap-1.5"
-      >
-        <span className={`${slam === 'L' ? 'verdict-slam' : ''} inline-block text-[22px] font-black leading-none ${myVote === 'L' ? 'text-miss' : 'text-fog'}`}>L</span>
-        <span className="text-sm font-bold text-mute">{formatCount(stats.losses)}</span>
+        <span className={`inline-block ${myRating != null ? 'text-sig' : 'text-fog'}`}>
+          <PeakMark className="h-4 w-auto" />
+        </span>
+        <span className="text-sm font-bold text-mute">{myRating != null ? formatScore(myRating) : 'Rate'}</span>
       </button>
       <button
         onClick={toggleComments}
@@ -283,11 +311,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
       </button>
       <button
         onClick={toggleSave}
-        aria-label={saved ? 'Untally' : 'Tally'}
+        aria-label={saved ? 'Remove bet' : 'Bet on it'}
         className="press ml-auto flex items-center gap-1.5"
       >
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-sig' : 'text-fog'}`}>
-          <TallyIcon saved={saved} className="h-6 w-6" />
+          <BetIcon saved={saved} className="h-6 w-6" />
         </span>
         <span className="text-sm font-bold text-mute">{formatCount(stats.saves)}</span>
       </button>
@@ -304,7 +332,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         {selfNote && (
           <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
             <span className="rounded-full bg-ink-3/95 px-4 py-2 text-xs font-bold text-fog shadow-lg">
-              You can't call W/L on your own drop
+              Your call is already on this one — authors don't rate their own drops
             </span>
           </div>
         )}
@@ -390,9 +418,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                           }
                         : null
                     }
-                    onDoubleTap={() => {
-                      if (myVote !== 'W') doVote('W')
-                    }}
+                    onDoubleTap={() => openRate(10)}
                     onExpand={() => setViewerItem(it)}
                     edit={it.edit}
                   />
@@ -442,8 +468,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
         )}
 
         {/* full-screen FX, portaled to body */}
-        {burst && <VerdictBurst key={burst.id} v={burst.v} onDone={() => setBurst(null)} />}
-        {fly && <FlyToTally key={fly.id} from={fly.from} onDone={() => setFly(null)} />}
+        {fly && <FlyToBet key={fly.id} from={fly.from} onDone={() => setFly(null)} />}
         {/* TikTok-style fullscreen viewer for photos + video */}
         {viewerItem && (
           <MediaViewer
@@ -459,9 +484,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myVote, onV
                 : null
             }
             onClose={() => setViewerItem(null)}
-            onDoubleTap={() => {
-              if (myVote !== 'W') doVote('W')
-            }}
+            onDoubleTap={() => openRate(10)}
           />
         )}
       </article>

@@ -3,12 +3,13 @@ import { PeakWordmark } from '../components/PeakWordmark'
 import { useAuth } from '../context/AuthContext'
 import { navigate } from '../App'
 import Reveal from '../components/Reveal'
-import TallyMarks from '../components/TallyMarks'
 import AlertIcon from '../components/AlertIcon'
-import TallyIcon from '../components/TallyIcon'
+import BetIcon from '../components/BetIcon'
+import { PeakMark } from '../components/PeakWordmark'
+import { ScoreField } from '../components/RateSheet'
+import { formatAvg, formatScore, weightedAverage } from '../lib/ratings'
 import Mascot from '../components/Mascot'
 import { PinIcon, ChartIcon, VideoIcon, CardsIcon, ChainIcon, SearchIcon, ScoreIcon, SparkIcon } from '../components/icons'
-import { tasteScoreFor } from '../lib/stats'
 
 const PHRASES = ['Hear me out', 'Let me put you on', 'Trust me on this one', "Don't sleep on this"]
 const SEPARATOR_COLORS = ['text-sig', 'text-lilac', 'text-butter', 'text-sky']
@@ -68,9 +69,8 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
         </Reveal>
         <Reveal delay={120}>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-mute">
-            Drop the places, movies, and music you love. Your friends try them, call{' '}
-            <b className="text-win">W</b> or <b className="text-miss">L</b> — and your win rate becomes your
-            reputation.
+            Drop the places, movies, and music you love. Your friends try them and type their score — and your
+            average becomes your reputation. A 10 is a mountain.
           </p>
         </Reveal>
         <Reveal delay={200}>
@@ -122,19 +122,19 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             {
               Icon: PinIcon,
               title: 'Drop it',
-              body: 'Put people onto a spot, a film, a record. Score it 1–10 — your call, on the record.',
+              body: 'Put people onto a spot, a film, a record. Type your score, 0–10 — your call, on the record.',
               accent: 'bg-sig',
             },
             {
-              Icon: ({ className }: { className?: string }) => <TallyIcon saved className={className} />,
+              Icon: ({ className }: { className?: string }) => <BetIcon saved className={className} />,
               title: 'They try it',
-              body: 'Friends tally your drop, go try it for real, and vote.',
+              body: 'Friends bet on your drop, go try it for real, and type their score.',
               accent: 'bg-lilac',
             },
             {
               Icon: ChartIcon,
               title: 'You get the record',
-              body: 'Every W and L feeds your public Taste Score. Missing verdicts never count as wins.',
+              body: 'Every rating feeds your public Taste Score — weighted so a couple of friendly 10s can\'t crown you.',
               accent: 'bg-butter',
             },
           ].map(({ Icon, title, body, accent }, i) => (
@@ -161,7 +161,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             </h2>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-mute">
               No star inflation. No fake reviews. Just every put-on you ever made, judged by the people who actually
-              tried them — tallied up where everyone can see it.
+              tried them — scored where everyone can see it.
             </p>
           </Reveal>
           <Reveal delay={120}>
@@ -170,8 +170,10 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
                 <span className="text-sm font-black uppercase tracking-widest text-mute">@you · taste score</span>
                 <span className="wordmark text-5xl text-sig">81</span>
               </div>
-              <TallyMarks wins={11} losses={1} />
-              <p className="mt-3 text-xs text-mute">11 W · 1 L across 12 verdicts — saves don't count as visits.</p>
+              <p className="font-display text-2xl font-bold text-fog">
+                9.2 <span className="text-base font-bold text-mute">avg · 214 ratings · 61 peaks</span>
+              </p>
+              <p className="mt-3 text-xs text-mute">Every rating on the record — bets don't count as visits.</p>
             </div>
           </Reveal>
         </div>
@@ -201,13 +203,13 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             {
               Icon: ChainIcon,
               title: 'Put-on chains',
-              body: 'See who tallied what from whom. Taste travels — now you can watch it.',
+              body: 'See who bet on what, from whom. Taste travels — now you can watch it.',
               accent: 'text-sky',
             },
             {
               Icon: AlertIcon,
               title: 'Alerts',
-              body: 'Know the second someone calls W on your drop.',
+              body: 'Know the second someone peaks your drop with a 10.',
               accent: 'text-butter',
             },
             {
@@ -218,8 +220,8 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             },
             {
               Icon: ScoreIcon,
-              title: 'Your call, 1–10',
-              body: 'Score every drop. The crowd decides W or L.',
+              title: 'Your call, 0–10',
+              body: 'Type a score on every drop — decimals and all. A 10 is a mountain.',
               accent: 'text-miss',
             },
           ].map(({ Icon, title, body, accent }, i) => (
@@ -268,25 +270,18 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
   )
 }
 
-/** The mechanic you can feel: a mock drop with working W/L votes. */
+/** The mechanic you can feel: a mock drop you can actually rate — typed, like the real thing. */
 function DemoCard() {
-  const [wins, setWins] = useState(128)
-  const [losses, setLosses] = useState(12)
-  const [mine, setMine] = useState<'W' | 'L' | null>(null)
-  const [slam, setSlam] = useState<'W' | 'L' | null>(null)
-
-  const vote = (v: 'W' | 'L') => {
-    if (mine === v) return
-    if (mine === 'W') setWins((w) => w - 1)
-    if (mine === 'L') setLosses((l) => l - 1)
-    if (v === 'W') setWins((w) => w + 1)
-    else setLosses((l) => l + 1)
-    setMine(v)
-    setSlam(v)
-    setTimeout(() => setSlam(null), 450)
-  }
-
-  const score = tasteScoreFor(wins, losses)
+  const BASE_COUNT = 128
+  const BASE_SUM = 1165 // the crowd's average sits ≈ 9.1
+  const BASE_PEAKS = 48
+  const [mine, setMine] = useState<number | null>(null)
+  const [draft, setDraft] = useState<number | null>(null)
+  const count = BASE_COUNT + (mine != null ? 1 : 0)
+  const sum = BASE_SUM + (mine ?? 0)
+  const peaks = BASE_PEAKS + (mine === 10 ? 1 : 0)
+  const avg = sum / count
+  const score = Math.round(weightedAverage(sum, count) * 10)
 
   return (
     <div
@@ -301,8 +296,8 @@ function DemoCard() {
           </div>
         </div>
         <span className="flex flex-col items-center rounded-xl border border-sig/40 bg-sig/10 px-2.5 py-1">
-          <span className="text-lg font-black leading-none text-sig">9</span>
-          <span className="text-[9px] font-bold text-mute">/10</span>
+          <span className="text-lg font-black leading-none text-sig">9.5</span>
+          <span className="text-[9px] font-bold text-mute">/10 · his call</span>
         </span>
       </div>
       <div className="px-4 pb-1 pt-2">
@@ -313,7 +308,7 @@ function DemoCard() {
         </p>
       </div>
       <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-sig/25 via-ink-2 to-ink-3">
-        <TallyIcon saved className="h-24 w-24 text-sig/25" />
+        <PeakMark className="h-24 w-auto text-sig/25" />
         <span className="absolute bottom-2 right-3 text-[10px] font-black uppercase tracking-[0.3em] text-sig/60">
           Miami · Food & Drink
         </span>
@@ -321,30 +316,29 @@ function DemoCard() {
       <div className="px-4 py-4">
         <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-ink-3">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-win to-sig transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-sig to-win transition-all duration-500"
             style={{ width: `${score}%` }}
           />
         </div>
-        <div className="flex gap-3">
-          {(['W', 'L'] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => vote(v)}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-lg font-black transition active:scale-95 ${
-                mine === v
-                  ? v === 'W'
-                    ? 'bg-win text-ink'
-                    : 'bg-miss text-white'
-                  : 'border border-line bg-ink-3 text-fog hover:border-sig/60'
-              } ${slam === v ? 'verdict-slam' : ''}`}
-            >
-              {v}
-              <span className="text-sm font-bold tabular-nums opacity-80">{v === 'W' ? wins : losses}</span>
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <ScoreField value={draft} onChange={setDraft} />
+          <button
+            onClick={() => draft != null && setMine(draft)}
+            disabled={draft == null || draft === mine}
+            className="press shrink-0 rounded-full bg-sig px-5 py-2.5 text-sm font-black text-ink disabled:opacity-40"
+          >
+            Rate it
+          </button>
         </div>
         <p className="mt-3 text-center text-xs text-mute">
-          <b className="text-sig">{score}</b> taste score · your vote moves it
+          {mine != null ? (
+            <>
+              Your call: <b className="text-sig">{formatScore(mine)}</b>
+              {mine === 10 ? ' — that’s a peak. ' : ' · '}
+            </>
+          ) : null}
+          The crowd says <b className="text-sig">{formatAvg(avg)}</b> across {count} ratings · {peaks} peaks ·{' '}
+          <b className="text-sig">{score}</b> taste score
         </p>
       </div>
     </div>

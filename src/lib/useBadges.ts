@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import type { Drop, Verdict } from './types'
+import type { Drop, DropRating } from './types'
 import { badgesFor, firstDropCount, type Badge } from './stats'
 
-/** Earned badges for a profile, computed from real verdict data. Null while loading. */
+/** Earned badges for a profile, computed from real rating data. Null while loading. */
 export function useBadges(profileId: string | null | undefined): Badge[] | null {
   const [badges, setBadges] = useState<Badge[] | null>(null)
 
@@ -14,23 +14,23 @@ export function useBadges(profileId: string | null | undefined): Badge[] | null 
     }
     let live = true
     const load = async () => {
-      // The author's own drops are the scope key: verdicts and saves are
+      // The author's own drops are the scope key: ratings and saves are
       // fetched by drop id, so the badge numbers are exact no matter how
-      // big the global verdicts/saves tables get.
+      // big the global ratings/saves tables get.
       const { data: myDropsRows } = await supabase.from('drops').select('*').eq('author_id', profileId)
       if (!live) return
       const myDrops = (myDropsRows ?? []) as Drop[]
       const ids = myDrops.map((d) => d.id)
 
-      let verdicts: Array<Verdict & { drop: Drop }> = []
+      let ratings: Array<DropRating & { drop: Drop }> = []
       let saves: Array<{ drop_id: string }> = []
       if (ids.length > 0) {
         const [vRes, sRes] = await Promise.all([
-          supabase.from('verdicts').select('*, drop:drops!inner(id,neighborhood)').in('drop_id', ids),
+          supabase.from('drop_ratings').select('*, drop:drops!inner(id,neighborhood)').in('drop_id', ids),
           supabase.from('saves').select('drop_id').in('drop_id', ids),
         ])
         if (!live) return
-        verdicts = (vRes.data ?? []) as Array<Verdict & { drop: Drop }>
+        ratings = (vRes.data ?? []) as Array<DropRating & { drop: Drop }>
         saves = (sRes.data ?? []) as Array<{ drop_id: string }>
       }
 
@@ -51,7 +51,7 @@ export function useBadges(profileId: string | null | undefined): Badge[] | null 
         savesPerDrop.set(s.drop_id, (savesPerDrop.get(s.drop_id) ?? 0) + 1)
       }
       const first = firstDropCount(profileId, (recentDrops ?? []) as Drop[])
-      setBadges(badgesFor(myDrops, verdicts, savesPerDrop, first))
+      setBadges(badgesFor(myDrops, ratings, savesPerDrop, first))
     }
     load()
     return () => {

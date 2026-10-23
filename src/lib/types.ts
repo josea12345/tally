@@ -145,7 +145,7 @@ export interface Comment {
   drop_id: string
   user_id: string
   body: string
-  /** Optional 1–10 rating attached via the composer picker (one per user per drop). */
+  /** Optional typed 0.0–10.0 rating attached to the comment (one per user per drop). */
   rating: number | null
   /** Top-level comment this reply hangs off (0036); null = top-level. */
   parent_id: string | null
@@ -165,10 +165,23 @@ export interface Follow {
 
 export interface DropStats {
   saves: number
-  wins: number
-  losses: number
-  tried: number
   comments: number
+  /** Mean of typed ratings (0.0–10.0); null until someone rates. */
+  ratingAvg: number | null
+  ratingCount: number
+  /** How many 10.0 ratings — mountains. */
+  peaks: number
+}
+
+/** One typed rating per user per drop (0051). 10.0 is a peak. */
+export interface DropRating {
+  id: string
+  user_id: string
+  drop_id: string
+  score: number
+  created_at: string
+  updated_at: string
+  user?: Profile
 }
 
 export interface PlaceSuggestion {
