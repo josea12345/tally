@@ -1,5 +1,4 @@
 import type { Category, Profile } from '../lib/types'
-import { timeAgo } from '../lib/format'
 import { goToCategory } from '../lib/categoryNav'
 import { navigate } from '../App'
 
@@ -35,15 +34,14 @@ export function CategoryNoun({ category }: { category: Category }) {
   )
 }
 
-/** Card variant: handle + phrase on the left, the time pushed right. */
+/** Card variant: handle + phrase. The card pins the time separately,
+ *  absolute at the header's top-right corner. */
 export default function ActionByline({
   author,
   category,
-  createdAt,
 }: {
   author?: Profile
   category: Category
-  createdAt: string
 }) {
   return (
     <div className="flex items-baseline gap-1.5 text-sm">
@@ -62,7 +60,6 @@ export default function ActionByline({
       )}
       <span className="truncate">{ACTION_PHRASE[category].lead}</span>
       <CategoryNoun category={category} />
-      <span className="ml-auto shrink-0 text-[13px] text-mute">{timeAgo(createdAt)}</span>
     </div>
   )
 }

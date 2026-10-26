@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { useAuth } from '../context/AuthContext'
 import { isSeen } from '../lib/seen'
-import { formatCount, topicKeyFor } from '../lib/format'
+import { formatCount, timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import ActionByline from './ActionByline'
 import Comments from './Comments'
@@ -333,7 +333,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
           </p>
         )}
         {/* header: who, when, their call, menu */}
-        <div className="flex items-center gap-3 px-4">
+        <div className="relative flex items-center gap-3 px-4">
           <div className="flex flex-col items-center gap-0.5">
             <div onClick={(e) => e.stopPropagation()}>
               <button
@@ -348,12 +348,15 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <ActionByline author={author} category={drop.category} createdAt={drop.created_at} />
+            <ActionByline author={author} category={drop.category} />
             {titleLine}
           </div>
           {items.length === 0 && headerScore}
-          <span className="shrink-0">
+          <span className="mt-3 shrink-0">
             <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
+          </span>
+          <span className="absolute right-4 top-1 text-[13px] leading-5 text-mute">
+            {timeAgo(drop.created_at)}
           </span>
         </div>
 
