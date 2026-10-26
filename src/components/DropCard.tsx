@@ -163,19 +163,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       </div>
     ) : null
 
-  // The author's call for media drops: mountain + number beside the
-  // avatar, no words — the poster's own rating, readable at a glance.
-  const headerCall =
-    drop.score != null ? (
-      <div
-        className="sticker-flat flex shrink-0 items-center gap-1.5 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
-        title="Author's call"
-      >
-        <PeakMark className="h-4 w-auto text-sig" />
-        <span className="text-xl font-black leading-none text-sig">{formatScore(drop.score)}</span>
-      </div>
-    ) : null
-
   // Compact header score for text-only drops (no media to overlay).
   const headerScore =
     stats.ratingCount > 0 ? (
@@ -260,7 +247,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       className="absolute inset-x-0 bottom-0 flex items-center justify-around bg-gradient-to-t from-black/70 via-black/25 to-transparent px-6 pb-2.5 pt-10"
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={toggleSave} aria-label={saved ? 'Remove bet' : 'Bet on it'} className="press flex items-center gap-1.5">
+      <button onClick={toggleSave} aria-label={saved ? 'Remove try' : 'Try it'} className="press flex items-center gap-1.5">
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block drop-shadow-lg ${saved ? 'text-sig' : 'text-white'}`}>
           <BetIcon saved={saved} className="h-6 w-6" />
         </span>
@@ -313,7 +300,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       </button>
       <button
         onClick={toggleSave}
-        aria-label={saved ? 'Remove bet' : 'Bet on it'}
+        aria-label={saved ? 'Remove try' : 'Try it'}
         className="press ml-auto flex items-center gap-1.5"
       >
         <span className={`${heartPop ? 'heart-pop' : ''} inline-block ${saved ? 'text-sig' : 'text-fog'}`}>
@@ -345,15 +332,19 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         )}
         {/* header: who, when, their call, menu */}
         <div className="flex items-center gap-3 px-4">
-          <div onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => author && navigate(`/profile/${author.id}`)}
-              aria-label={author ? `Open @${author.username}` : 'profile'}
-            >
-              <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
-            </button>
+          <div className="flex flex-col items-center gap-0.5">
+            <div onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => author && navigate(`/profile/${author.id}`)}
+                aria-label={author ? `Open @${author.username}` : 'profile'}
+              >
+                <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
+              </button>
+            </div>
+            {items.length > 0 && drop.score != null && (
+              <span className="text-sm font-black leading-none text-sig">{formatScore(drop.score)}</span>
+            )}
           </div>
-          {items.length > 0 && headerCall}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-sm">
               <span className="truncate font-bold">{author?.display_name || author?.username || 'Someone'}</span>
