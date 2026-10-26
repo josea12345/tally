@@ -134,11 +134,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       <span className={`text-[10px] font-bold ${dark ? 'text-white/80' : 'text-mute'}`}>
         · {stats.ratingCount} rating{stats.ratingCount === 1 ? '' : 's'}
       </span>
-      {stats.peaks > 0 && (
-        <span className="ml-1 flex items-center gap-1 border-l border-current/20 pl-2 text-[10px] font-bold text-sig">
-          <PeakMark className="h-3 w-auto" />×{stats.peaks}
-        </span>
-      )}
       {extSegs(dark)}
     </div>
   )
