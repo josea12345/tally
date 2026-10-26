@@ -466,8 +466,10 @@ export default function Profile({ id }: { id?: string }) {
               </span>
             )}
           </div>
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-2">
           {isOwn ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <>
               <button
                 onClick={() => navigate('/settings')}
                 aria-label="Settings"
@@ -487,9 +489,9 @@ export default function Profile({ id }: { id?: string }) {
               >
                 {editing ? 'Cancel' : 'Edit'}
               </button>
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
+            <>
               <FollowButton followeeId={profile.id} onChange={refreshFollow} />
               <button
                 onClick={shareProfile}
@@ -498,7 +500,7 @@ export default function Profile({ id }: { id?: string }) {
                 {profileCopied ? 'Copied!' : 'Share'}
               </button>
               <ProfileMenu targetId={profile.id} handle={profile.username} />
-            </div>
+            </>
           )}
         </div>
         {profile.bio && !editing && <p className="mt-3 text-[15px] leading-relaxed">{profile.bio}</p>}
