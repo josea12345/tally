@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
-import type { Collection, Profile } from './types'
+import type { Collection, Drop, Profile } from './types'
+import { dropMedia } from './types'
 
 /**
  * Posted lists (Jose's spec, 2026-10-26): a list IS a collection (0041)
@@ -46,7 +47,10 @@ async function itemInfoFor(
   const { data } = await supabase
     .from('collection_items')
     .select(
-      'collection_id, position, drop:drops!collection_items_drop_id_fkey(media_url, media_type, media_poster_url, media_items)',
+      // drops has NO media_items column — carousels are parallel arrays
+      // (0047-era); asking for it 42703s the whole query. Same field
+      // set dropMedia() reads.
+      'collection_id, position, drop:drops!collection_items_drop_id_fkey(media_url, media_type, media_poster_url, media_urls, media_types, media_poster_urls, media_edits)',
     )
     .in('collection_id', listIds)
     .order('position', { ascending: true })
@@ -57,18 +61,18 @@ async function itemInfoFor(
       media_url: string | null
       media_type: string | null
       media_poster_url: string | null
-      media_items: Array<{ url: string; type: string; posterUrl?: string | null }> | null
+      media_urls: string[] | null
+      media_types: string[] | null
+      media_poster_urls: (string | null)[] | null
+      media_edits: unknown
     } | null
   }
   for (const r of (data ?? []) as unknown as Row[]) {
     const cur = out.get(r.collection_id) ?? { count: 0, covers: [] }
     cur.count += 1
     if (cur.covers.length < 3 && r.drop) {
-      const first = r.drop.media_items?.[0]
-      const url =
-        first?.type === 'video'
-          ? first.posterUrl ?? null
-          : first?.url ?? (r.drop.media_type === 'video' ? r.drop.media_poster_url : r.drop.media_url)
+      const first = dropMedia(r.drop as unknown as Drop)[0]
+      const url = first ? (first.type === 'video' ? first.posterUrl : first.url) : null
       if (url) cur.covers.push(url)
     }
     out.set(r.collection_id, cur)
