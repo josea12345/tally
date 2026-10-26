@@ -55,6 +55,12 @@ function KindChip({ kind }: { kind: Notification['kind'] }) {
       )
     case 'recap':
       return <span className={`${base} bg-lilac text-[#191725]`} aria-hidden>★</span>
+    case 'answer':
+      return (
+        <span className={`${base} bg-butter text-[#191725]`} aria-hidden>
+          <PeakMark className="h-4 w-auto" />
+        </span>
+      )
     case 'streak':
       return (
         <span className={`${base} bg-butter text-[#191725]`} aria-hidden>
@@ -89,6 +95,8 @@ function textFor(n: Notification): string {
       return 'Your week on Peak is ready — see your recap'
     case 'streak':
       return 'Your streak ends tonight — one rating saves it'
+    case 'answer':
+      return `${name} put you on to something`
     case 'approved':
       return `${name} approved your follow request`
     case 'requested':
@@ -105,7 +113,7 @@ export default function Notifications() {
   const FILTER_KINDS: Record<string, NotificationKind[]> = {
     verdicts: ['W', 'L', 'peak'],
     comments: ['comment', 'mention', 'like'],
-    social: ['follow', 'approved', 'requested', 'reminder', 'recap', 'streak'],
+    social: ['follow', 'approved', 'requested', 'reminder', 'recap', 'streak', 'answer'],
   }
   const shownItems = filter === 'all' ? items : items.filter((n) => FILTER_KINDS[filter].includes(n.kind))
 

@@ -186,6 +186,16 @@ export interface DropRating {
   user?: Profile
 }
 
+export interface PutOnRequest {
+  id: string
+  author_id: string
+  prompt: string
+  category: string | null
+  neighborhood: string | null
+  created_at: string
+  author?: Profile
+}
+
 export interface PlaceSuggestion {
   id: string
   name: string

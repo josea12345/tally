@@ -26,6 +26,8 @@ export interface Route {
     | 'topic'
     | 'leaderboard'
     | 'list'
+    | 'requests'
+    | 'request'
   param?: string
 }
 
@@ -58,6 +60,8 @@ export function parseHashString(hash: string): Route {
   if (a === 'search') return { name: 'search' }
   if (a === 'leaderboard') return { name: 'leaderboard' }
   if (a === 'list' && b) return { name: 'list', param: b }
+  if (a === 'requests') return { name: 'requests' }
+  if (a === 'request' && b) return { name: 'request', param: b }
   if (a === 'notifications') return { name: 'notifications' }
   if (a === 'settings') return { name: 'settings' }
   if (a === 'onboarding') return { name: 'onboarding' }

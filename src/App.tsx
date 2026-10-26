@@ -27,6 +27,8 @@ import { HomeIcon, ProfileIcon, SearchIcon } from './components/icons'
 import LeaderboardRail from './components/LeaderboardRail'
 import Leaderboard from './pages/Leaderboard'
 import ListPage from './pages/ListPage'
+import Requests from './pages/Requests'
+import RequestDetail from './pages/RequestDetail'
 import Camera from './pages/Camera'
 
 import { parseHashString } from './lib/routes'
@@ -305,6 +307,10 @@ export default function App() {
         return <Leaderboard />
       case 'list':
         return <ListPage id={route.param!} />
+      case 'requests':
+        return <Requests />
+      case 'request':
+        return <RequestDetail id={route.param!} />
       case 'notifications':
         return <Notifications />
       case 'settings':

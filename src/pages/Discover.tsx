@@ -21,6 +21,7 @@ import OnboardingChecklist from '../components/OnboardingChecklist'
 import FollowingSuggestions from '../components/FollowingSuggestions'
 import ListsFeed from '../components/ListsFeed'
 import ContestedRail from '../components/ContestedRail'
+import RequestsStrip from '../components/RequestsStrip'
 import EmptyState from '../components/EmptyState'
 
 type Tab = 'putons' | 'following' | 'near' | 'lists'
@@ -645,6 +646,7 @@ export default function Discover() {
         </button>
       )}
 
+      {tab === 'putons' && !debounced && <RequestsStrip />}
       {tab === 'putons' && !debounced && <ContestedRail />}
 
       {tab === 'lists' ? (
