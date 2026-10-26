@@ -63,6 +63,12 @@ export default function DragRateZone({
   const suppressClickUntil = useRef(0)
   const [dragValue, setDragValue] = useState<number | null>(null)
   const [burst, setBurst] = useState(false)
+  // Re-rate guard (Jose's ask, 2026-10-26): once you've rated a drop,
+  // a press-and-hold asks before it can change anything — a stray
+  // touch-and-slide shouldn't silently rewrite a rating. Confirming
+  // once unlocks re-rating for as long as this card stays mounted.
+  const [confirmModify, setConfirmModify] = useState(false)
+  const modifyOk = useRef(false)
 
   // Block page scroll mid-gesture once armed (see the doc comment).
   useEffect(() => {
@@ -98,6 +104,13 @@ export default function DragRateZone({
   const arm = () => {
     const g = gesture.current
     if (!g || g.armed) return
+    if (current != null && !modifyOk.current) {
+      // Already rated: end the gesture quietly and ask first.
+      gesture.current = null
+      cancelHold()
+      setConfirmModify(true)
+      return
+    }
     g.armed = true
     armedRef.current = true
     g.anchorY = g.lastY
@@ -253,6 +266,44 @@ export default function DragRateZone({
         </div>
       )}
       {burst && <PeakBurst onDone={() => setBurst(false)} />}
+      {confirmModify && current != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setConfirmModify(false)}
+        >
+          <div
+            className="pop-in w-full max-w-xs rounded-3xl border border-line bg-ink-2 p-5 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="mb-2 inline-block text-sig">
+              <PeakMark className="h-8 w-auto" />
+            </span>
+            <p className="text-base font-black text-fog">
+              You rated this {formatScore(current)}
+            </p>
+            <p className="mt-1 text-sm text-mute">Want to change your rating?</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setConfirmModify(false)}
+                className="press flex-1 rounded-full border border-line px-4 py-2.5 text-sm font-black text-fog"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={() => {
+                  modifyOk.current = true
+                  setConfirmModify(false)
+                  tapHaptic()
+                }}
+                className="btn-pop press flex-1 rounded-full px-4 py-2.5 text-sm"
+              >
+                Change rating
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
