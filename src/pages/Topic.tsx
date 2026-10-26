@@ -6,8 +6,9 @@ import type { Drop } from '../lib/types'
 import DropGrid from '../components/DropGrid'
 
 /**
- * Topic page — "entering the place": the name with the average call
- * beside it, the specific location (street address / neighborhood —
+ * Topic page — "entering the place": the name with the place's
+ * average score beside it (every poster's call and every rating
+ * pooled), the specific location (street address / neighborhood —
  * place-pinned topics are exactly one location), and the posts as a
  * grid of squares with each author's rating on its tile. RLS
  * (is_drop_visible) hides blocked/private drops automatically.
@@ -15,6 +16,7 @@ import DropGrid from '../components/DropGrid'
 export default function Topic({ topicKey }: { topicKey: string }) {
   const { user } = useAuth()
   const [drops, setDrops] = useState<Drop[]>([])
+  const [ratingAgg, setRatingAgg] = useState<{ sum: number; n: number }>({ sum: 0, n: 0 })
   const [loading, setLoading] = useState(true)
   const [topicFollowing, setTopicFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
@@ -69,7 +71,21 @@ export default function Topic({ topicKey }: { topicKey: string }) {
         .order('created_at', { ascending: false })
         .limit(100)
       if (!live) return
-      setDrops((rows ?? []) as Drop[])
+      const list = (rows ?? []) as Drop[]
+      setDrops(list)
+      if (list.length > 0) {
+        const { data: rs } = await supabase
+          .from('drop_ratings')
+          .select('score')
+          .in('drop_id', list.map((d) => d.id))
+          .limit(1000)
+        if (!live) return
+        const ratings = (rs ?? []) as Array<{ score: number }>
+        setRatingAgg({
+          sum: ratings.reduce((a, r) => a + Number(r.score), 0),
+          n: ratings.length,
+        })
+      }
       setLoading(false)
     })()
     return () => {
@@ -97,12 +113,12 @@ export default function Topic({ topicKey }: { topicKey: string }) {
         ? [...hoods, city].filter(Boolean).join(' · ')
         : city
 
-  // Average of every author's call — the place's score.
+  // The place's average pools every score on the record: each
+  // poster's call plus every rating people left on those drops.
   const scored = drops.filter((d) => d.score != null)
-  const avg =
-    scored.length > 0
-      ? scored.reduce((a, d) => a + (d.score as number), 0) / scored.length
-      : null
+  const callSum = scored.reduce((a, d) => a + Number(d.score), 0)
+  const totalScores = scored.length + ratingAgg.n
+  const avg = totalScores > 0 ? (callSum + ratingAgg.sum) / totalScores : null
   const avgLabel = avg == null ? null : (Math.round(avg * 10) / 10).toString()
 
   const mapsUrl = drops.find((d) => d.maps_url)?.maps_url as string | undefined
@@ -125,7 +141,7 @@ export default function Topic({ topicKey }: { topicKey: string }) {
           {avgLabel != null && (
             <span
               className="rounded-full bg-sig px-3 py-1 font-display text-lg font-black leading-none text-[var(--color-sig-ink)]"
-              title="The average of every poster's call for this place"
+              title="The average of every score for this place — posters' calls and people's ratings"
             >
               {avgLabel}
             </span>
@@ -139,7 +155,8 @@ export default function Topic({ topicKey }: { topicKey: string }) {
         <div className="mt-4 flex items-center gap-2">
           {avgLabel != null ? (
             <p className="text-sm font-bold text-mute">
-              {scored.length} put-on{scored.length === 1 ? '' : 's'}
+              {scored.length} put-on{scored.length === 1 ? '' : 's'} · {totalScores} score
+              {totalScores === 1 ? '' : 's'}
             </p>
           ) : (
             <p className="text-sm text-mute">No scores yet — be the first call.</p>
