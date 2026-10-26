@@ -4,15 +4,19 @@ import { useAuth } from '../context/AuthContext'
 import type { Collection, Drop, Profile } from '../lib/types'
 import { dropMedia } from '../lib/types'
 import { fetchListSummary, type ListSummary } from '../lib/lists'
+import { peakHaptic, tapHaptic } from '../lib/haptics'
 import { Avatar, navigate } from '../App'
+import BetIcon from '../components/BetIcon'
 import ListLikeButton from '../components/ListLikeButton'
 import EmptyState from '../components/EmptyState'
 
 /**
  * A posted list's page: the drops IN THE OWNER'S ORDER (0053 position),
  * each row a normal drop (tap through to rate/Try it there — the list
- * itself is never rated). The list's only signal is the mountain like
- * in the header. No share button, no Try-all (Jose's spec, 2026-10-26).
+ * itself is never rated). The mountain like sits at the right of the
+ * header; double-tapping the preview likes through the same path.
+ * Share + Try (save the whole run) joined the header on Jose's call
+ * (2026-10-26 02:31, reversing his earlier no-share/no-try-all pass).
  * Owner controls: reorder (in Manage), rename, public/private, delete.
  */
 export default function ListPage({ id }: { id: string }) {
@@ -27,6 +31,11 @@ export default function ListPage({ id }: { id: string }) {
   const [name, setName] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [savingOrder, setSavingOrder] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [likedByMe, setLikedByMe] = useState(false)
+  const [sharedNote, setSharedNote] = useState(false)
+  const [mySaves, setMySaves] = useState<Set<string>>(new Set())
+  const [tryBusy, setTryBusy] = useState(false)
 
   const isOwner = !!user && !!col && user.id === col.owner_id
 
@@ -55,10 +64,22 @@ export default function ListPage({ id }: { id: string }) {
         .limit(200),
     ])
     setSummary(sum)
+    if (sum) {
+      setLikeCount(sum.likeCount)
+      setLikedByMe(sum.likedByMe)
+    }
     const list = ((itemsRes.data ?? []) as unknown as Array<{ drop: Drop | null }>)
       .map((i) => i.drop)
       .filter((d): d is Drop => !!d)
     setDrops(list)
+    if (user && list.length > 0) {
+      const { data: saveRows } = await supabase
+        .from('saves')
+        .select('drop_id')
+        .eq('user_id', user.id)
+        .in('drop_id', list.map((d) => d.id))
+      setMySaves(new Set(((saveRows ?? []) as Array<{ drop_id: string }>).map((r) => r.drop_id)))
+    }
     setLoading(false)
   }
 
@@ -123,6 +144,59 @@ export default function ListPage({ id }: { id: string }) {
     if (!error) navigate('/saved')
   }
 
+  const toggleLike = async (onlyLike = false) => {
+    if (!user || isOwner) return
+    if (onlyLike && likedByMe) return
+    const next = !likedByMe
+    setLikedByMe(next)
+    setLikeCount((c) => c + (next ? 1 : -1))
+    if (next) peakHaptic()
+    else tapHaptic()
+    const res = next
+      ? await supabase.from('collection_likes').insert({ collection_id: id, user_id: user.id })
+      : await supabase.from('collection_likes').delete().eq('collection_id', id).eq('user_id', user.id)
+    if (res.error) {
+      setLikedByMe(!next)
+      setLikeCount((c) => c + (next ? -1 : 1))
+    }
+  }
+
+  const share = async () => {
+    const url = `${window.location.origin}/list/${id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: col?.name ?? 'Peak list', url })
+        return
+      }
+      throw new Error('no native share')
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url)
+        setSharedNote(true)
+        setTimeout(() => setSharedNote(false), 1600)
+      } catch {
+        // clipboard unavailable — nothing sensible to fall back to
+      }
+    }
+  }
+
+  const allTried = drops.length > 0 && drops.every((d) => mySaves.has(d.id))
+  const tryAll = async () => {
+    if (!user) {
+      navigate('/auth')
+      return
+    }
+    if (tryBusy || allTried) return
+    const missing = drops.filter((d) => !mySaves.has(d.id))
+    if (missing.length === 0) return
+    setTryBusy(true)
+    const { error } = await supabase
+      .from('saves')
+      .insert(missing.map((d) => ({ user_id: user.id, drop_id: d.id })))
+    if (!error) setMySaves((prev) => new Set([...prev, ...missing.map((d) => d.id)]))
+    setTryBusy(false)
+  }
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-3 px-4 py-6">
@@ -160,6 +234,8 @@ export default function ListPage({ id }: { id: string }) {
         <button onClick={() => navigate('/')} className="text-sm font-bold text-mute transition hover:text-sig">
           ← Lists
         </button>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
         {renaming ? (
           <div className="mt-3 flex gap-2">
             <input
@@ -197,16 +273,67 @@ export default function ListPage({ id }: { id: string }) {
             {col.is_public ? 'Public' : 'Private'}
           </span>
         </div>
+          </div>
+          {summary && (
+            <div className="shrink-0 pt-4">
+              <ListLikeButton
+                listId={id}
+                ownerId={col.owner_id}
+                count={likeCount}
+                liked={likedByMe}
+                size="lg"
+                onToggle={() => void toggleLike()}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Preview of the run — double-tap to like (rows below navigate). */}
+        <div onDoubleClick={() => void toggleLike(true)} className="mt-4 select-none">
+          {drops.length > 0 ? (
+            <div className="flex gap-1.5">
+              {drops.slice(0, 4).map((d, i) => {
+                const cover = rowCover(d)
+                return (
+                  <div key={d.id} className="relative h-24 min-w-0 flex-1 overflow-hidden rounded-2xl border border-line bg-ink-3">
+                    {cover ? (
+                      <img src={cover} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full items-center justify-center p-2 text-center text-[11px] font-bold leading-tight text-fog/80">
+                        {d.title}
+                      </span>
+                    )}
+                    {i === 3 && drops.length > 4 && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-black text-white">
+                        +{drops.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-line px-4 text-center text-xs text-mute">
+              Drops you add will preview here.
+            </div>
+          )}
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {summary && (
-            <ListLikeButton
-              listId={id}
-              ownerId={col.owner_id}
-              count={summary.likeCount}
-              liked={summary.likedByMe}
-              size="lg"
-            />
+          <button onClick={share} className="rounded-full bg-sig px-4 py-2 text-sm font-black text-ink">
+            {sharedNote ? 'Link copied!' : 'Share list'}
+          </button>
+          {!isOwner && drops.length > 0 && (
+            <button
+              onClick={() => void tryAll()}
+              disabled={tryBusy || allTried}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition ${
+                allTried ? 'border border-line text-win' : 'border border-sig/60 text-sig hover:bg-sig hover:text-ink'
+              } disabled:opacity-70`}
+            >
+              <BetIcon saved={allTried} className="h-4 w-4" />
+              {tryBusy ? 'Saving…' : allTried ? 'In your Try list' : 'Try'}
+            </button>
           )}
           {isOwner && (
             <>

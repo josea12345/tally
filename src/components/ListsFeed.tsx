@@ -43,7 +43,7 @@ export default function ListsFeed({ refreshNonce }: { refreshNonce: number }) {
     )
   }
 
-  if (lists.length === 0) {
+  if (lists.filter((l) => l.dropCount > 0).length === 0) {
     return (
       <EmptyState
         mood="happy"
@@ -68,7 +68,7 @@ export default function ListsFeed({ refreshNonce }: { refreshNonce: number }) {
           + New list
         </button>
       </div>
-      {lists.map((l) => (
+      {lists.filter((l) => l.dropCount > 0).map((l) => (
         <ListCard key={l.id} list={l} />
       ))}
     </div>

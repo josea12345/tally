@@ -15,12 +15,16 @@ export default function ListLikeButton({
   count,
   liked,
   size = 'md',
+  onToggle,
 }: {
   listId: string
   ownerId: string
   count: number
   liked: boolean
   size?: 'md' | 'lg'
+  /** Controlled mode: the parent owns the like state (the list page
+   *  uses it so double-tapping the preview likes through the same path). */
+  onToggle?: () => void
 }) {
   const { user } = useAuth()
   const [state, setState] = useState({ count, liked })
@@ -42,6 +46,30 @@ export default function ListLikeButton({
         <PeakMark className={markCls} />
         {state.count}
       </span>
+    )
+  }
+
+  if (onToggle) {
+    return !user || isOwner ? (
+      <span className={`flex items-center gap-1.5 font-black ${textCls} ${count > 0 ? 'text-sig' : 'text-mute'}`}>
+        <PeakMark className={markCls} />
+        {count}
+      </span>
+    ) : (
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggle()
+        }}
+        aria-pressed={liked}
+        aria-label={liked ? 'Unlike this list' : 'Like this list'}
+        className={`press flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-black transition ${textCls} ${
+          liked ? 'border-sig bg-sig/15 text-sig' : 'border-line text-mute hover:text-sig'
+        }`}
+      >
+        <PeakMark className={markCls} />
+        {count}
+      </button>
     )
   }
 
