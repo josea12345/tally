@@ -6,17 +6,19 @@ import { timeAgo } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import { notify } from '../lib/notify'
 import MentionText from './MentionText'
-import { ScoreField } from './RateSheet'
 import { formatScore } from '../lib/ratings'
 
 /** Threaded conversation on a drop: list + post + delete-own. */
 export default function Comments({
   dropId,
   authorId,
+  externalRatings,
   onCountChange,
 }: {
   dropId: string
   authorId?: string
+  /** Live per-user drop ratings from the parent (drop page) — wins over the fetched map. */
+  externalRatings?: Map<string, number>
   onCountChange?: (n: number) => void
 }) {
   const { user } = useAuth()
@@ -24,11 +26,10 @@ export default function Comments({
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Rating picker for this comment (1–10). Prefilled from the user's existing
-  // rating on this drop, if any — posting with a new one replaces it.
-  const [picked, setPicked] = useState<number | null>(null)
-  const [rateOpen, setRateOpen] = useState(false)
-  const pickedTouched = useRef(false)
+  // Each commenter's rating on THIS drop (from drop_ratings), shown as a
+  // chip next to their name. One rating system only: the drop rating is
+  // the rating — comments display it, they never carry their own.
+  const [dropRatings, setDropRatings] = useState<Map<string, number>>(new Map())
   // Reply target: replies hang off the TOP-LEVEL comment (one level deep).
   const [replyTo, setReplyTo] = useState<{ topId: string; name: string } | null>(null)
   // @mention autocomplete: the token being typed + matching profiles.
@@ -100,18 +101,19 @@ export default function Comments({
   }
 
   const isAuthor = !!user && !!authorId && user.id === authorId
-  const myRated = comments.find((c) => user && c.user_id === user.id && c.rating != null)
-  const rated = comments.filter((c) => c.rating != null && c.user_id !== authorId)
-  const communityMean = rated.length > 0 ? rated.reduce((a, c) => a + (c.rating ?? 0), 0) / rated.length : null
+  // Displayed rating per commenter. When the parent passes its live
+  // ratings (the drop page loads them all), that map is the truth —
+  // chips appear/disappear the moment someone rates or unrates there.
+  // Otherwise fall back to the map fetched with the thread.
+  const shownRatings = externalRatings ?? dropRatings
   // Top-level order: chronological by default; "Top" floats the most
-  // liked (then highest-rated) takes. Replies always stay nested.
+  // liked takes. Replies always stay nested.
   const topLevel = comments.filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
   const baseOrdered =
     sortMode === 'top'
       ? [...topLevel].sort(
           (a, b) =>
             (likeCounts.get(b.id) ?? 0) - (likeCounts.get(a.id) ?? 0) ||
-            (b.rating ?? 0) - (a.rating ?? 0) ||
             b.created_at.localeCompare(a.created_at),
         )
       : topLevel
@@ -177,11 +179,17 @@ export default function Comments({
           setMyLikes(mine)
         }
       }
-      // Prefill the picker from the user's existing rating (once per drop).
-      if (!pickedTouched.current && user) {
-        const mine = list.find((c) => c.user_id === user.id && c.rating != null)
-        if (mine?.rating != null) setPicked(mine.rating)
-      }
+      // Commenters' drop ratings, for the chips next to their names.
+      const { data: ratingRows } = await supabase
+        .from('drop_ratings')
+        .select('user_id, score')
+        .eq('drop_id', dropId)
+      if (!live) return
+      setDropRatings(
+        new Map(
+          ((ratingRows ?? []) as Array<{ user_id: string; score: number }>).map((r) => [r.user_id, r.score]),
+        ),
+      )
     })()
   return () => {
       live = false
@@ -195,22 +203,10 @@ export default function Comments({
     setBusy(true)
     setError(null)
     try {
-      // Replies never carry the drop rating — the rating belongs to your
-      // top-level take. One rating per user per drop: clear the old rated
-      // comment first, then attach the new rating to this comment.
-      if (!replyTo && picked != null && !isAuthor) {
-        await supabase
-          .from('comments')
-          .update({ rating: null })
-          .eq('drop_id', dropId)
-          .eq('user_id', user.id)
-          .not('rating', 'is', null)
-      }
       const payload = {
         drop_id: dropId,
         user_id: user.id,
         body: text.slice(0, 500),
-        rating: !replyTo && picked != null && !isAuthor ? picked : null,
         parent_id: replyTo?.topId ?? null,
       }
       let res = await supabase.from('comments').insert(payload).select('*').single()
@@ -223,7 +219,6 @@ export default function Comments({
             drop_id: payload.drop_id,
             user_id: payload.user_id,
             body: payload.body,
-            rating: payload.rating,
           })
           .select('*')
           .single()
@@ -233,14 +228,7 @@ export default function Comments({
       const c = data as Comment
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (prof) c.user = prof as Profile
-      // Mirror the DB rating move locally: a fresh rated post clears the
-      // star on my older comments (the DB already did this — without the
-      // local patch the thread keeps showing two ratings until reload).
-      const ratedPost = !replyTo && picked != null && !isAuthor
-      const base = ratedPost
-        ? comments.map((x) => (x.user_id === user.id && x.rating != null ? { ...x, rating: null } : x))
-        : comments
-      const next = [...base, c]
+      const next = [...comments, c]
       setComments(next)
       onCountChange?.(next.length)
       setBody('')
@@ -311,9 +299,13 @@ export default function Comments({
           <span className="truncate text-xs font-black">
             {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
           </span>
-          {c.rating != null && (
-            <span className="shrink-0 rounded-full bg-sig/15 px-1.5 py-px text-[10px] font-black text-sig">
-              ★ {formatScore(c.rating)}
+          {shownRatings.get(c.user_id) != null && (
+            <span
+              className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-black ${
+                shownRatings.get(c.user_id) === 10 ? 'bg-sig text-ink' : 'bg-sig/15 text-sig'
+              }`}
+            >
+              ★ {formatScore(shownRatings.get(c.user_id)!)}
             </span>
           )}
           <span className="shrink-0 text-[10px] text-mute">{timeAgo(c.created_at)}</span>
@@ -399,12 +391,6 @@ export default function Comments({
         <span>
           Comments{comments.length > 0 && <span className="text-mute"> · {comments.length}</span>}
         </span>
-        {communityMean != null && (
-          <span className="text-xs font-bold text-mute">
-            Community <span className="text-sig">★ {communityMean.toFixed(1)}</span>
-            <span className="font-normal"> · {rated.length}</span>
-          </span>
-        )}
       </div>
       {comments.length > 1 && (
         <div className="mb-3 flex gap-1.5">
@@ -480,60 +466,6 @@ export default function Comments({
             </div>
           )}
           <div className="flex gap-2">
-            {!isAuthor && !replyTo && (
-              <div className="relative shrink-0">
-                <button
-                  onClick={() => setRateOpen((o) => !o)}
-                  aria-label="Rate this drop"
-                  className={`flex h-full min-h-[42px] items-center rounded-full border px-3 text-sm font-black transition ${
-                    picked != null
-                      ? 'border-sig/60 bg-sig/15 text-sig'
-                      : 'border-line text-mute hover:border-sig/50 hover:text-sig'
-                  }`}
-                >
-                  {picked != null ? `★ ${formatScore(picked)}` : '★ Rate'}
-                </button>
-                {rateOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setRateOpen(false)} />
-                    <div className="absolute bottom-full left-0 z-20 mb-2 w-[248px] rounded-2xl border border-line bg-ink-3 p-3 shadow-xl">
-                      <div className="flex justify-center py-1">
-                        <ScoreField
-                          value={picked}
-                          onChange={(v) => {
-                            pickedTouched.current = true
-                            setPicked(v)
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={() => setRateOpen(false)}
-                        className="mt-1 w-full rounded-xl bg-sig py-2 text-sm font-black text-ink"
-                      >
-                        Done
-                      </button>
-                      {myRated != null && (
-                        <button
-                          onClick={() => {
-                            pickedTouched.current = true
-                            setPicked(null)
-                            setRateOpen(false)
-                          }}
-                          className="mt-1.5 w-full rounded-xl py-1.5 text-xs font-bold text-mute hover:text-miss"
-                        >
-                          Remove my rating
-                        </button>
-                      )}
-                      <p className="mt-1 px-1 pb-1 text-[10px] leading-snug text-mute">
-                        {myRated != null
-                          ? 'Posting with a new rating replaces your old one.'
-                          : 'One rating per drop — it shows next to your comment.'}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
             <input
               ref={inputRef}
               value={body}

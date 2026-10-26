@@ -17,9 +17,9 @@ interface RateSheetProps {
 }
 
 /**
- * The rating ritual: a scorecard, not a form. The decimal keyboard is
- * already up, the number is huge, and typing a 10 lights the mountain.
- * Three keystrokes and one confirm puts it on the record.
+ * The rating ritual: a scorecard, not a form. Drag the mountain — the
+ * fill climbs with your score — or type it: the number is huge, and a
+ * 10 lights the whole peak. One confirm puts it on the record.
  */
 export default function RateSheet({ title, current, prefill, onRate, onRemove, onClose }: RateSheetProps) {
   const [text, setText] = useState(() =>
@@ -27,8 +27,27 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
   )
   const [burst, setBurst] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const zoneRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+  const lastWhole = useRef<number | null>(null)
   const parsed = parseScoreInput(text)
   const isTen = parsed === 10
+  const fillPct = parsed != null ? parsed * 10 : 0
+
+  /** Touch-and-drag on the mountain: top of the zone is 10, bottom is 0. */
+  const scoreFromY = (clientY: number) => {
+    const el = zoneRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const frac = Math.min(1, Math.max(0, 1 - (clientY - r.top) / r.height))
+    const v = Math.round(frac * 100) / 10
+    const whole = Math.floor(v)
+    if (lastWhole.current !== whole) {
+      lastWhole.current = whole
+      tapHaptic()
+    }
+    setText(formatScore(v))
+  }
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -66,12 +85,55 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
         <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-mute">Your call on</p>
         <p className="mt-1 truncate text-center text-base font-bold">{title}</p>
 
-        <div className="mt-5 flex justify-center">
-          <span
-            className={`transition-all duration-300 ${isTen ? 'text-sig' : 'text-mute/35'}`}
-            style={isTen ? { filter: 'drop-shadow(0 0 18px rgba(69,200,255,0.55))' } : undefined}
-          >
-            <PeakMark className="h-10 w-auto" />
+        <div
+          ref={zoneRef}
+          role="slider"
+          aria-label="Drag to set your score"
+          aria-valuemin={0}
+          aria-valuemax={10}
+          aria-valuenow={parsed ?? undefined}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+              e.preventDefault()
+              setText(formatScore(Math.min(10, Math.round(((parsed ?? 0) + 0.1) * 10) / 10)))
+            }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+              e.preventDefault()
+              setText(formatScore(Math.max(0, Math.round(((parsed ?? 0) - 0.1) * 10) / 10)))
+            }
+          }}
+          onPointerDown={(e) => {
+            dragging.current = true
+            e.currentTarget.setPointerCapture(e.pointerId)
+            scoreFromY(e.clientY)
+          }}
+          onPointerMove={(e) => {
+            if (dragging.current) scoreFromY(e.clientY)
+          }}
+          onPointerUp={() => {
+            dragging.current = false
+          }}
+          onPointerCancel={() => {
+            dragging.current = false
+          }}
+          className="mt-3 flex h-40 cursor-grab touch-none select-none items-center justify-center outline-none active:cursor-grabbing"
+        >
+          <span className="relative inline-block">
+            <span className="text-mute/25">
+              <PeakMark className="h-20 w-auto" />
+            </span>
+            <span
+              className="absolute inset-0"
+              style={{ clipPath: `inset(${100 - fillPct}% 0px 0px 0px)` }}
+            >
+              <span
+                className="block text-sig"
+                style={isTen ? { filter: 'drop-shadow(0 0 18px rgba(69,200,255,0.55))' } : undefined}
+              >
+                <PeakMark className="h-20 w-auto" />
+              </span>
+            </span>
           </span>
         </div>
 
@@ -101,7 +163,7 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
               ? `On the record as ${formatScore(parsed)}`
               : text.trim()
                 ? 'Scores run 0 to 10 — decimals welcome'
-                : 'Type your score — 8.3, 9, 10…'}
+                : 'Drag the mountain — or type your score'}
         </p>
 
         <button
@@ -130,8 +192,8 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
 
 /**
  * The inline typed-score field used where a score is part of a bigger form
- * (the author's call in the composer, a comment's rating). Same parsing as
- * the sheet: type "83" and it means 8.3; a 10 lights the mountain.
+ * (the author's call in the composer). Same parsing as the sheet: type
+ * "83" and it means 8.3; a 10 lights the mountain.
  */
 export function ScoreField({
   value,
