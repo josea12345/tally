@@ -1,6 +1,7 @@
 /** Light/dark theme. Styling keys off the `data-theme` attribute on <html>;
  * every color token in index.css has a light override, so components flip
- * automatically. Choice persists; "system" follows the OS. */
+ * automatically. Choice persists; "system" follows the OS. The default
+ * (no saved choice) is light. */
 
 export type ThemeChoice = 'system' | 'light' | 'dark'
 export type ResolvedTheme = 'light' | 'dark'
@@ -11,13 +12,13 @@ export function systemTheme(): ResolvedTheme {
   try {
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   } catch {
-    return 'dark'
+    return 'light'
   }
 }
 
 export function getChoice(): ThemeChoice {
   const saved = localStorage.getItem(KEY)
-  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'light'
 }
 
 export function resolveTheme(c: ThemeChoice): ResolvedTheme {
@@ -37,7 +38,7 @@ export function setChoice(c: ThemeChoice) {
   applyTheme(resolveTheme(c))
 }
 
-/** Apply the saved (or system) theme. Call once on app start. */
+/** Apply the saved theme, or the light default. Call once on app start. */
 export function initTheme() {
   applyTheme(resolveTheme(getChoice()))
 }
