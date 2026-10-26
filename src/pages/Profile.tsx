@@ -591,20 +591,18 @@ export default function Profile({ id }: { id?: string }) {
                   </span>
                 </div>
               </div>
-              <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute">
-                Taste Score
-              </div>
+              <button
+                onClick={() => setShowFormula((s) => !s)}
+                aria-expanded={showFormula}
+                className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute transition hover:text-sig"
+              >
+                Taste Score {showFormula ? '▴' : '▾'}
+              </button>
               {r && !r.enough && (
                 <p className="mt-1 text-center text-[11px] leading-snug text-mute">
                   Appears after {RATINGS_MINIMUM} ratings
                 </p>
               )}
-              <button
-                onClick={() => setShowFormula((s) => !s)}
-                className="mt-1 text-[11px] font-bold text-mute transition hover:text-sig"
-              >
-                How it's calculated {showFormula ? '▴' : '▾'}
-              </button>
             </div>
 
             {/* trust */}
@@ -632,9 +630,13 @@ export default function Profile({ id }: { id?: string }) {
                   </span>
                 </div>
               </div>
-              <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute">
-                Trust
-              </div>
+              <button
+                onClick={() => setShowTrustInfo((s) => !s)}
+                aria-expanded={showTrustInfo}
+                className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-mute transition hover:text-sig"
+              >
+                Trust {showTrustInfo ? '▴' : '▾'}
+              </button>
               {trust && trust.score == null && (
                 <p className="mt-1 text-center text-[11px] leading-snug text-mute">
                   Appears with {TRUST_MIN_DROPS} rated drops
@@ -645,12 +647,6 @@ export default function Profile({ id }: { id?: string }) {
                   Within <span className="font-bold text-fog">{trust.meanDiff.toFixed(1)}</span> of the community
                 </p>
               )}
-              <button
-                onClick={() => setShowTrustInfo((s) => !s)}
-                className="mt-1 text-[11px] font-bold text-mute transition hover:text-sig"
-              >
-                How it's calculated {showTrustInfo ? '▴' : '▾'}
-              </button>
             </div>
           </div>
 
