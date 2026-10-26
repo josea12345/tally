@@ -213,14 +213,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={`block truncate text-center text-[15px] font-bold tracking-tight transition hover:text-sig ${
+          className={`block truncate text-center font-display text-[21px] font-bold leading-snug tracking-tight transition hover:text-sig ${
             seen ? 'text-mute' : 'text-fog'
           }`}
         >
           {drop.title} <span className="text-xs text-sig" aria-hidden>↗</span>
         </a>
       ) : (
-        <div className={`truncate text-center text-[15px] font-bold tracking-tight ${seen ? 'text-mute' : ''}`}>
+        <div
+          className={`truncate text-center font-display text-[21px] font-bold leading-snug tracking-tight ${seen ? 'text-mute' : ''}`}
+        >
           {drop.title}
         </div>
       )}
