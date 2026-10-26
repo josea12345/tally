@@ -206,14 +206,14 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
   // Seen drops (opened before, not mine) render their title dimmed.
   const seen = !!user && user.id !== drop.author_id && isSeen(drop.id)
   const titleLine = (
-    <>
+    <div className="relative">
       {titleUrl ? (
         <a
           href={titleUrl}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={`block truncate text-center font-display text-[21px] font-bold leading-snug tracking-tight transition hover:text-sig ${
+          className={`block truncate px-9 text-center font-display text-[21px] font-bold leading-snug tracking-tight transition hover:text-sig ${
             seen ? 'text-mute' : 'text-fog'
           }`}
         >
@@ -221,7 +221,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         </a>
       ) : (
         <div
-          className={`truncate text-center font-display text-[21px] font-bold leading-snug tracking-tight ${seen ? 'text-mute' : ''}`}
+          className={`truncate px-9 text-center font-display text-[21px] font-bold leading-snug tracking-tight ${seen ? 'text-mute' : ''}`}
         >
           {drop.title}
         </div>
@@ -231,16 +231,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
           e.stopPropagation()
           navigate(`/topic/${encodeURIComponent(drop.topic_key ?? topicKeyFor(drop))}`)
         }}
-        className="press mx-auto mt-1.5 flex items-center gap-1.5 rounded-full border border-sig/40 bg-sig/10 px-3 py-1 text-[11px] font-black text-sig"
+        aria-label={topicCount != null ? `${topicCount} put-ons about this` : 'All posts about this'}
+        title={topicCount != null ? `${topicCount} put-ons about this` : 'All posts about this'}
+        className="press absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full border border-sig/40 bg-sig/10 p-1.5 text-sig"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-3 w-3" aria-hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-3.5 w-3.5" aria-hidden>
           <rect x="9" y="9" width="11" height="11" rx="2.5" />
           <path d="M5 15V6a2 2 0 0 1 2-2h9" strokeLinecap="round" />
         </svg>
-        {topicCount != null ? `${topicCount} put-on${topicCount === 1 ? '' : 's'}` : 'All posts about this'}
-        <span aria-hidden>→</span>
       </button>
-    </>
+    </div>
   )
 
   // Horizontal action bar overlaid on the media's bottom edge.
