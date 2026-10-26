@@ -7,13 +7,18 @@ import Mascot from '../components/Mascot'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
-/** Short, polished onboarding: username, display name, bio, avatar, city. */
+/** Short, polished onboarding: username, display name, bio, city — and a
+ *  profile picture, which is REQUIRED and picked as a real photo upload
+ *  (the old paste-an-avatar-URL field was a developer artifact). */
 export default function Onboarding() {
   const { user, profile, refreshProfile } = useAuth()
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarFileRef = useRef<HTMLInputElement | null>(null)
   const [city, setCity] = useState('Miami')
   const [avail, setAvail] = useState<'idle' | 'checking' | 'ok' | 'taken' | 'invalid'>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -23,6 +28,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (profile?.display_name) setDisplayName(profile.display_name)
     if (profile?.city) setCity(profile.city)
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
   }, [profile])
 
   useEffect(() => {
@@ -46,6 +52,38 @@ export default function Onboarding() {
     }
   }, [username])
 
+  // Same rules as the profile editor's avatar upload: images only,
+  // <= 5 MB, stored at <uid>/avatar.jpg in the avatars bucket.
+  const pickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f || !user) return
+    setAvatarError(null)
+    if (!f.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file.')
+      return
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setAvatarError('That image is over 5 MB — pick something smaller.')
+      return
+    }
+    setAvatarBusy(true)
+    try {
+      const path = `${user.id}/avatar.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(path, f, {
+        upsert: true,
+        contentType: f.type || 'image/jpeg',
+      })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      setAvatarUrl(`${data.publicUrl}?t=${Date.now()}`)
+    } catch {
+      setAvatarError("Couldn't upload — try again in a bit.")
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
   const submit = async () => {
     setError(null)
     const v = username.trim().toLowerCase()
@@ -59,6 +97,10 @@ export default function Onboarding() {
     }
     if (!displayName.trim()) {
       setError('Give yourself a display name.')
+      return
+    }
+    if (!avatarUrl) {
+      setError('Pick a profile picture — people follow faces, not question marks.')
       return
     }
     if (!user) return
@@ -122,15 +164,33 @@ export default function Onboarding() {
       </div>
 
       <div className="mb-6 flex items-center gap-4">
-        <Avatar url={avatarUrl.trim() || null} name={displayName || username || '?'} size={72} />
+        <button
+          type="button"
+          onClick={() => avatarFileRef.current?.click()}
+          aria-label={avatarUrl ? 'Change profile picture' : 'Choose a profile picture'}
+          className="press relative shrink-0 rounded-full"
+        >
+          <Avatar url={avatarUrl || null} name={displayName || username || '?'} size={72} />
+          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-ink bg-sig text-sm font-black text-[var(--color-sig-ink)]">
+            {avatarUrl ? '✓' : '+'}
+          </span>
+        </button>
+        <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={pickAvatar} />
         <div className="flex-1">
-          <label className="mb-1 block text-xs font-bold text-mute">Avatar URL (optional)</label>
-          <input
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            placeholder="https://…"
-            className="w-full rounded-xl border-2 border-line bg-ink-2 px-3 py-2 text-sm outline-none placeholder:text-mute/60 focus:border-sig"
-          />
+          <label className="mb-1 block text-xs font-bold text-mute">Profile picture *</label>
+          <button
+            type="button"
+            onClick={() => avatarFileRef.current?.click()}
+            disabled={avatarBusy}
+            className="w-full rounded-xl border-2 border-line bg-ink-2 px-3 py-2 text-left text-sm font-bold text-fog outline-none transition hover:border-sig disabled:opacity-60"
+          >
+            {avatarBusy ? 'Uploading…' : avatarUrl ? 'Photo added — tap to change' : 'Choose a photo'}
+          </button>
+          {avatarError ? (
+            <p className="mt-1 text-xs font-bold text-miss">{avatarError}</p>
+          ) : (
+            <p className="mt-1 text-xs text-mute">Required — so people know it's you.</p>
+          )}
         </div>
       </div>
 
@@ -187,7 +247,7 @@ export default function Onboarding() {
         {error && <p className="text-sm font-bold text-miss">{error}</p>}
         <button
           onClick={submit}
-          disabled={busy || avail === 'taken' || avail === 'checking'}
+          disabled={busy || avatarBusy || avail === 'taken' || avail === 'checking'}
           className="btn-pop press w-full py-3.5"
         >
           {busy ? 'Cooking something up…' : 'Start dropping'}
