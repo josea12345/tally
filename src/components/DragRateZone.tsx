@@ -173,7 +173,8 @@ export default function DragRateZone({
   return (
     <div
       ref={zoneRef}
-      className="relative touch-pan-y"
+      className="relative touch-pan-y select-none [-webkit-touch-callout:none]"
+      onContextMenu={(e) => e.preventDefault()}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={() => endGesture(true)}

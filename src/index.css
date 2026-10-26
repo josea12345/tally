@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* App-shell images: no iOS long-press callout (Share / Save to Photos /
+   Copy Subject menu) and no drag ghost — press-and-hold belongs to the
+   app (drag-to-rate), not the browser. */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 @theme {
   /* Peak internet-core palette — hot light blue signature on deep ink. */
   --color-ink: #191725;
