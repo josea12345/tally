@@ -468,7 +468,7 @@ export default function Profile({ id }: { id?: string }) {
             )}
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="mt-3 flex items-center gap-2">
           {isOwn ? (
             <>
               <button
@@ -480,23 +480,23 @@ export default function Profile({ id }: { id?: string }) {
               </button>
               <button
                 onClick={shareProfile}
-                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+                className="flex-1 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
               >
                 {profileCopied ? 'Copied!' : 'Share'}
               </button>
               <button
                 onClick={() => setEditing((e) => !e)}
-                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+                className="flex-1 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
               >
                 {editing ? 'Cancel' : 'Edit'}
               </button>
             </>
           ) : (
             <>
-              <FollowButton followeeId={profile.id} onChange={refreshFollow} />
+              <FollowButton followeeId={profile.id} onChange={refreshFollow} className="flex-1" />
               <button
                 onClick={shareProfile}
-                className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
+                className="flex-1 rounded-full border border-line px-4 py-1.5 text-sm font-bold text-fog"
               >
                 {profileCopied ? 'Copied!' : 'Share'}
               </button>
@@ -570,7 +570,7 @@ export default function Profile({ id }: { id?: string }) {
             <div className="flex w-36 flex-col items-center">
               <div className="relative h-28 w-28">
                 <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-                  <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+                  <circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-ink-3)" strokeWidth="7" />
                   {r && r.enough && (
                     <circle
                       cx="50"
@@ -586,7 +586,7 @@ export default function Profile({ id }: { id?: string }) {
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-4xl font-black tabular-nums text-sig">
+                  <span className={`text-4xl font-black tabular-nums ${r && r.enough ? 'text-sig' : 'text-mute'}`}>
                     {r && r.enough ? <CountUp value={r.score} /> : '—'}
                   </span>
                 </div>
@@ -611,7 +611,7 @@ export default function Profile({ id }: { id?: string }) {
             <div className="flex w-36 flex-col items-center">
               <div className="relative h-28 w-28">
                 <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-                  <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+                  <circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-ink-3)" strokeWidth="7" />
                   {trust && trust.score != null && (
                     <circle
                       cx="50"
@@ -627,7 +627,7 @@ export default function Profile({ id }: { id?: string }) {
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-4xl font-black tabular-nums text-win">
+                  <span className={`text-4xl font-black tabular-nums ${trust && trust.score != null ? 'text-win' : 'text-mute'}`}>
                     {trust && trust.score != null ? <CountUp value={trust.score} /> : '—'}
                   </span>
                 </div>
