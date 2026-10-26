@@ -19,9 +19,10 @@ import CategoryTabs from '../components/CategoryTabs'
 import LocationStrip from '../components/LocationStrip'
 import OnboardingChecklist from '../components/OnboardingChecklist'
 import FollowingSuggestions from '../components/FollowingSuggestions'
+import ListsFeed from '../components/ListsFeed'
 import EmptyState from '../components/EmptyState'
 
-type Tab = 'putons' | 'following' | 'near'
+type Tab = 'putons' | 'following' | 'near' | 'lists'
 
 const NEAR_MILES = 25
 
@@ -460,6 +461,7 @@ export default function Discover() {
     { id: 'putons', label: 'Put Ons' },
     { id: 'following', label: 'Following' },
     { id: 'near', label: 'Near me' },
+    { id: 'lists', label: 'Lists' },
   ]
 
   // Pull-to-refresh: observe the drag at the very top; past the threshold,
@@ -555,7 +557,7 @@ export default function Discover() {
             </svg>
           </button>
         </div>
-        {searchOpen && (
+        {searchOpen && tab !== 'lists' && (
           <div className="mb-1.5">
             <input
               ref={searchRef}
@@ -566,8 +568,8 @@ export default function Discover() {
             />
           </div>
         )}
-        <CategoryTabs group={group} sub={sub} onGroup={pickGroup} onSub={setSub} />
-        {locState.status !== 'on' && (
+        {tab !== 'lists' && <CategoryTabs group={group} sub={sub} onGroup={pickGroup} onSub={setSub} />}
+        {tab !== 'lists' && locState.status !== 'on' && (
           <div className="mt-3">
             <LocationStrip
               state={locState}
@@ -642,7 +644,9 @@ export default function Discover() {
         </button>
       )}
 
-      {loading ? (
+      {tab === 'lists' ? (
+        <ListsFeed refreshNonce={refreshNonce} />
+      ) : loading ? (
         <div className="space-y-0">
           {[0, 1, 2].map((i) => (
             <div key={i} className="animate-pulse border-b border-line px-4 py-4">

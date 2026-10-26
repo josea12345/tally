@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Collection } from '../lib/types'
+import { likeStateFor } from '../lib/lists'
+import { PeakMark } from './PeakWordmark'
 import { navigate } from '../App'
 
 /**
  * Public lists on a profile (plus my own private ones when it's me —
  * RLS decides what comes back). Renders nothing when there are none.
  */
-export default function ProfileLists({ ownerId }: { ownerId: string }) {
-  const [lists, setLists] = useState<Array<Collection & { count: number }>>([])
+export default function ProfileLists({ ownerId, bare = false }: { ownerId: string; bare?: boolean }) {
+  const [lists, setLists] = useState<Array<Collection & { count: number; likes: number }>>([])
 
   useEffect(() => {
     let live = true
@@ -33,7 +35,8 @@ export default function ProfileLists({ ownerId }: { ownerId: string }) {
       for (const i of (items ?? []) as Array<{ collection_id: string }>) {
         counts.set(i.collection_id, (counts.get(i.collection_id) ?? 0) + 1)
       }
-      if (live) setLists(mine.map((c) => ({ ...c, count: counts.get(c.id) ?? 0 })))
+      const likes = await likeStateFor(mine.map((c) => c.id), null)
+      if (live) setLists(mine.map((c) => ({ ...c, count: counts.get(c.id) ?? 0, likes: likes.get(c.id)?.count ?? 0 })))
     })()
     return () => {
       live = false
@@ -43,10 +46,12 @@ export default function ProfileLists({ ownerId }: { ownerId: string }) {
   if (lists.length === 0) return null
 
   return (
-    <div className="mx-auto mt-4 w-full max-w-[430px]">
-      <div className="mb-1.5 text-center text-[9px] font-black uppercase tracking-[0.22em] text-mute">
-        Lists
-      </div>
+    <div className={bare ? 'px-4 pt-3' : 'mx-auto mt-4 w-full max-w-[430px]'}>
+      {!bare && (
+        <div className="mb-1.5 text-center text-[9px] font-black uppercase tracking-[0.22em] text-mute">
+          Lists
+        </div>
+      )}
       <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-ink-2">
         {lists.map((c) => (
           <li key={c.id}>
@@ -56,8 +61,13 @@ export default function ProfileLists({ ownerId }: { ownerId: string }) {
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold">{c.name}</span>
-                <span className="block text-[11px] text-mute">
+                <span className="flex items-center gap-1 text-[11px] text-mute">
                   {c.count} drop{c.count === 1 ? '' : 's'} · {c.is_public ? 'Public' : 'Private'}
+                  {c.likes > 0 && (
+                    <span className="flex items-center gap-0.5 font-bold text-sig">
+                      · <PeakMark className="h-3 w-3" /> {c.likes}
+                    </span>
+                  )}
                 </span>
               </span>
               <span className="shrink-0 text-mute">→</span>

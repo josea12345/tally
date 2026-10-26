@@ -156,7 +156,7 @@ export default function Profile({ id }: { id?: string }) {
   const [saving, setSaving] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
-  const [tab, setTab] = useState<'drops' | 'tallies'>('drops')
+  const [tab, setTab] = useState<'drops' | 'tallies' | 'lists'>('drops')
   const [showFormula, setShowFormula] = useState(false)
   const [trust, setTrust] = useState<TrustBreakdown | null>(null)
   const [streak, setStreak] = useState(0)
@@ -743,8 +743,6 @@ export default function Profile({ id }: { id?: string }) {
           </div>
         )}
 
-        <ProfileLists ownerId={profile.id} />
-
         {/* demoted stats */}
         <div className="mt-5 flex items-center justify-center gap-2 text-sm text-mute">
           <span>
@@ -775,31 +773,25 @@ export default function Profile({ id }: { id?: string }) {
         </div>
       ) : (
         <>
-          {isOwn ? (
-            <div className="flex items-center justify-center gap-6 px-4 pb-1 pt-3">
-              {(['drops', 'tallies'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`relative px-1 py-1 text-[16px] capitalize transition ${
-                    tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
-                  }`}
-                >
-                  {t === 'drops' ? 'Drops' : 'Try'}
-                  {tab === t && (
-                    <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
-                  )}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="px-4 pt-2">
-              <h2 className="py-3 text-lg font-black">
-                {`@${profile.username}'s drops`} · {drops.length}
-              </h2>
-            </div>
-          )}
-          {tab === 'tallies' && isOwn ? (
+          <div className="flex items-center justify-center gap-6 px-4 pb-1 pt-3">
+            {(isOwn ? (['drops', 'lists', 'tallies'] as const) : (['drops', 'lists'] as const)).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`relative px-1 py-1 text-[16px] capitalize transition ${
+                  tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
+                }`}
+              >
+                {t === 'drops' ? 'Drops' : t === 'lists' ? 'Lists' : 'Try'}
+                {tab === t && (
+                  <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
+                )}
+              </button>
+            ))}
+          </div>
+          {tab === 'lists' ? (
+            <ProfileLists ownerId={profile.id} bare />
+          ) : tab === 'tallies' && isOwn ? (
             <Saved bare />
           ) : (
             <DropsList drops={drops} profile={profile} isOwn={isOwn} />
