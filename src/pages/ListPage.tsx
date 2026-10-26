@@ -374,7 +374,7 @@ export default function ListPage({ id }: { id: string }) {
         {drops.length === 0 ? (
           <p className="text-sm text-mute">
             {isOwner
-              ? 'Nothing in this list yet — tap "+ Add drops" to pick from your Try list and your own posts, or add from any post's ··· menu.'
+              ? 'Nothing in this list yet — tap "+ Add drops" to pick from your Try list and your own posts, or add from the menu on any post.'
               : 'Nothing in this list yet.'}
           </p>
         ) : (
