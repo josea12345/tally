@@ -9,6 +9,7 @@ import { getChoice, setChoice, type ThemeChoice } from '../lib/theme'
 import { deleteAccount } from '../lib/account'
 import { deleteDropFiles, fetchVerdictProofUrls } from '../lib/media'
 import { timeAgo } from '../lib/format'
+import { requestWalkthroughReplay } from '../lib/walkthrough'
 
 interface FollowRequest {
   follower_id: string
@@ -756,6 +757,20 @@ export default function Settings() {
           )}
         </section>
       )}
+
+      {/* walkthrough */}
+      <section className="px-4 pt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-mute">Walkthrough</h2>
+        <button
+          onClick={requestWalkthroughReplay}
+          className="w-full rounded-2xl border border-line bg-ink-2 py-3.5 text-base font-black text-fog transition hover:border-sig"
+        >
+          Replay the walkthrough
+        </button>
+        <p className="mt-2 text-xs leading-relaxed text-mute">
+          The quick tour from when you joined — put-ons, rating, Try, Lists and requests, all in under a minute.
+        </p>
+      </section>
 
       {/* account */}
       <section className="px-4 pt-8">

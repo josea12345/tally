@@ -5,6 +5,8 @@ import { useAuth } from './context/AuthContext'
 import { applyTheme, getChoice, initTheme, systemTheme } from './lib/theme'
 import Landing from './pages/Landing'
 import Onboarding from './pages/Onboarding'
+import Walkthrough from './components/Walkthrough'
+import { WALKTHROUGH_EVENT, hasSeenWalkthrough, markWalkthroughSeen } from './lib/walkthrough'
 import Discover from './pages/Discover'
 import DropDetail from './pages/DropDetail'
 import Composer from './pages/Composer'
@@ -249,6 +251,26 @@ export default function App() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
+  // First-run walkthrough: once per account per device, right after
+  // onboarding; replayable any time from Settings (window event).
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourCheckedFor, setTourCheckedFor] = useState<string | null>(null)
+  useEffect(() => {
+    if (!user || needsOnboarding || loading) return
+    if (tourCheckedFor === user.id) return
+    setTourCheckedFor(user.id)
+    if (!hasSeenWalkthrough(user.id)) setTourOpen(true)
+  }, [user, needsOnboarding, loading, tourCheckedFor])
+  useEffect(() => {
+    const open = () => setTourOpen(true)
+    window.addEventListener(WALKTHROUGH_EVENT, open)
+    return () => window.removeEventListener(WALKTHROUGH_EVENT, open)
+  }, [])
+  const closeTour = () => {
+    if (user) markWalkthroughSeen(user.id)
+    setTourOpen(false)
+  }
+
   useEffect(() => {
     if (loading) return
     // Route guards
@@ -342,6 +364,7 @@ export default function App() {
         )}
       </div>
       {showChrome && <MobileNav route={route} />}
+      {tourOpen && user && <Walkthrough onDone={closeTour} />}
     </div>
   )
 }
