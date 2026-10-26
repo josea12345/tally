@@ -20,6 +20,7 @@ import LocationStrip from '../components/LocationStrip'
 import OnboardingChecklist from '../components/OnboardingChecklist'
 import FollowingSuggestions from '../components/FollowingSuggestions'
 import ListsFeed from '../components/ListsFeed'
+import ContestedRail from '../components/ContestedRail'
 import EmptyState from '../components/EmptyState'
 
 type Tab = 'putons' | 'following' | 'near' | 'lists'
@@ -643,6 +644,8 @@ export default function Discover() {
           </span>
         </button>
       )}
+
+      {tab === 'putons' && !debounced && <ContestedRail />}
 
       {tab === 'lists' ? (
         <ListsFeed refreshNonce={refreshNonce} />
