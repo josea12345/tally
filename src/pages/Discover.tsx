@@ -709,6 +709,7 @@ export default function Discover() {
             onToggleSave={() => toggleSave(d.id)}
             myRating={myRatings.get(d.id) ?? null}
             onRate={(prefill) => setRateTarget({ drop: d, prefill: prefill ?? null })}
+            onRateNow={(score) => void rate(d.id, score, setStats)}
             revealDelay={(i % 6) * 70}
             onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
             topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}

@@ -8,6 +8,7 @@ import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
+import DragRateZone from './DragRateZone'
 import ArtworkImage, { isArtworkUrl } from './ArtworkImage'
 import MediaViewer from './MediaViewer'
 import SoundPill from './SoundPill'
@@ -30,6 +31,8 @@ interface Props {
   saved: boolean
   onToggleSave: () => void
   myRating: number | null
+  /** Commit a rating immediately (in-photo drag). Optional: without it the photo drag is off. */
+  onRateNow?: (score: number) => void
   /** Opens the rating sheet for this drop; prefill 10 comes from a double-tap. */
   onRate: (prefill?: number) => void
   revealDelay?: number
@@ -40,7 +43,7 @@ interface Props {
   viaTopic?: boolean
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myRating, onRate, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myRating, onRate, onRateNow, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -390,6 +393,11 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
                 />
               </div>
             )}
+            <DragRateZone
+              current={myRating}
+              onRate={(score) => onRateNow?.(score)}
+              disabled={isAuthor || !onRateNow}
+            >
             <MediaCarousel
               flush
               overlay={bottomBar}
@@ -441,6 +449,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
                 )
               }
             />
+            </DragRateZone>
           </div>
         )}
 

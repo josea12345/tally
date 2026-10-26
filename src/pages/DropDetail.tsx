@@ -13,6 +13,7 @@ import { getSoundSnapshot, isCurrentSound, pauseSound, playSound } from '../lib/
 import { cutEndAt } from '../lib/video'
 import { overlayTextStyle, textVisibleAt } from '../lib/filters'
 import MediaCarousel from '../components/MediaCarousel'
+import DragRateZone from '../components/DragRateZone'
 import ArtworkImage, { isArtworkUrl } from '../components/ArtworkImage'
 import DropMenu from '../components/DropMenu'
 import { dropMedia } from '../lib/types'
@@ -375,6 +376,11 @@ export default function DropDetail({ id }: { id: string }) {
               />
             </div>
           )}
+          <DragRateZone
+            current={myRating}
+            onRate={(score) => void applyRate(score)}
+            disabled={!user || user.id === drop.author_id}
+          >
           <MediaCarousel
             items={dropMedia(drop)}
             renderItem={(it) =>
@@ -473,6 +479,7 @@ export default function DropDetail({ id }: { id: string }) {
               )
             }
           />
+          </DragRateZone>
         </div>
       )}
 
