@@ -259,7 +259,8 @@ export default function DropDetail({ id }: { id: string }) {
     } catch {
       // storage unavailable — count the view anyway
     }
-    void supabase.from('drop_views').insert({ drop_id: drop.id, viewer_id: user?.id ?? null })
+    // Views are logged-in only (0052) — logged-out opens simply don't count.
+    if (user) void supabase.from('drop_views').insert({ drop_id: drop.id, viewer_id: user.id })
     markSeen(drop.id)
   }, [drop?.id, user?.id])
 
