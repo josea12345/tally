@@ -17,6 +17,15 @@ export function systemTheme(): ResolvedTheme {
 }
 
 export function getChoice(): ThemeChoice {
+  // One-time reset (Oct 2026): 'system' used to be the default, so most
+  // saved 'system' values were never a deliberate pick. Light is now the
+  // default for everyone, so clear an inherited 'system' once and land
+  // those users on light. Explicit dark picks are untouched, and anyone
+  // can re-pick System afterwards — the v2 flag stops a second reset.
+  if (!localStorage.getItem('tally-theme-v2')) {
+    if (localStorage.getItem(KEY) === 'system') localStorage.removeItem(KEY)
+    localStorage.setItem('tally-theme-v2', '1')
+  }
   const saved = localStorage.getItem(KEY)
   return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'light'
 }

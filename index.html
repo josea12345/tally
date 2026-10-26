@@ -19,6 +19,10 @@
     <script>
       // Set the theme before first paint to avoid a flash.
       try {
+        if (!localStorage.getItem('tally-theme-v2')) {
+          if (localStorage.getItem('tally-theme') === 'system') localStorage.removeItem('tally-theme');
+          localStorage.setItem('tally-theme-v2', '1');
+        }
         var t = localStorage.getItem('tally-theme');
         if (t === 'system') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         if (t !== 'light' && t !== 'dark') t = 'light';
