@@ -105,25 +105,31 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     <div>
       {!bare && (
         <div className="border-b border-line px-4 pb-3 pt-5">
-          <div className="flex items-baseline gap-5">
+          {/* Section tabs styled on the feed tab bar, scaled up
+              (Jose's reference, 2026-10-26): Try pinned left, Lists
+              pinned right; active is black + the blue underline. */}
+          <div className="flex items-center justify-between">
             {(
               [
                 { id: 'tries', label: 'Try' },
                 { id: 'lists', label: 'Lists' },
               ] as Array<{ id: 'tries' | 'lists'; label: string }>
-            ).map((s) => (
+            ).map((t) => (
               <button
-                key={s.id}
-                onClick={() => setSection(s.id)}
-                className={`wordmark press text-ink transition-all ${
-                  section === s.id ? 'text-3xl' : 'text-xl'
+                key={t.id}
+                onClick={() => setSection(t.id)}
+                className={`relative whitespace-nowrap px-1 py-1 text-[22px] transition ${
+                  section === t.id ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                 }`}
               >
-                {s.label}
+                {t.label}
+                {section === t.id && (
+                  <span className="absolute -bottom-[5px] left-1/2 h-[3px] w-9 -translate-x-1/2 rounded-full bg-sig" />
+                )}
               </button>
             ))}
           </div>
-          <p className="text-sm text-mute">
+          <p className="pt-2 text-sm text-mute">
             {section === 'tries'
               ? 'Everything people put you on to.'
               : 'The stacks you put together.'}
