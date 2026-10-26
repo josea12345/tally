@@ -203,7 +203,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             {
               Icon: ChainIcon,
               title: 'Put-on chains',
-              body: 'See who's trying what, from whom. Taste travels — now you can watch it.',
+              body: "See who's trying what, from whom. Taste travels — now you can watch it.",
               accent: 'text-sky',
             },
             {
