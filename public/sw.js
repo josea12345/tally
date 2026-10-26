@@ -1,6 +1,6 @@
 /* Peak service worker — minimal. Exists so the PWA install prompt can fire
    and to keep navigation working offline-ish. No precache manifest needed. */
-const CACHE = 'tally-v2'
+const CACHE = 'tally-v3'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

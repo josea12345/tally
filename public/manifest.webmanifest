@@ -1,5 +1,5 @@
 {
- "background_color": "#0a0a0b",
+ "background_color": "#fffcf7",
  "description": "Good taste deserves a track record. Find places worth knowing. Put your friends onto something great.",
  "display": "standalone",
  "icons": [
@@ -25,7 +25,7 @@
  "name": "Peak \u2014 Good taste deserves a track record.",
  "short_name": "Peak",
  "start_url": "/",
- "theme_color": "#0a0a0b",
+ "theme_color": "#fffcf7",
  "share_target": {
   "action": "/share",
   "method": "GET",
