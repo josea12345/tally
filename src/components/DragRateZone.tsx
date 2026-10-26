@@ -1,26 +1,33 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PeakMark } from './PeakWordmark'
 import { PeakBurst } from './VoteFx'
 import { formatScore } from '../lib/ratings'
 import { tapHaptic } from '../lib/haptics'
 
 /**
- * Drag-to-rate ON the media itself: wrap a drop's photo/video block and a
- * horizontal drag becomes a rating. The mountain looms in the background
- * of the photo and fills LEFT TO RIGHT with the score; the number rides
- * under it. Release commits the rating — no sheet, no confirm.
+ * Rate ON the media itself: PRESS AND HOLD the photo, then drag bottom to
+ * top. The mountain looms in the background of the photo and fills from
+ * the bottom up as the score climbs; the number rides under it. Release
+ * commits the rating — no sheet, no confirm.
  *
  * Gesture discipline (this sits on top of a lot of existing behavior):
- * - The zone is touch-pan-y: vertical gestures stay native page scroll.
- * - A drag only engages after 14px of horizontal-dominant movement, and
- *   only when it started on the upper body of the media — the bottom
- *   strip (action bar, soundtrack pill, video seek controls) never arms
- *   a rating. Taps and double-taps pass through untouched.
- * - After a committed drag, the trailing click is swallowed so it can't
- *   open the viewer / toggle the video / navigate.
- * - On multi-photo posts the horizontal swipe belongs to this gesture
- *   now; the dots under the media still switch photos.
+ * - Arming takes a ~220ms hold. Any real movement (>10px) before that
+ *   cancels the arm, so page scrolling, carousel swipes, taps and
+ *   double-taps all behave exactly as before — the multi-photo swipe
+ *   keeps working because a swipe never holds still.
+ * - Drags that start on the bottom strip (action bar, soundtrack pill,
+ *   video controls) never arm.
+ * - Sensitivity: after arming, the score moves at 1.5× the finger's
+ *   travel, so a short drag up sweeps the range.
+ * - Once armed, a non-passive touchmove listener blocks page scroll for
+ *   the rest of the gesture (touch-action alone can't — it's decided
+ *   when the touch starts), and the click after a committed drag is
+ *   swallowed so it can't open the viewer / toggle the video.
  */
+const HOLD_MS = 220
+const SLOP_PX = 10
+const GAIN = 1.5
+
 export default function DragRateZone({
   current,
   onRate,
@@ -33,50 +40,111 @@ export default function DragRateZone({
   children: ReactNode
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
-  const gesture = useRef<{ startX: number; startY: number; engaged: boolean; value: number } | null>(null)
+  const gesture = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    lastY: number
+    armed: boolean
+    anchorY: number
+    anchorValue: number
+    value: number
+  } | null>(null)
+  const holdTimer = useRef<number | null>(null)
+  const armedRef = useRef(false)
   const lastWhole = useRef<number | null>(null)
   const suppressClickUntil = useRef(0)
   const [dragValue, setDragValue] = useState<number | null>(null)
   const [burst, setBurst] = useState(false)
 
+  // Block page scroll mid-gesture once armed (see the doc comment).
+  useEffect(() => {
+    const el = zoneRef.current
+    if (!el) return
+    const onTouchMove = (e: TouchEvent) => {
+      if (armedRef.current) e.preventDefault()
+    }
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove)
+      if (holdTimer.current) window.clearTimeout(holdTimer.current)
+    }
+  }, [])
+
   if (disabled) return <>{children}</>
 
-  const valueFromX = (clientX: number) => {
+  const valueFromY = (clientY: number) => {
     const el = zoneRef.current
     if (!el) return 0
     const r = el.getBoundingClientRect()
-    const frac = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
+    const frac = Math.min(1, Math.max(0, 1 - (clientY - r.top) / r.height))
     return Math.round(frac * 100) / 10
+  }
+
+  const cancelHold = () => {
+    if (holdTimer.current) {
+      window.clearTimeout(holdTimer.current)
+      holdTimer.current = null
+    }
+  }
+
+  const arm = () => {
+    const g = gesture.current
+    if (!g || g.armed) return
+    g.armed = true
+    armedRef.current = true
+    g.anchorY = g.lastY
+    g.anchorValue = valueFromY(g.lastY)
+    g.value = g.anchorValue
+    lastWhole.current = Math.floor(g.anchorValue)
+    tapHaptic()
+    setDragValue(g.anchorValue)
+    try {
+      zoneRef.current?.setPointerCapture(g.pointerId)
+    } catch {
+      /* capture is best-effort */
+    }
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== undefined && e.button !== 0) return
-    gesture.current = { startX: e.clientX, startY: e.clientY, engaged: false, value: valueFromX(e.clientX) }
-    lastWhole.current = null
+    // Bottom strip never arms: action bar, soundtrack pill, video controls.
+    const el = zoneRef.current
+    if (el) {
+      const r = el.getBoundingClientRect()
+      if (e.clientY - r.top > r.height * 0.85) return
+    }
+    gesture.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastY: e.clientY,
+      armed: false,
+      anchorY: e.clientY,
+      anchorValue: 0,
+      value: 0,
+    }
+    cancelHold()
+    holdTimer.current = window.setTimeout(arm, HOLD_MS)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
     const g = gesture.current
     if (!g) return
-    const dx = e.clientX - g.startX
-    const dy = e.clientY - g.startY
-    if (!g.engaged) {
-      if (Math.abs(dx) < 14 || Math.abs(dx) <= Math.abs(dy)) return
-      const el = zoneRef.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      if (g.startY - r.top > r.height * 0.78) {
+    g.lastY = e.clientY
+    if (!g.armed) {
+      // Moved before the hold landed → this is a scroll / swipe / seek.
+      if (Math.abs(e.clientX - g.startX) > SLOP_PX || Math.abs(e.clientY - g.startY) > SLOP_PX) {
+        cancelHold()
         gesture.current = null
-        return
       }
-      g.engaged = true
-      try {
-        el.setPointerCapture(e.pointerId)
-      } catch {
-        /* capture is best-effort */
-      }
+      return
     }
-    const v = valueFromX(e.clientX)
+    const el = zoneRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const traveled = ((g.anchorY - e.clientY) / r.height) * 10 * GAIN
+    const v = Math.round(Math.min(10, Math.max(0, g.anchorValue + traveled)) * 10) / 10
     g.value = v
     const whole = Math.floor(v)
     if (lastWhole.current !== whole) {
@@ -87,9 +155,12 @@ export default function DragRateZone({
   }
 
   const endGesture = (commit: boolean) => {
+    cancelHold()
     const g = gesture.current
     gesture.current = null
-    if (g?.engaged) {
+    const wasArmed = !!g?.armed
+    armedRef.current = false
+    if (wasArmed && g) {
       suppressClickUntil.current = Date.now() + 500
       if (commit && g.value !== current) {
         onRate(g.value)
@@ -122,7 +193,10 @@ export default function DragRateZone({
             <span className="block text-white/35 drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
               <PeakMark className="h-28 w-auto" />
             </span>
-            <span className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - dragValue * 10}% 0 0)` }}>
+            <span
+              className="absolute inset-0"
+              style={{ clipPath: `inset(${100 - dragValue * 10}% 0 0 0)` }}
+            >
               <span
                 className="block text-sig"
                 style={
