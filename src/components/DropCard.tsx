@@ -163,16 +163,16 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       </div>
     ) : null
 
-  // The author's call, stamped in the header for media drops — who
-  // posted it and what THEY rated it, visible without reading the photo.
+  // The author's call for media drops: mountain + number beside the
+  // avatar, no words — the poster's own rating, readable at a glance.
   const headerCall =
     drop.score != null ? (
       <div
-        className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
+        className="sticker-flat flex shrink-0 items-center gap-1.5 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
         title="Author's call"
       >
+        <PeakMark className="h-4 w-auto text-sig" />
         <span className="text-xl font-black leading-none text-sig">{formatScore(drop.score)}</span>
-        <span className="text-[11px] font-bold text-mute">/10 · their call</span>
       </div>
     ) : null
 
@@ -354,6 +354,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
               <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
             </button>
           </div>
+          {items.length > 0 && headerCall}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-sm">
               <span className="truncate font-bold">{author?.display_name || author?.username || 'Someone'}</span>
@@ -372,7 +373,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
             </div>
             {titleLine}
           </div>
-          {items.length === 0 ? headerScore : headerCall}
+          {items.length === 0 && headerScore}
           <span className="shrink-0">
             <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
           </span>
