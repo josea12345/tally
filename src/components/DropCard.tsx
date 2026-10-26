@@ -110,10 +110,9 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
     }
   }
 
-  // Score badge: glassy pill overlaid on the media's top-left (text-only drops keep it in the header).
-  // Once the crowd has rated, the average leads and the author's call drops to
-  // a second line — the gap between the two is the drama. Unrated drops show
-  // the author's call alone, as before.
+  // Score badge: glassy pill overlaid on the media's top-left, crowd
+  // average only. The author's call lives in the card header (its own
+  // pill, always visible) — one home per number.
   const extSegs = (dark: boolean) => (
     <>
       {drop.imdb_rating != null && (
@@ -153,16 +152,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
     stats.ratingCount > 0 ? (
       <div className="sticker-flat rounded-2xl bg-black/55 px-3 py-1.5 backdrop-blur-sm" title="Crowd average">
         {crowdLine(true)}
-        {calledLine(true)}
-      </div>
-    ) : drop.score != null ? (
-      <div
-        className="sticker-flat flex items-baseline gap-1 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm"
-        title="Author's call"
-      >
-        <span className="text-lg font-black leading-none text-sig">{formatScore(drop.score)}</span>
-        <span className="text-[10px] font-bold text-white/80">/10</span>
-        {extSegs(true)}
       </div>
     ) : drop.imdb_rating != null ? (
       <div
@@ -171,6 +160,19 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
       >
         <span className="text-lg font-black leading-none text-white">{drop.imdb_rating}</span>
         <span className="text-[10px] font-bold text-white/80">IMDb</span>
+      </div>
+    ) : null
+
+  // The author's call, stamped in the header for media drops — who
+  // posted it and what THEY rated it, visible without reading the photo.
+  const headerCall =
+    drop.score != null ? (
+      <div
+        className="sticker-flat flex shrink-0 items-baseline gap-1 rounded-full border-sig/50 bg-sig/10 px-3 py-1.5"
+        title="Author's call"
+      >
+        <span className="text-xl font-black leading-none text-sig">{formatScore(drop.score)}</span>
+        <span className="text-[11px] font-bold text-mute">/10 · their call</span>
       </div>
     ) : null
 
@@ -370,7 +372,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
             </div>
             {titleLine}
           </div>
-          {items.length === 0 && headerScore}
+          {items.length === 0 ? headerScore : headerCall}
           <span className="shrink-0">
             <DropMenu drop={drop} onBlocked={(id) => onAuthorBlocked?.(id)} />
           </span>
