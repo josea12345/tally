@@ -23,10 +23,12 @@ import { tapHaptic, successHaptic, peakHaptic } from '../lib/haptics'
  *   the rest of the gesture (touch-action alone can't — it's decided
  *   when the touch starts), and the click after a committed drag is
  *   swallowed so it can't open the viewer / toggle the video.
- * - The glow zone: at 8+ the mountain lights up — a pulsing halo, a lit
- *   fill, the number turns sig and pops per whole number. Tier crossings
- *   carry their own haptics (double-tap into the zone, the full peak
- *   pattern at 10), and committing an 8+ confirms with a buzz.
+ * - The climb: as the fill rises bottom to top, the mountain EXPANDS,
+ *   brightens and glows harder — a continuous ramp on the score, not a
+ *   switch. At 8+ a pulsing halo joins in and the number turns sig and
+ *   pops per whole number. Tier crossings carry their own haptics
+ *   (double-tap into the zone, the full peak pattern at 10), and
+ *   committing an 8+ confirms with a buzz.
  */
 const HOLD_MS = 220
 const SLOP_PX = 10
@@ -190,6 +192,7 @@ export default function DragRateZone({
   }
 
   const tier = dragValue == null ? 0 : dragValue >= 10 ? 2 : dragValue >= 8 ? 1 : 0
+  const frac = dragValue == null ? 0 : dragValue / 10
 
   return (
     <div
@@ -212,7 +215,10 @@ export default function DragRateZone({
         <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center">
           <div className="absolute inset-0 bg-black/30" />
           {tier === 2 && <div className="absolute inset-0 bg-sig/10" />}
-          <span className="relative inline-block">
+          <span
+            className="relative inline-block transition-transform duration-75 ease-linear"
+            style={{ transform: `scale(${(0.82 + frac * 0.38).toFixed(3)})` }}
+          >
             {tier >= 1 && (
               <span
                 className="absolute -inset-8 rounded-full bg-sig/50 blur-2xl"
@@ -228,13 +234,9 @@ export default function DragRateZone({
             >
               <span
                 className="block text-sig"
-                style={
-                  tier === 2
-                    ? { filter: 'drop-shadow(0 0 30px rgba(69,200,255,0.95))' }
-                    : tier === 1
-                      ? { filter: 'drop-shadow(0 0 16px rgba(69,200,255,0.75))' }
-                      : undefined
-                }
+                style={{
+                  filter: `brightness(${(0.55 + frac * 0.65).toFixed(2)}) drop-shadow(0 0 ${Math.round(frac * 30)}px rgba(69,200,255,${(frac * 0.95).toFixed(2)}))`,
+                }}
               >
                 <PeakMark className="h-28 w-auto" />
               </span>
