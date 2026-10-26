@@ -106,6 +106,10 @@ export default function Comments({
   // chips appear/disappear the moment someone rates or unrates there.
   // Otherwise fall back to the map fetched with the thread.
   const shownRatings = externalRatings ?? dropRatings
+  // Blind rating: score chips stay hidden until the viewer has rated
+  // this drop themselves (the author always sees them). Your own chip
+  // shows once you've rated — your rating is in the map by then.
+  const chipsRevealed = isAuthor || (!!user && shownRatings.has(user.id))
   // Top-level order: chronological by default; "Top" floats the most
   // liked takes. Replies always stay nested.
   const topLevel = comments.filter((c) => !c.parent_id || !comments.some((p) => p.id === c.parent_id))
@@ -299,7 +303,7 @@ export default function Comments({
           <span className="truncate text-xs font-black">
             {c.user?.display_name || (c.user ? `@${c.user.username}` : 'Someone')}
           </span>
-          {shownRatings.get(c.user_id) != null && (
+          {chipsRevealed && shownRatings.get(c.user_id) != null && (
             <span
               className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-black ${
                 shownRatings.get(c.user_id) === 10 ? 'bg-sig text-ink' : 'bg-sig/15 text-sig'

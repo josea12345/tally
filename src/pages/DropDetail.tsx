@@ -43,6 +43,8 @@ export default function DropDetail({ id }: { id: string }) {
   const [stats, setStats] = useState<DropStats>({ saves: 0, comments: 0, ratingAvg: null, ratingCount: 0, peaks: 0 })
   const [myRating, setMyRating] = useState<number | null>(null)
   const [myChangeSpent, setMyChangeSpent] = useState(false)
+  // Blind rating: crowd numbers hidden until you rate (author exempt).
+  const blind = !!drop && user?.id !== drop.author_id && myRating == null
   const [rateOpen, setRateOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [ratings, setRatings] = useState<Array<Omit<DropRating, 'user'> & { user: Profile | null }>>([])
@@ -703,23 +705,25 @@ export default function DropDetail({ id }: { id: string }) {
                 <div className="text-[10px] font-black uppercase tracking-[0.22em] text-mute">The crowd's call</div>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-5xl font-black leading-none text-sig">
-                    {stats.ratingAvg != null ? formatAvg(stats.ratingAvg) : '—'}
+                    {blind ? '?' : stats.ratingAvg != null ? formatAvg(stats.ratingAvg) : '—'}
                   </span>
                   <span className="text-sm font-black text-mute">/10</span>
                 </div>
                 <div className="mt-1.5 text-xs font-bold text-mute">
                   {stats.ratingCount === 0
                     ? 'No ratings yet — be the first call'
-                    : `${stats.ratingCount} rating${stats.ratingCount === 1 ? '' : 's'} on the record`}
+                    : blind
+                      ? `${stats.ratingCount} rating${stats.ratingCount === 1 ? '' : 's'} on the record — rate it to reveal`
+                      : `${stats.ratingCount} rating${stats.ratingCount === 1 ? '' : 's'} on the record`}
                 </div>
-                {stats.peaks > 0 && (
+                {stats.peaks > 0 && !blind && (
                   <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-sig/15 px-3 py-1 text-xs font-black text-sig">
                     <PeakMark className="h-3.5 w-auto" />
                     Peaked ×{stats.peaks}
                   </div>
                 )}
               </div>
-              {stats.ratingCount > 0 && (
+              {stats.ratingCount > 0 && !blind && (
                 <div className="w-28 shrink-0 space-y-1 pt-1">
                   {[
                     { label: '10', test: (v: number) => v === 10 },

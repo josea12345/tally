@@ -130,9 +130,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
       )}
     </>
   )
+  // Blind rating: the crowd's average stays hidden until YOU rate —
+  // no anchoring on the room before you've made your own call. The
+  // author's call is part of the post and always shows.
+  const blind = !isAuthor && myRating == null
   const crowdLine = (dark: boolean) => (
     <div className="flex items-baseline gap-1">
-      <span className="text-lg font-black leading-none text-sig">{formatAvg(stats.ratingAvg ?? 0)}</span>
+      <span className="text-lg font-black leading-none text-sig">{blind ? '?' : formatAvg(stats.ratingAvg ?? 0)}</span>
       <span className={`text-[10px] font-bold ${dark ? 'text-white/80' : 'text-mute'}`}>
         · {stats.ratingCount} rating{stats.ratingCount === 1 ? '' : 's'}
       </span>
@@ -148,7 +152,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
 
   const scoreBadge =
     stats.ratingCount > 0 ? (
-      <div className="sticker-flat rounded-2xl bg-black/55 px-3 py-1.5 backdrop-blur-sm" title="Crowd average">
+      <div className="sticker-flat rounded-2xl bg-black/55 px-3 py-1.5 backdrop-blur-sm" title={blind ? 'Rate to reveal the crowd average' : 'Crowd average'}>
         {crowdLine(true)}
       </div>
     ) : drop.imdb_rating != null ? (
@@ -164,7 +168,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
   // Compact header score for text-only drops (no media to overlay).
   const headerScore =
     stats.ratingCount > 0 ? (
-      <div className="sticker-flat shrink-0 rounded-2xl border-sig/50 bg-sig/10 px-3 py-1.5" title="Crowd average">
+      <div className="sticker-flat shrink-0 rounded-2xl border-sig/50 bg-sig/10 px-3 py-1.5" title={blind ? 'Rate to reveal the crowd average' : 'Crowd average'}>
         {crowdLine(false)}
         {calledLine(false)}
       </div>
