@@ -108,7 +108,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           {/* Section tabs styled on the feed tab bar, scaled up
               (Jose's reference, 2026-10-26): Try pinned left, Lists
               pinned right; active is black + the blue underline. */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center gap-12">
             {(
               [
                 { id: 'tries', label: 'Try' },
@@ -118,18 +118,18 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
               <button
                 key={t.id}
                 onClick={() => setSection(t.id)}
-                className={`relative whitespace-nowrap px-1 py-1 text-[22px] transition ${
+                className={`relative whitespace-nowrap px-1 py-1 text-[26px] transition ${
                   section === t.id ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                 }`}
               >
                 {t.label}
                 {section === t.id && (
-                  <span className="absolute -bottom-[5px] left-1/2 h-[3px] w-9 -translate-x-1/2 rounded-full bg-sig" />
+                  <span className="absolute -bottom-[5px] left-1/2 h-[3px] w-10 -translate-x-1/2 rounded-full bg-sig" />
                 )}
               </button>
             ))}
           </div>
-          <p className="pt-2 text-sm text-mute">
+          <p className="pt-2 text-center text-sm text-mute">
             {section === 'tries'
               ? 'Everything people put you on to.'
               : 'The stacks you put together.'}
