@@ -659,7 +659,7 @@ export default function Profile({ id }: { id?: string }) {
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
                 <li>· Your average, pulled toward 7.0 until real volume arrives — the raw average stays visible as the audit trail.</li>
                 <li>· Two friendly 10s barely move it. Two hundred ratings speak at full volume. Volume earns trust.</li>
-                <li>· Only ratings move it. Bets, views, and saves never count.</li>
+                <li>· Only ratings move it. Tries, views, and saves never count.</li>
                 <li>· Your score appears after {RATINGS_MINIMUM} ratings.</li>
               </ul>
             </div>
@@ -671,7 +671,7 @@ export default function Profile({ id }: { id?: string }) {
               </div>
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
                 <li>· 70% rating accuracy — how close your 0–10 score lands to the community's mean rating on your drops.</li>
-                <li>· 30% engagement — ratings, comments, and bets on your drops (log-scaled, maxes out around 100).</li>
+                <li>· 30% engagement — ratings, comments, and tries on your drops (log-scaled, maxes out around 100).</li>
                 <li>· Only drops with your score + at least 2 community ratings count. Your own comment ratings never count.</li>
                 <li>· Rate other people's drops in the comments to feed their Trust.</li>
               </ul>
@@ -688,7 +688,7 @@ export default function Profile({ id }: { id?: string }) {
           )}
           {r && r.enough && (
             <p className="mt-1 text-center text-[11px] text-mute/70">
-              Only ratings move it — and more ratings move it more. Bets don't count.
+              Only ratings move it — and more ratings move it more. Tries don't count.
             </p>
           )}
         </div>
@@ -716,7 +716,7 @@ export default function Profile({ id }: { id?: string }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-black tabular-nums text-fog">{week.bets}</div>
-                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">bets</div>
+                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-mute">tries</div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-black tabular-nums text-fog">{week.comments}</div>
@@ -782,7 +782,7 @@ export default function Profile({ id }: { id?: string }) {
                     tab === t ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                   }`}
                 >
-                  {t === 'drops' ? 'Drops' : 'Bets'}
+                  {t === 'drops' ? 'Drops' : 'Try'}
                   {tab === t && (
                     <span className="absolute -bottom-[1px] left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-sig" />
                   )}

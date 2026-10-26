@@ -160,7 +160,7 @@ export function badgesFor(
     if (d && n >= 5 && (!best || n > best.saves)) best = { title: d.title, saves: n }
   }
   if (best) {
-    badges.push({ id: 'crowd', title: 'Crowd favorite', detail: `${best.saves} bets on “${best.title}”` })
+    badges.push({ id: 'crowd', title: 'Crowd favorite', detail: `${best.saves} tries on “${best.title}”` })
   }
 
   return badges

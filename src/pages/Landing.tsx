@@ -128,7 +128,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             {
               Icon: ({ className }: { className?: string }) => <BetIcon saved className={className} />,
               title: 'They try it',
-              body: 'Friends bet on your drop, go try it for real, and type their score.',
+              body: 'Friends tap Try on your drop, go try it for real, and type their score.',
               accent: 'bg-lilac',
             },
             {
@@ -173,7 +173,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
               <p className="font-display text-2xl font-bold text-fog">
                 9.2 <span className="text-base font-bold text-mute">avg · 214 ratings · 61 peaks</span>
               </p>
-              <p className="mt-3 text-xs text-mute">Every rating on the record — bets don't count as visits.</p>
+              <p className="mt-3 text-xs text-mute">Every rating on the record — tries don't count as visits.</p>
             </div>
           </Reveal>
         </div>
@@ -203,7 +203,7 @@ export default function Landing({ mode }: { mode: 'landing' | 'auth' }) {
             {
               Icon: ChainIcon,
               title: 'Put-on chains',
-              body: 'See who bet on what, from whom. Taste travels — now you can watch it.',
+              body: 'See who's trying what, from whom. Taste travels — now you can watch it.',
               accent: 'text-sky',
             },
             {

@@ -46,7 +46,7 @@ export default function PutOnChain({ drop }: Props) {
         },
       ]
       for (const s of (savesRes.data ?? []) as Array<Save & { user: Profile }>) {
-        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'bet on it' })
+        evts.push({ at: s.created_at, kind: 'save', actor: s.user, label: 'wants to try it' })
       }
       for (const v of (ratingsRes.data ?? []) as Array<DropRating & { user: Profile }>) {
         evts.push({
@@ -84,7 +84,7 @@ export default function PutOnChain({ drop }: Props) {
   if (events.length <= 1) {
     return (
       <p className="py-2 text-sm text-mute">
-        The chain starts here — bet on it, try it, and type your score to keep it going.
+        The chain starts here — hit Try, go try it, and type your score to keep it going.
       </p>
     )
   }

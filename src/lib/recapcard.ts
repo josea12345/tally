@@ -114,7 +114,7 @@ export async function renderRecapCard(
 
   // Supporting counts, three across.
   const stats: Array<[string, string]> = [
-    [String(week.bets), 'NEW BETS'],
+    [String(week.bets), 'NEW TRIES'],
     [String(week.comments), 'COMMENTS'],
     [String(week.followers), 'NEW FOLLOWS'],
   ]

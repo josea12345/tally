@@ -101,7 +101,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     <div>
       {!bare && (
         <div className="border-b border-line px-4 pb-3 pt-5">
-          <h1 className="wordmark text-3xl">Bets</h1>
+          <h1 className="wordmark text-3xl">Try</h1>
           <p className="text-sm text-mute">Everything people put you on to.</p>
         </div>
       )}
@@ -109,7 +109,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       {drops.length === 0 ? (
         <EmptyState
           title="Nothing in the vault yet"
-          body="When someone puts you on to something, bet on it here — your shortlist of things worth trying."
+          body="When someone puts you on to something, tap Try and it queues up here — your shortlist of things worth trying."
           mood="happy"
           action={
             <button onClick={() => navigate('/')} className="btn-pop press px-6 py-2.5 text-sm">
@@ -173,9 +173,9 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           {visible.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-mute">
               {status === 'totry'
-                ? 'Nothing waiting. Bet on drops from the feed and they queue up here.'
+                ? 'Nothing waiting. Hit Try on drops from the feed and they queue up here.'
                 : status === 'tried'
-                  ? "Nothing tried yet — rate a bet once you've tried it and it lands here."
+                  ? "Nothing tried yet — rate one once you've tried it and it lands here."
                   : 'Nothing here under this filter yet.'}
             </p>
           ) : status === 'totry' ? (

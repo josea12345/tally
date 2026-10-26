@@ -113,7 +113,7 @@ function MobileNav({ route }: { route: Route }) {  const { profile } = useAuth()
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-ink/95 backdrop-blur md:hidden">
       <div className="grid grid-cols-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {tab({ name: 'home', label: 'Discover', icon: <HomeIcon className="h-6 w-6" /> })}
-        {tab({ name: 'saved', label: 'Bets', icon: <BetIcon saved={false} className="h-5 w-5" /> })}
+        {tab({ name: 'saved', label: 'Try', icon: <BetIcon saved={false} className="h-5 w-5" /> })}
         <div className="flex items-start justify-center">
           <CreateButton />
         </div>
@@ -130,7 +130,7 @@ function DesktopRail() {
   const items = [
     { label: 'Discover', path: '/', match: 'home' },
     { label: 'Search', path: '/search', match: 'search' },
-    { label: 'Bets', path: '/saved', match: 'saved' },
+    { label: 'Try', path: '/saved', match: 'saved' },
     { label: 'Alerts', path: '/notifications', match: 'notifications' },
     { label: 'Profile', path: '/profile', match: 'profile' },
   ]

@@ -802,7 +802,7 @@ export default function Settings() {
           <div className="mt-5 rounded-2xl border border-miss/60 bg-miss/10 p-4">
             <p className="text-sm font-black text-miss">Delete your account permanently?</p>
             <p className="mt-1 text-xs leading-relaxed text-mute">
-              Every drop, rating, comment and bet goes with it. There is no undo.
+              Every drop, rating, comment and save goes with it. There is no undo.
             </p>
             {deleteError && <p className="mt-2 text-xs font-bold text-miss">{deleteError}</p>}
             <div className="mt-3 flex gap-2">

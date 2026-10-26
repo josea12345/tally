@@ -351,7 +351,7 @@ export default function DropDetail({ id }: { id: string }) {
       {!user && (
         <div className="border-b border-line bg-sig px-4 py-3 text-center">
           <p className="text-sm font-black text-ink">
-            Someone put you on — join Peak to bet on it and put your own call on the record.
+            Someone put you on — join Peak to try it and put your own call on the record.
           </p>
           <button
             onClick={() => navigate('/auth')}
@@ -630,7 +630,7 @@ export default function DropDetail({ id }: { id: string }) {
             }`}
           >
             <BetIcon saved={saved} className="h-4 w-4" />
-            {saved ? 'Betted' : 'Bet'} · {stats.saves}
+            {saved ? 'Tried' : 'Try'} · {stats.saves}
           </button>
           {!!user && user.id !== drop.author_id && <ReminderButton dropId={drop.id} />}
           {saveError && <p className="w-full text-xs font-bold text-miss">{saveError}</p>}
@@ -790,7 +790,7 @@ export default function DropDetail({ id }: { id: string }) {
             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-bold text-fog">
               <span>{viewCount ?? '–'} views</span>
               <span className="text-mute/50">·</span>
-              <span>{stats.saves} bets</span>
+              <span>{stats.saves} tries</span>
               <span className="text-mute/50">·</span>
               <span>{stats.ratingCount} ratings</span>
               <span className="text-mute/50">·</span>
@@ -850,7 +850,7 @@ export default function DropDetail({ id }: { id: string }) {
           <div className="mt-8 rounded-3xl border border-sig/50 bg-ink-2 p-6 text-center">
             <h3 className="mb-2 text-xl font-black">Don't sleep on this</h3>
             <p className="mb-4 text-sm text-mute">
-              Join Peak to bet on this drop and put your own call on the record.
+              Join Peak to try this drop and put your own call on the record.
             </p>
             <button
               onClick={() => navigate('/auth')}

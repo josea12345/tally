@@ -50,7 +50,7 @@ export default function OnboardingChecklist() {
       action: () => navigate(`/profile/${user.id}`),
     },
     { id: 'drop', label: 'Drop your first put-on', done: counts.drops > 0, action: () => navigate('/camera') },
-    { id: 'bet', label: 'Bet on something that looks good', done: counts.saves > 0 },
+    { id: 'bet', label: 'Try something that looks good', done: counts.saves > 0 },
     { id: 'rate', label: 'Rate something — type your score', done: counts.ratings > 0 },
     { id: 'follow', label: 'Follow someone with taste', done: counts.follows > 0, action: () => navigate('/search') },
   ]
