@@ -47,8 +47,10 @@ export function topicKeyFor(d: {
   title: string
   city?: string | null
   imdb_id?: string | null
+  place_id?: string | null
 }): string {
   if (d.imdb_id) return `imdb:${d.imdb_id}`
+  if (d.place_id) return `place:${d.place_id}`
   const cityPart = LOCAL_CATEGORIES.has(d.category) ? d.city ?? '' : ''
   return `title:${normKey(d.title, cityPart)}`
 }

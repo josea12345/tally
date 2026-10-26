@@ -84,6 +84,10 @@ export default function Composer({ editId }: { editId?: string }) {
   const [ingredientsText, setIngredientsText] = useState('')
   const [instructionsText, setInstructionsText] = useState('')
   const [pinned, setPinned] = useState<PlaceSuggestion | null>(null)
+  // The place_id already stored on the drop being edited (its pinned
+  // reconstruction carries it too, but keep the raw value so an edit
+  // that never touches the place can't wipe the identity).
+  const [loadedPlaceId, setLoadedPlaceId] = useState<string | null>(null)
   const [score, setScore] = useState<number | null>(null)
   const [tmdbUrl, setTmdbUrl] = useState<string | null>(null)
   const [tmdbPoster, setTmdbPoster] = useState<string | null>(null)
@@ -235,6 +239,7 @@ export default function Composer({ editId }: { editId?: string }) {
         setTip(d.tip ?? '')
         setWhereTo(d.where_to ?? '')
         setCity(d.city ?? '')
+        setLoadedPlaceId(d.place_id ?? null)
         setSiteUrl(d.external_label === 'Official site' ? (d.external_url ?? '') : '')
         setPasteUrl(d.external_label && d.external_label !== 'Official site' ? (d.external_url ?? '') : '')
         setLinkKind(d.external_url ? (d.external_label === 'Official site' ? 'none' : 'paste') : 'auto')
@@ -268,7 +273,7 @@ export default function Composer({ editId }: { editId?: string }) {
         if ((d.instructions?.length ?? 0) > 0) setInstructionsText(d.instructions.join('\n'))
         if (d.latitude != null && d.longitude != null) {
           setPinned({
-            id: 'pinned',
+            id: d.place_id ?? 'pinned',
             name: d.title,
             type: '',
             streetAddress: d.street_address,
@@ -402,6 +407,11 @@ export default function Composer({ editId }: { editId?: string }) {
           ? mapsUrlForQuery(`${title.trim()} ${city.trim()}`)
           : null
 
+      // 'pinned' is the edit-load reconstruction sentinel: a real pick
+      // carries a suggestion id; the sentinel falls back to the id the
+      // drop already had. Unpinning clears the identity entirely.
+      const placeId = pinned ? (pinned.id === 'pinned' ? loadedPlaceId : pinned.id) : null
+
       const row = {
         author_id: user.id,
         category,
@@ -430,11 +440,13 @@ export default function Composer({ editId }: { editId?: string }) {
         imdb_id: imdbId,
         imdb_rating: imdbRating,
         spotify_popularity: spotifyPopularity,
+        place_id: placeId,
         topic_key: topicKeyFor({
           category,
           title: title.trim(),
           city: city.trim() || null,
           imdb_id: imdbId,
+          place_id: placeId,
         }),
         tip: tip.trim() || null,
         where_to: whereTo.trim() || null,

@@ -6,10 +6,11 @@ import type { Drop } from '../lib/types'
 import DropGrid from '../components/DropGrid'
 
 /**
- * Topic page — "entering the place": the name, its location, the average
- * score across every put-on about it, and the posts as a grid of squares
- * with each author's rating on its tile. RLS (is_drop_visible) hides
- * blocked/private drops automatically.
+ * Topic page — "entering the place": the name with the average call
+ * beside it, the specific location (street address / neighborhood —
+ * place-pinned topics are exactly one location), and the posts as a
+ * grid of squares with each author's rating on its tile. RLS
+ * (is_drop_visible) hides blocked/private drops automatically.
  */
 export default function Topic({ topicKey }: { topicKey: string }) {
   const { user } = useAuth()
@@ -78,12 +79,23 @@ export default function Topic({ topicKey }: { topicKey: string }) {
 
   const title = drops[0]?.title ?? 'Put-ons'
 
-  // Best-known location: prefer a drop with a street address, then
-  // neighborhood, then whatever the newest drop has.
-  const locDrop =
-    drops.find((d) => d.street_address) ??
-    drops.find((d) => d.neighborhood) ??
-    drops[0]
+  // Location identity: one street address wins; otherwise every
+  // neighborhood the drops name (a legacy title-keyed topic can span
+  // several), then the city.
+  const distinct = (vals: Array<string | null>) => [
+    ...new Set(vals.filter(Boolean) as string[]),
+  ]
+  const addresses = distinct(drops.map((d) => d.street_address))
+  const hoods = distinct(drops.map((d) => d.neighborhood))
+  const city = drops[0]?.city ?? null
+  const locationLine =
+    addresses.length === 1
+      ? [addresses[0], hoods.length === 1 ? hoods[0] : null, city]
+          .filter(Boolean)
+          .join(' · ')
+      : hoods.length >= 1
+        ? [...hoods, city].filter(Boolean).join(' · ')
+        : city
 
   // Average of every author's call — the place's score.
   const scored = drops.filter((d) => d.score != null)
@@ -108,50 +120,53 @@ export default function Topic({ topicKey }: { topicKey: string }) {
           </svg>
         </button>
 
-        <h1 className="wordmark text-3xl leading-tight">{title}</h1>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="wordmark text-3xl leading-tight">{title}</h1>
+          {avgLabel != null && (
+            <span
+              className="rounded-full bg-sig px-3 py-1 font-display text-lg font-black leading-none text-[var(--color-sig-ink)]"
+              title="The average of every poster's call for this place"
+            >
+              {avgLabel}
+            </span>
+          )}
+        </div>
 
-        {(locDrop?.street_address || locDrop?.neighborhood || locDrop?.city) && (
-          <p className="mt-1 text-sm font-bold text-mute">
-            {[locDrop.street_address, locDrop.neighborhood, locDrop.city]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
+        {locationLine && (
+          <p className="mt-1 text-sm font-bold text-mute">{locationLine}</p>
         )}
 
-        <div className="mt-4 flex items-center gap-4">
+        <div className="mt-4 flex items-center gap-2">
           {avgLabel != null ? (
-            <div className="flex items-center gap-2">
-              <span className="font-display text-5xl font-black text-sig">{avgLabel}</span>
-              <span className="text-sm font-bold text-mute">
-                /10
-                <br />
-                {scored.length} put-on{scored.length === 1 ? '' : 's'}
-              </span>
-            </div>
+            <p className="text-sm font-bold text-mute">
+              {scored.length} put-on{scored.length === 1 ? '' : 's'}
+            </p>
           ) : (
             <p className="text-sm text-mute">No scores yet — be the first call.</p>
           )}
-          {mapsUrl && (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="press ml-auto rounded-full border border-line px-4 py-2 text-xs font-black text-fog"
-            >
-              Directions ↗
-            </a>
-          )}
-          {user && (
-            <button
-              onClick={toggleTopicFollow}
-              disabled={followBusy}
-              className={`press rounded-full px-4 py-2 text-xs font-black disabled:opacity-50 ${
-                mapsUrl ? '' : 'ml-auto'
-              } ${topicFollowing ? 'bg-sig text-ink' : 'border border-sig/60 text-sig'}`}
-            >
-              {topicFollowing ? 'Following topic ✓' : 'Follow topic'}
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press rounded-full border border-line px-4 py-2 text-xs font-black text-fog"
+              >
+                Directions ↗
+              </a>
+            )}
+            {user && (
+              <button
+                onClick={toggleTopicFollow}
+                disabled={followBusy}
+                className={`press rounded-full px-4 py-2 text-xs font-black disabled:opacity-50 ${
+                  topicFollowing ? 'bg-sig text-ink' : 'border border-sig/60 text-sig'
+                }`}
+              >
+                {topicFollowing ? 'Following topic ✓' : 'Follow topic'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

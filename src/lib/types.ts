@@ -106,6 +106,8 @@ export interface Drop {
   score: number | null
   /** Shareable topic key (see topicKeyFor): "all posts about this". */
   topic_key: string | null
+  /** Specific place this drop was pinned from (suggestion id), if any. */
+  place_id: string | null
   created_at: string
   updated_at: string
   // joined
