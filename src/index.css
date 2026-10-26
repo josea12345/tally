@@ -263,6 +263,19 @@ body {
   }
 }
 
+/* The halo behind the mountain while drag-rating in the glow zone (8+). */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.9;
+  }
+}
+
 /* ---------- feel pass: motion system ---------- */
 
 /* scroll reveal (driven by <Reveal/> via IntersectionObserver) */

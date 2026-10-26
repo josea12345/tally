@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PeakMark } from './PeakWordmark'
 import { PeakBurst } from './VoteFx'
 import { formatScore } from '../lib/ratings'
-import { tapHaptic } from '../lib/haptics'
+import { tapHaptic, successHaptic, peakHaptic } from '../lib/haptics'
 
 /**
  * Rate ON the media itself: PRESS AND HOLD the photo, then drag bottom to
@@ -23,6 +23,10 @@ import { tapHaptic } from '../lib/haptics'
  *   the rest of the gesture (touch-action alone can't — it's decided
  *   when the touch starts), and the click after a committed drag is
  *   swallowed so it can't open the viewer / toggle the video.
+ * - The glow zone: at 8+ the mountain lights up — a pulsing halo, a lit
+ *   fill, the number turns sig and pops per whole number. Tier crossings
+ *   carry their own haptics (double-tap into the zone, the full peak
+ *   pattern at 10), and committing an 8+ confirms with a buzz.
  */
 const HOLD_MS = 220
 const SLOP_PX = 10
@@ -53,6 +57,7 @@ export default function DragRateZone({
   const holdTimer = useRef<number | null>(null)
   const armedRef = useRef(false)
   const lastWhole = useRef<number | null>(null)
+  const lastTier = useRef(0)
   const suppressClickUntil = useRef(0)
   const [dragValue, setDragValue] = useState<number | null>(null)
   const [burst, setBurst] = useState(false)
@@ -96,6 +101,7 @@ export default function DragRateZone({
     g.anchorY = g.lastY
     g.anchorValue = valueFromY(g.lastY)
     g.value = g.anchorValue
+    lastTier.current = g.anchorValue >= 10 ? 2 : g.anchorValue >= 8 ? 1 : 0
     lastWhole.current = Math.floor(g.anchorValue)
     tapHaptic()
     setDragValue(g.anchorValue)
@@ -146,11 +152,19 @@ export default function DragRateZone({
     const traveled = ((g.anchorY - e.clientY) / r.height) * 10 * GAIN
     const v = Math.round(Math.min(10, Math.max(0, g.anchorValue + traveled)) * 10) / 10
     g.value = v
+    // Tier crossings get their own buzz — entering the glow zone lands a
+    // double-tap, reaching a 10 the full peak pattern. Plain whole-number
+    // ticks continue underneath.
+    const tierNow = v >= 10 ? 2 : v >= 8 ? 1 : 0
     const whole = Math.floor(v)
-    if (lastWhole.current !== whole) {
-      lastWhole.current = whole
+    if (tierNow > lastTier.current) {
+      if (tierNow === 2) peakHaptic()
+      else successHaptic()
+    } else if (lastWhole.current !== whole) {
       tapHaptic()
     }
+    lastTier.current = tierNow
+    lastWhole.current = whole
     setDragValue(v)
   }
 
@@ -164,11 +178,18 @@ export default function DragRateZone({
       suppressClickUntil.current = Date.now() + 500
       if (commit && g.value !== current) {
         onRate(g.value)
-        if (g.value === 10) setBurst(true)
+        if (g.value === 10) {
+          setBurst(true)
+          peakHaptic()
+        } else if (g.value >= 8) {
+          successHaptic()
+        }
       }
     }
     setDragValue(null)
   }
+
+  const tier = dragValue == null ? 0 : dragValue >= 10 ? 2 : dragValue >= 8 ? 1 : 0
 
   return (
     <div
@@ -190,8 +211,15 @@ export default function DragRateZone({
       {dragValue != null && (
         <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center">
           <div className="absolute inset-0 bg-black/30" />
+          {tier === 2 && <div className="absolute inset-0 bg-sig/10" />}
           <span className="relative inline-block">
-            <span className="block text-white/35 drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
+            {tier >= 1 && (
+              <span
+                className="absolute -inset-8 rounded-full bg-sig/50 blur-2xl"
+                style={{ animation: 'glow-pulse 1.1s ease-in-out infinite' }}
+              />
+            )}
+            <span className="relative block text-white/35 drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
               <PeakMark className="h-28 w-auto" />
             </span>
             <span
@@ -201,16 +229,23 @@ export default function DragRateZone({
               <span
                 className="block text-sig"
                 style={
-                  dragValue === 10
-                    ? { filter: 'drop-shadow(0 0 22px rgba(69,200,255,0.85))' }
-                    : undefined
+                  tier === 2
+                    ? { filter: 'drop-shadow(0 0 30px rgba(69,200,255,0.95))' }
+                    : tier === 1
+                      ? { filter: 'drop-shadow(0 0 16px rgba(69,200,255,0.75))' }
+                      : undefined
                 }
               >
                 <PeakMark className="h-28 w-auto" />
               </span>
             </span>
           </span>
-          <span className="relative mt-3 text-6xl font-black tabular-nums text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">
+          <span
+            key={Math.floor(dragValue)}
+            className={`pop-in relative mt-3 text-6xl font-black tabular-nums drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)] ${
+              tier >= 1 ? 'text-sig' : 'text-white'
+            }`}
+          >
             {formatScore(dragValue)}
           </span>
         </div>
