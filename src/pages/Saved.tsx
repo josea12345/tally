@@ -115,8 +115,8 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
               <button
                 key={s.id}
                 onClick={() => setSection(s.id)}
-                className={`wordmark press text-3xl transition ${
-                  section === s.id ? 'text-ink' : 'text-mute/40 hover:text-mute'
+                className={`wordmark press text-ink transition-all ${
+                  section === s.id ? 'text-3xl' : 'text-xl'
                 }`}
               >
                 {s.label}
