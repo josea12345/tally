@@ -105,30 +105,29 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
     <div>
       {!bare && (
         <div className="border-b border-line px-4 pb-3 pt-5">
-          <h1 className="wordmark text-3xl">Try</h1>
-          <p className="text-sm text-mute">Everything people put you on to.</p>
-        </div>
-      )}
-      {!bare && (
-        <div className="px-4 pt-3">
-          <div className="flex rounded-full border border-line bg-ink-2 p-1">
+          <div className="flex items-baseline gap-5">
             {(
               [
-                { id: 'tries', label: 'Tries' },
+                { id: 'tries', label: 'Try' },
                 { id: 'lists', label: 'Lists' },
               ] as Array<{ id: 'tries' | 'lists'; label: string }>
             ).map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSection(s.id)}
-                className={`press flex-1 rounded-full py-1.5 text-sm font-black transition ${
-                  section === s.id ? 'bg-sig text-ink' : 'text-mute hover:text-fog'
+                className={`wordmark press text-3xl transition ${
+                  section === s.id ? 'text-ink' : 'text-mute/40 hover:text-mute'
                 }`}
               >
                 {s.label}
               </button>
             ))}
           </div>
+          <p className="text-sm text-mute">
+            {section === 'tries'
+              ? 'Everything people put you on to.'
+              : 'The stacks you put together.'}
+          </p>
         </div>
       )}
       {!bare && section === 'lists' ? (
