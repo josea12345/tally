@@ -242,22 +242,23 @@ export default function Profile({ id }: { id?: string }) {
       let commentCount = 0
       let communityByDrop = new Map<string, number[]>()
       if (ids.length > 0) {
-        const [{ data: saves }, { data: vts }, { count: cc }, { data: rated }] = await Promise.all([
+        const [{ data: saves }, { data: vts }, { count: cc }] = await Promise.all([
           supabase.from('saves').select('drop_id,created_at').in('drop_id', ids).limit(5000),
           supabase.from('drop_ratings').select('*').in('drop_id', ids).limit(5000),
           supabase.from('comments').select('id', { count: 'exact', head: true }).in('drop_id', ids),
-          supabase.from('comments').select('drop_id,user_id,rating').in('drop_id', ids).not('rating', 'is', null).limit(2000),
         ])
         savedByOthers = (saves ?? []).length
         savesCache = (saves ?? []) as Array<{ drop_id: string; created_at: string }>
         ratingsReceived = (vts ?? []) as DropRating[]
         commentCount = cc ?? 0
-        for (const rc of (rated ?? []) as Array<{ drop_id: string; user_id: string; rating: number }>) {
-          // The author's own comment ratings don't count — their take is the drop's score.
-          if (rc.user_id === profileId) continue
-          const arr = communityByDrop.get(rc.drop_id) ?? []
-          arr.push(rc.rating)
-          communityByDrop.set(rc.drop_id, arr)
+        // Trust accuracy reads the REAL ratings: the community on each drop
+        // is everyone who rated it. The author never counts — their take is
+        // the drop's own score, and they can't rate their own drops anyway.
+        for (const r of ratingsReceived) {
+          if (r.user_id === profileId) continue
+          const arr = communityByDrop.get(r.drop_id) ?? []
+          arr.push(r.score)
+          communityByDrop.set(r.drop_id, arr)
         }
       }
       if (!live) return
@@ -674,8 +675,8 @@ export default function Profile({ id }: { id?: string }) {
               <ul className="space-y-1.5 text-xs leading-relaxed text-mute">
                 <li>· 70% rating accuracy — how close your 0–10 score lands to the community's mean rating on your drops.</li>
                 <li>· 30% engagement — ratings, comments, and tries on your drops (log-scaled, maxes out around 100).</li>
-                <li>· Only drops with your score + at least 2 community ratings count. Your own comment ratings never count.</li>
-                <li>· Rate other people's drops in the comments to feed their Trust.</li>
+                <li>· Only drops with your call + at least 2 ratings from other people count.</li>
+                <li>· Rate other people's drops to feed their Trust.</li>
               </ul>
             </div>
           )}

@@ -54,7 +54,7 @@ export const TRUST_MIN_DROPS = 2
  * Trust Score: do your calls hold up?
  *
  * 70% rating accuracy — across your drops that have your own score plus at
- * least 2 community (non-author) comment ratings, how close is your score to
+ * least 2 community (non-author) ratings, how close is your score to
  * the community's mean? A 1-point miss on the 0–10 scale costs 10 points of
  * accuracy. 30% engagement — log-scaled interactions (ratings + comments +
  * saves) on your drops, maxing out at ~100. Both halves are earned, never
