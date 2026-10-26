@@ -495,9 +495,6 @@ function AuthForm() {
           {busy ? 'Cooking something up…' : tab === 'in' ? 'Log in' : 'Let me put you on — sign up'}
         </button>
       </form>
-      <p className="doodle mt-4 text-center text-xl text-mute">
-        no fake activity here — real people only
-      </p>
     </div>
   )
 }
