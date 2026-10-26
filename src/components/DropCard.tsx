@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { Drop, DropStats } from '../lib/types'
 import { useAuth } from '../context/AuthContext'
 import { isSeen } from '../lib/seen'
-import { timeAgo, formatCount, topicKeyFor } from '../lib/format'
+import { formatCount, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
+import ActionByline from './ActionByline'
 import Comments from './Comments'
 import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
@@ -347,21 +348,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-sm">
-              <span className="truncate font-bold">{author?.display_name || author?.username || 'Someone'}</span>
-              {author && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigate(`/profile/${author.id}`)
-                  }}
-                  className="truncate text-mute hover:text-sig"
-                >
-                  @{author.username}
-                </button>
-              )}
-              <span className="shrink-0 text-mute">· {timeAgo(drop.created_at)}</span>
-            </div>
+            <ActionByline author={author} category={drop.category} createdAt={drop.created_at} />
             {titleLine}
           </div>
           {items.length === 0 && headerScore}

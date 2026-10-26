@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { CATEGORY_NAV_EVENT, takeCategoryNavStash, type CategoryNav } from '../lib/categoryNav'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useRatings } from '../lib/useRatings'
@@ -53,6 +54,30 @@ export default function Discover() {
   const [tab, setTab] = useState<Tab>('putons')
   const [nearView, setNearView] = useState<'list' | 'map'>('list')
   const [group, setGroup] = useState<string>('all')
+  // Category-noun taps ("more spots"): a stash covers taps from other
+  // pages (read once on mount), an event covers taps while we're here.
+  useEffect(() => {
+    const stash = takeCategoryNavStash()
+    if (stash) {
+      setGroup(stash.group)
+      setSub(stash.sub)
+      setTab('putons')
+    }
+  }, [])
+  useEffect(() => {
+    const onNav = (e: Event) => {
+      const nav = (e as CustomEvent<CategoryNav>).detail
+      if (!nav) return
+      takeCategoryNavStash()
+      setGroup(nav.group)
+      setSub(nav.sub)
+      setTab('putons')
+      setSearchOpen(false)
+      window.scrollTo({ top: 0 })
+    }
+    window.addEventListener(CATEGORY_NAV_EVENT, onNav)
+    return () => window.removeEventListener(CATEGORY_NAV_EVENT, onNav)
+  }, [])
   const [sub, setSub] = useState<Category | 'all'>('all')
   const pickGroup = (id: string) => {
     setGroup(id)

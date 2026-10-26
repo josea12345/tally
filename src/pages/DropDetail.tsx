@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import type { Drop, DropRating, DropStats, Profile } from '../lib/types'
 import { timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
+import { ACTION_PHRASE, CategoryNoun } from '../components/ActionByline'
 import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
@@ -504,7 +505,8 @@ export default function DropDetail({ id }: { id: string }) {
             <div>
               <div className="font-bold">{author?.display_name || author?.username}</div>
               <div className="text-sm text-mute">
-                @{author?.username} · {timeAgo(drop.created_at)}
+                @{author?.username} {ACTION_PHRASE[drop.category].lead}{' '}
+                <CategoryNoun category={drop.category} /> · {timeAgo(drop.created_at)}
               </div>
             </div>
           </div>
