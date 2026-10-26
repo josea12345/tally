@@ -8,6 +8,7 @@ import { peakHaptic, tapHaptic } from '../lib/haptics'
 import { Avatar, navigate } from '../App'
 import BetIcon from '../components/BetIcon'
 import ListLikeButton from '../components/ListLikeButton'
+import AddDropsSheet from '../components/AddDropsSheet'
 import EmptyState from '../components/EmptyState'
 
 /**
@@ -35,6 +36,7 @@ export default function ListPage({ id }: { id: string }) {
   const [likedByMe, setLikedByMe] = useState(false)
   const [sharedNote, setSharedNote] = useState(false)
   const [mySaves, setMySaves] = useState<Set<string>>(new Set())
+  const [adding, setAdding] = useState(false)
   const [tryBusy, setTryBusy] = useState(false)
 
   const isOwner = !!user && !!col && user.id === col.owner_id
@@ -337,6 +339,9 @@ export default function ListPage({ id }: { id: string }) {
           )}
           {isOwner && (
             <>
+              <button onClick={() => setAdding(true)} className="rounded-full border border-sig/60 px-4 py-2 text-sm font-black text-sig">
+                + Add drops
+              </button>
               <button onClick={() => setManaging((m) => !m)} className="rounded-full border border-line px-4 py-2 text-sm font-bold text-fog">
                 {managing ? 'Done' : 'Manage'}
               </button>
@@ -368,7 +373,9 @@ export default function ListPage({ id }: { id: string }) {
       <div className="mt-5 px-4">
         {drops.length === 0 ? (
           <p className="text-sm text-mute">
-            Nothing in this list yet — add drops from any post's ··· menu ("Add to list…"), or use "Build a list" there to stack them in order.
+            {isOwner
+              ? 'Nothing in this list yet — tap "+ Add drops" to pick from your Try list and your own posts, or add from any post's ··· menu.'
+              : 'Nothing in this list yet.'}
           </p>
         ) : (
           <ol className="space-y-2">
@@ -434,6 +441,15 @@ export default function ListPage({ id }: { id: string }) {
           </ol>
         )}
       </div>
+      {adding && (
+        <AddDropsSheet
+          listId={id}
+          onClose={() => {
+            setAdding(false)
+            void load()
+          }}
+        />
+      )}
     </div>
   )
 }
