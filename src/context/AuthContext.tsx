@@ -65,7 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+    // Send confirmation links back to THIS app explicitly — never rely on
+    // the project's default Site URL (a fresh project points at localhost,
+    // which stranded new users on an unknown page after signup).
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
     return { error: error ? error.message : null }
   }
 
