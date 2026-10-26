@@ -30,6 +30,10 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
   const [group, setGroup] = useState('all')
   const [sort, setSort] = useState<Sort>('recent')
   const [status, setStatus] = useState<Status>('all')
+  // Tries and Lists are separate sections on this page (Jose's call,
+  // 2026-10-26) — a toggle, not one mixed scroll. Bare mode (profile
+  // Try tab) is tries-only, as profiles have their own Lists tab.
+  const [section, setSection] = useState<'tries' | 'lists'>('tries')
   // Rating from the To Try checklist (the hook wants a stats sink for
   // optimistic counts — Bets doesn't display counts, so the map is
   // write-only here). Rating a bet = you tried it: the row moves to Tried.
@@ -105,8 +109,31 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
           <p className="text-sm text-mute">Everything people put you on to.</p>
         </div>
       )}
-      {!bare && <MyLists />}
-      {drops.length === 0 ? (
+      {!bare && (
+        <div className="px-4 pt-3">
+          <div className="flex rounded-full border border-line bg-ink-2 p-1">
+            {(
+              [
+                { id: 'tries', label: 'Tries' },
+                { id: 'lists', label: 'Lists' },
+              ] as Array<{ id: 'tries' | 'lists'; label: string }>
+            ).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSection(s.id)}
+                className={`press flex-1 rounded-full py-1.5 text-sm font-black transition ${
+                  section === s.id ? 'bg-sig text-ink' : 'text-mute hover:text-fog'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {!bare && section === 'lists' ? (
+        <MyLists />
+      ) : drops.length === 0 ? (
         <EmptyState
           title="Nothing in the vault yet"
           body="When someone puts you on to something, tap Try and it queues up here — your shortlist of things worth trying."
