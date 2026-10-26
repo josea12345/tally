@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PeakWordmark } from '../components/PeakWordmark'
 import { useAuth } from '../context/AuthContext'
+import { takeAuthLinkError, resendConfirmation } from '../lib/authLink'
 import { navigate } from '../App'
 import Reveal from '../components/Reveal'
 import AlertIcon from '../components/AlertIcon'
@@ -346,6 +347,13 @@ function DemoCard() {
 }
 
 function AuthForm() {
+  // Error handed over from a failed email-link landing (lib/authLink.ts) —
+  // shown above the form with a resend action, once.
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
+  useEffect(() => {
+    setLinkError(takeAuthLinkError())
+  }, [])
   const { signIn, signUp, configured } = useAuth()
   const [tab, setTab] = useState<'in' | 'up'>('up')
   const [email, setEmail] = useState('')
@@ -384,6 +392,25 @@ function AuthForm() {
     )
   }
 
+  if (resent) {
+    return (
+      <div className="sticker-sm rounded-3xl bg-ink-2 p-6 text-center">
+        <Mascot mood="happy" className="pop-in mx-auto mb-3 h-20 w-20" />
+        <h2 className="wordmark mb-2 text-2xl">Fresh link sent</h2>
+        <p className="text-sm text-mute">
+          We sent a new confirmation link to <b className="text-fog">{email}</b>. Tap the newest one — the old link
+          won’t work anymore.
+        </p>
+        <button
+          onClick={() => setResent(false)}
+          className="btn-pop press mt-4 px-6 py-2.5 text-sm"
+        >
+          Back
+        </button>
+      </div>
+    )
+  }
+
   if (checkEmail) {
     return (
       <div className="sticker-sm rounded-3xl bg-ink-2 p-6 text-center">
@@ -408,6 +435,26 @@ function AuthForm() {
 
   return (
     <div className="sticker-sm rounded-3xl bg-ink-2 p-6">
+      {linkError && (
+        <div className="mb-4 rounded-2xl border-2 border-butter/60 bg-butter/10 p-4 text-center">
+          <p className="text-sm font-bold text-fog">{linkError}</p>
+          <button
+            onClick={async () => {
+              if (!email.trim()) {
+                setError('Enter your email above first — then tap resend.')
+                return
+              }
+              setError(null)
+              const { error: rerr } = await resendConfirmation(email.trim())
+              if (rerr) setError(rerr)
+              else setResent(true)
+            }}
+            className="btn-pop press mt-3 px-5 py-2 text-sm"
+          >
+            Send a fresh link
+          </button>
+        </div>
+      )}
       <div className="mb-5 grid grid-cols-2 rounded-full bg-ink-3 p-1">
         {(['in', 'up'] as const).map((t) => (
           <button

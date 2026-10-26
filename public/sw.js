@@ -1,6 +1,6 @@
 /* Peak service worker — minimal. Exists so the PWA install prompt can fire
    and to keep navigation working offline-ish. No precache manifest needed. */
-const CACHE = 'tally-v1'
+const CACHE = 'tally-v2'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -30,8 +30,14 @@ self.addEventListener('fetch', (event) => {
         try {
           const res = await fetch(event.request)
           // Only cache successful shell responses — never cache error pages
-          // or redirects, or offline would serve a broken shell.
-          if (res && res.ok) cache.put(event.request, res.clone())
+          // or redirects, or offline would serve a broken shell. Cache
+          // under the CLEAN root key, never the verbatim request URL: an
+          // email-link landing carries a ~2 KB auth fragment, and keying
+          // on it blows the Cache Storage quota on iOS Safari — a rejected
+          // cache.put there has black-screened navigations in the past.
+          // The put is deliberately not awaited: best-effort bookkeeping
+          // must never fail the navigation itself.
+          if (res && res.ok) cache.put('/', res.clone()).catch(() => {})
           return res
         } catch {
           const cached = (await cache.match(event.request)) || (await cache.match('/'))

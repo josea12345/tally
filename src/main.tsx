@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { supabaseConfigError } from './lib/supabase'
+import { consumeAuthLinkLanding } from './lib/authLink'
 import './index.css'
 
 /** Full-screen explanation when the backend env vars are missing/bad —
@@ -51,7 +52,12 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   })
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Email-link landings (signup confirmation) arrive with the session — or
+// an error — in the URL fragment, which is also our router's hash. Capture
+// or explain it and reload onto a clean URL before anything else boots;
+// see lib/authLink.ts for the black-screen failure this prevents.
+if (!consumeAuthLinkLanding()) {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
   supabaseConfigError ? (
     <ConfigErrorScreen message={supabaseConfigError} />
   ) : (
@@ -62,3 +68,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </React.StrictMode>
   ),
 )
+}
