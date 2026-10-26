@@ -276,9 +276,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         <span className={`inline-block drop-shadow-lg ${myRating != null ? 'text-sig' : 'text-white'}`}>
           <PeakMark className="h-[18px] w-auto" />
         </span>
-        <span className="text-xs font-bold text-white drop-shadow-md">
-          {myRating != null ? formatScore(myRating) : 'Rate'}
-        </span>
+        <span className="text-xs font-bold text-white drop-shadow-md">{formatCount(stats.ratingCount)}</span>
       </button>
       <button onClick={toggleComments} aria-label="Comments" className="press flex items-center gap-1.5">
         <ChatIcon className="h-6 w-6 text-white drop-shadow-lg" />
@@ -302,7 +300,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         <span className={`inline-block ${myRating != null ? 'text-sig' : 'text-fog'}`}>
           <PeakMark className="h-4 w-auto" />
         </span>
-        <span className="text-sm font-bold text-mute">{myRating != null ? formatScore(myRating) : 'Rate'}</span>
+        <span className="text-sm font-bold text-mute">{formatCount(stats.ratingCount)}</span>
       </button>
       <button
         onClick={toggleComments}
