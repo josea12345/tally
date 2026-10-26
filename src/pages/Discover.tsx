@@ -517,7 +517,7 @@ export default function Discover() {
         {/* TikTok-style top bar: bell | text tabs | search */}
         <div className="mb-1 flex items-center justify-between">
           <AlertsBell />
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -533,7 +533,7 @@ export default function Discover() {
                     setTab(t.id)
                   }
                 }}
-                className={`relative px-1 py-1 text-[16px] transition ${
+                className={`relative whitespace-nowrap px-1 py-1 text-[14px] transition ${
                   tab === t.id ? 'font-black text-fog' : 'font-bold text-mute hover:text-fog'
                 }`}
               >
