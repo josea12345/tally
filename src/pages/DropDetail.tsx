@@ -42,6 +42,7 @@ export default function DropDetail({ id }: { id: string }) {
   const [videoPos, setVideoPos] = useState<Record<string, number>>({})
   const [stats, setStats] = useState<DropStats>({ saves: 0, comments: 0, ratingAvg: null, ratingCount: 0, peaks: 0 })
   const [myRating, setMyRating] = useState<number | null>(null)
+  const [myChangeSpent, setMyChangeSpent] = useState(false)
   const [rateOpen, setRateOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [ratings, setRatings] = useState<Array<Omit<DropRating, 'user'> & { user: Profile | null }>>([])
@@ -90,7 +91,7 @@ export default function DropDetail({ id }: { id: string }) {
       const [{ data: saves }, { data: rts }, { data: cmts }] = await Promise.all([
         supabase.from('saves').select('id').eq('drop_id', id).limit(5000),
         supabase
-          .from('drop_ratings')
+          .from('drop_ratings_with_budget')
           .select('*, user:profiles!drop_ratings_user_id_fkey(*)')
           .eq('drop_id', id)
           .order('score', { ascending: false })
@@ -99,6 +100,10 @@ export default function DropDetail({ id }: { id: string }) {
       ])
       const rlist = (rts ?? []) as Array<Omit<DropRating, 'user'> & { user: Profile | null }>
       setRatings(rlist)
+      if (user) {
+        const mineRow = rlist.find((r) => r.user_id === user.id)
+        setMyChangeSpent(!!mineRow?.change_spent)
+      }
       const sum = rlist.reduce((a, r) => a + r.score, 0)
       setStats({
         saves: (saves ?? []).length,
@@ -174,6 +179,8 @@ export default function DropDetail({ id }: { id: string }) {
   const applyRate = async (score: number) => {
     if (!user || !drop) return
     const prev = myRating
+    // One-change budget spent — locked (the DB trigger also rejects).
+    if (prev != null && myChangeSpent) return
     setMyRating(score)
     setStats((st) => shiftRatingStats(st, prev, score))
     setRatings((list) => {
@@ -193,6 +200,7 @@ export default function DropDetail({ id }: { id: string }) {
       .from('drop_ratings')
       .upsert({ user_id: user.id, drop_id: drop.id, score }, { onConflict: 'user_id,drop_id' })
     if (error) void load()
+    else if (prev != null) setMyChangeSpent(true)
   }
 
   const removeRate = async () => {
@@ -379,6 +387,7 @@ export default function DropDetail({ id }: { id: string }) {
           )}
           <DragRateZone
             current={myRating}
+            changeSpent={myChangeSpent}
             onRate={(score) => void applyRate(score)}
             disabled={!user || user.id === drop.author_id}
           >
@@ -769,7 +778,7 @@ export default function DropDetail({ id }: { id: string }) {
                 </p>
               ) : user ? (
                 <button onClick={() => setRateOpen(true)} className="btn-pop press w-full py-3 text-sm">
-                  {myRating != null ? `Your call: ${formatScore(myRating)} — tap to change it` : 'Rate this drop'}
+                  {myRating != null ? (myChangeSpent ? `Your call: ${formatScore(myRating)} — locked` : `Your call: ${formatScore(myRating)} — tap to change it`) : 'Rate this drop'}
                 </button>
               ) : (
                 <button onClick={() => navigate('/auth')} className="btn-pop press w-full py-3 text-sm">
@@ -841,6 +850,7 @@ export default function DropDetail({ id }: { id: string }) {
           <RateSheet
             title={drop.title}
             current={myRating}
+            locked={myChangeSpent}
             onRate={(score) => void applyRate(score)}
             onRemove={() => void removeRate()}
             onClose={() => setRateOpen(false)}

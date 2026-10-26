@@ -45,25 +45,34 @@ function shifted(
 export function useRatings() {
   const { user } = useAuth()
   const [myRatings, setMyRatings] = useState<Map<string, number>>(new Map())
+  // One-change budget (Jose's rule, migration 0055): drop_id -> true once
+  // the user has spent their single allowed change on that drop.
+  const [myChanges, setMyChanges] = useState<Map<string, boolean>>(new Map())
 
   const setRatingsFromRows = useCallback(
-    (rows: Array<{ drop_id: string; score: number; user_id?: string }>) => {
+    (rows: Array<{ drop_id: string; score: number; user_id?: string; change_spent?: boolean }>) => {
       if (!user) {
         setMyRatings(new Map())
+        setMyChanges(new Map())
         return
       }
       const m = new Map<string, number>()
+      const c = new Map<string, boolean>()
       for (const r of rows) {
-        if (r.user_id === user.id) m.set(r.drop_id, r.score)
+        if (r.user_id === user.id) {
+          m.set(r.drop_id, r.score)
+          c.set(r.drop_id, !!r.change_spent)
+        }
       }
       setMyRatings(m)
+      setMyChanges(c)
     },
     [user],
   )
 
   /** Additive variant for feed pagination: merge a new page's ratings in. */
   const mergeRatingsFromRows = useCallback(
-    (rows: Array<{ drop_id: string; score: number; user_id?: string }>) => {
+    (rows: Array<{ drop_id: string; score: number; user_id?: string; change_spent?: boolean }>) => {
       if (!user) return
       setMyRatings((prev) => {
         const m = new Map(prev)
@@ -71,6 +80,13 @@ export function useRatings() {
           if (r.user_id === user.id) m.set(r.drop_id, r.score)
         }
         return m
+      })
+      setMyChanges((prev) => {
+        const c = new Map(prev)
+        for (const r of rows) {
+          if (r.user_id === user.id) c.set(r.drop_id, !!r.change_spent)
+        }
+        return c
       })
     },
     [user],
@@ -88,12 +104,17 @@ export function useRatings() {
       }
       const prev = myRatings.get(dropId) ?? null
       if (prev === score) return
+      // Locked: the one change is spent (the DB trigger also rejects).
+      if (prev != null && myChanges.get(dropId)) return
+      const isChange = prev != null
+      if (isChange) setMyChanges((c) => new Map(c).set(dropId, true))
       setMyRatings((m) => new Map(m).set(dropId, score))
       setStats((m) => shifted(m, dropId, prev, score))
       const { error } = await supabase
         .from('drop_ratings')
         .upsert({ user_id: user.id, drop_id: dropId, score }, { onConflict: 'user_id,drop_id' })
       if (error) {
+        if (isChange) setMyChanges((c) => new Map(c).set(dropId, false))
         setMyRatings((m) => {
           const n = new Map(m)
           if (prev == null) n.delete(dropId)
@@ -103,7 +124,7 @@ export function useRatings() {
         setStats((m) => shifted(m, dropId, score, prev))
       }
     },
-    [user, myRatings],
+    [user, myRatings, myChanges],
   )
 
   const unrate = useCallback(
@@ -133,5 +154,5 @@ export function useRatings() {
     [user, myRatings],
   )
 
-  return { myRatings, setRatingsFromRows, mergeRatingsFromRows, rate, unrate }
+  return { myRatings, myChanges, setRatingsFromRows, mergeRatingsFromRows, rate, unrate }
 }

@@ -46,7 +46,7 @@ function AlertsBell() {
 
 export default function Discover() {
   const { user, profile } = useAuth()
-  const { myRatings, setRatingsFromRows, mergeRatingsFromRows, rate, unrate } = useRatings()
+  const { myRatings, myChanges, setRatingsFromRows, mergeRatingsFromRows, rate, unrate } = useRatings()
   const [rateTarget, setRateTarget] = useState<{ drop: Drop; prefill: number | null } | null>(null)
   const [tab, setTab] = useState<Tab>('putons')
   const [nearView, setNearView] = useState<'list' | 'map'>('list')
@@ -162,7 +162,7 @@ export default function Discover() {
     const tkeys = [...new Set(list.map((d) => d.topic_key).filter(Boolean))] as string[]
     const [{ data: saves }, { data: ratings }, { data: cmts }, { data: trows }] = await Promise.all([
       supabase.from('saves').select('drop_id').in('drop_id', ids).limit(5000),
-      supabase.from('drop_ratings').select('drop_id,score,user_id').in('drop_id', ids).limit(5000),
+      supabase.from('drop_ratings_with_budget').select('drop_id,score,user_id,change_spent').in('drop_id', ids).limit(5000),
       supabase.from('comments').select('drop_id').in('drop_id', ids).limit(5000),
       // one lightweight query for every visible topic's post count
       // (RLS hides blocked/private drops, so counts stay honest)
@@ -712,6 +712,7 @@ export default function Discover() {
             saved={mySaves.has(d.id)}
             onToggleSave={() => toggleSave(d.id)}
             myRating={myRatings.get(d.id) ?? null}
+            changeSpent={myChanges.get(d.id) ?? false}
             onRate={(prefill) => setRateTarget({ drop: d, prefill: prefill ?? null })}
             onRateNow={(score) => void rate(d.id, score, setStats)}
             revealDelay={(i % 6) * 70}
@@ -726,6 +727,7 @@ export default function Discover() {
         <RateSheet
           title={rateTarget.drop.title}
           current={myRatings.get(rateTarget.drop.id) ?? null}
+          locked={myChanges.get(rateTarget.drop.id) ?? false}
           prefill={rateTarget.prefill}
           onRate={(score) => void rate(rateTarget.drop.id, score, setStats)}
           onRemove={() => void unrate(rateTarget.drop.id, setStats)}

@@ -32,6 +32,8 @@ interface Props {
   saved: boolean
   onToggleSave: () => void
   myRating: number | null
+  /** My one rating change on this drop is spent (0055). */
+  changeSpent?: boolean
   /** Commit a rating immediately (in-photo drag). Optional: without it the photo drag is off. */
   onRateNow?: (score: number) => void
   /** Opens the rating sheet for this drop; prefill 10 comes from a double-tap. */
@@ -44,7 +46,7 @@ interface Props {
   viaTopic?: boolean
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myRating, onRate, onRateNow, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myRating, changeSpent = false, onRate, onRateNow, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -381,6 +383,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
             )}
             <DragRateZone
               current={myRating}
+              changeSpent={changeSpent}
               onRate={(score) => onRateNow?.(score)}
               disabled={isAuthor || !onRateNow}
             >

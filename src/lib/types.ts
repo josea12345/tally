@@ -181,6 +181,8 @@ export interface DropRating {
   score: number
   created_at: string
   updated_at: string
+  /** True when this rater already spent their one change (0055 view). */
+  change_spent?: boolean
   user?: Profile
 }
 

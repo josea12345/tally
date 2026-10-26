@@ -11,6 +11,8 @@ interface RateSheetProps {
   current: number | null
   /** Value pre-loaded into the field (double-tap loads 10). */
   prefill?: number | null
+  /** The one allowed change is spent — the sheet explains, no editing. */
+  locked?: boolean
   onRate: (score: number) => void
   onRemove: () => void
   onClose: () => void
@@ -21,7 +23,7 @@ interface RateSheetProps {
  * fill climbs with your score — or type it: the number is huge, and a
  * 10 lights the whole peak. One confirm puts it on the record.
  */
-export default function RateSheet({ title, current, prefill, onRate, onRemove, onClose }: RateSheetProps) {
+export default function RateSheet({ title, current, prefill, locked = false, onRate, onRemove, onClose }: RateSheetProps) {
   const [text, setText] = useState(() =>
     prefill != null ? formatScore(prefill) : current != null ? formatScore(current) : '',
   )
@@ -75,6 +77,31 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
     } else {
       onClose()
     }
+  }
+
+  if (locked && current != null) {
+    return (
+      <div className="fixed inset-0 z-[130]" role="dialog" aria-modal="true" aria-label={`Rate ${title}`}>
+        <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+        <div className="animate-[pop-in_.25s_ease-out] absolute inset-x-0 bottom-0 mx-auto w-full max-w-lg rounded-t-[26px] border-t border-line bg-ink-2 px-5 pb-10 pt-3 shadow-2xl">
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-line" />
+          <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-mute">Your call on</p>
+          <p className="mt-1 truncate text-center text-base font-bold">{title}</p>
+          <p className="mt-5 text-center text-xl font-black text-fog">
+            Locked at {formatScore(current)}
+          </p>
+          <p className="mx-auto mt-1 max-w-xs text-center text-sm text-mute">
+            You already used your one change on this one — ratings lock after that.
+          </p>
+          <button
+            onClick={onClose}
+            className="press mt-5 w-full rounded-full bg-sig py-3.5 text-base font-black text-ink"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

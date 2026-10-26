@@ -37,7 +37,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
   // Rating from the To Try checklist (the hook wants a stats sink for
   // optimistic counts — Bets doesn't display counts, so the map is
   // write-only here). Rating a bet = you tried it: the row moves to Tried.
-  const { myRatings, setRatingsFromRows, rate, unrate } = useRatings()
+  const { myRatings, myChanges, setRatingsFromRows, rate, unrate } = useRatings()
   const [, setStatsSink] = useState<Map<string, DropStats>>(new Map())
   const [rateTarget, setRateTarget] = useState<Drop | null>(null)
 
@@ -57,8 +57,8 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
       if (list.length > 0) {
         // Which of my bets have I actually tried? The ones I've rated.
         const { data: rrows } = await supabase
-          .from('drop_ratings')
-          .select('drop_id,score,user_id')
+          .from('drop_ratings_with_budget')
+          .select('drop_id,score,user_id,change_spent')
           .eq('user_id', user.id)
           .in('drop_id', list.map((d) => d.id))
           .limit(1000)
@@ -264,6 +264,7 @@ export default function Saved({ bare = false }: { bare?: boolean }) {
         <RateSheet
           title={rateTarget.title}
           current={myRatings.get(rateTarget.id) ?? null}
+          locked={myChanges.get(rateTarget.id) ?? false}
           onRate={(score) => {
             void rate(rateTarget.id, score, setStatsSink)
             setTriedIds((s) => new Set(s).add(rateTarget.id))

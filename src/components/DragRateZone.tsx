@@ -38,11 +38,14 @@ export default function DragRateZone({
   current,
   onRate,
   disabled = false,
+  changeSpent = false,
   children,
 }: {
   current: number | null
   onRate: (score: number) => void
   disabled?: boolean
+  /** The one allowed change is spent — the hold explains the lock. */
+  changeSpent?: boolean
   children: ReactNode
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
@@ -68,6 +71,7 @@ export default function DragRateZone({
   // touch-and-slide shouldn't silently rewrite a rating. Confirming
   // once unlocks re-rating for as long as this card stays mounted.
   const [confirmModify, setConfirmModify] = useState(false)
+  const [lockedNotice, setLockedNotice] = useState(false)
   const modifyOk = useRef(false)
 
   // Block page scroll mid-gesture once armed (see the doc comment).
@@ -105,10 +109,12 @@ export default function DragRateZone({
     const g = gesture.current
     if (!g || g.armed) return
     if (current != null && !modifyOk.current) {
-      // Already rated: end the gesture quietly and ask first.
+      // Already rated: end the gesture quietly and ask first — or, when
+      // the one change is spent, explain that the rating is locked.
       gesture.current = null
       cancelHold()
-      setConfirmModify(true)
+      if (changeSpent) setLockedNotice(true)
+      else setConfirmModify(true)
       return
     }
     g.armed = true
@@ -266,6 +272,32 @@ export default function DragRateZone({
         </div>
       )}
       {burst && <PeakBurst onDone={() => setBurst(false)} />}
+      {lockedNotice && current != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setLockedNotice(false)}
+        >
+          <div
+            className="pop-in w-full max-w-xs rounded-3xl border border-line bg-ink-2 p-5 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="mb-2 inline-block text-sig">
+              <PeakMark className="h-8 w-auto" />
+            </span>
+            <p className="text-base font-black text-fog">This rating is locked</p>
+            <p className="mt-1 text-sm text-mute">
+              You rated it {formatScore(current)} and already used your one change.
+            </p>
+            <button
+              onClick={() => setLockedNotice(false)}
+              className="btn-pop press mt-4 w-full rounded-full px-4 py-2.5 text-sm"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
       {confirmModify && current != null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
@@ -282,7 +314,9 @@ export default function DragRateZone({
             <p className="text-base font-black text-fog">
               You rated this {formatScore(current)}
             </p>
-            <p className="mt-1 text-sm text-mute">Want to change your rating?</p>
+            <p className="mt-1 text-sm text-mute">
+              Want to change your rating? You get one change per post.
+            </p>
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => setConfirmModify(false)}
