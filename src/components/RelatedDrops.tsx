@@ -92,7 +92,7 @@ export default function RelatedDrops({ drop }: { drop: Drop }) {
               )}
               <span className="mt-1.5 line-clamp-2 block text-xs font-bold leading-tight">{d.title}</span>
               <span className="mt-0.5 block truncate text-[11px] text-mute">
-                {d.score != null && <span className="font-bold text-sig">{d.score}/10 · </span>}@
+                {d.score != null && <span className="font-bold text-sig">{d.score} · </span>}@
                 {d.author?.username ?? '?'}
               </span>
             </button>

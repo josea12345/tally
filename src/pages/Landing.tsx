@@ -297,7 +297,7 @@ function DemoCard() {
         </div>
         <span className="flex flex-col items-center rounded-xl border border-sig/40 bg-sig/10 px-2.5 py-1">
           <span className="text-lg font-black leading-none text-sig">9.5</span>
-          <span className="text-[9px] font-bold text-mute">/10 · his call</span>
+          <span className="text-[9px] font-bold text-mute">his call</span>
         </span>
       </div>
       <div className="px-4 pb-1 pt-2">

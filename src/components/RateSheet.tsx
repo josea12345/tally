@@ -153,7 +153,6 @@ export default function RateSheet({ title, current, prefill, onRate, onRemove, o
               isTen ? 'border-sig text-sig' : parsed != null ? 'border-fog/60' : 'border-line'
             }`}
           />
-          <span className="pb-2 text-lg font-black text-mute">/10</span>
         </div>
 
         <p className={`mt-3 h-5 text-center text-sm font-bold ${isTen ? 'text-sig' : 'text-mute'}`}>
@@ -232,7 +231,6 @@ export function ScoreField({
           isTen ? 'border-sig/60 text-sig' : 'border-line'
         }`}
       />
-      <span className="text-sm font-black text-mute">/10</span>
       {isTen && <span className="text-xs font-black uppercase tracking-wider text-sig">Peak</span>}
     </span>
   )

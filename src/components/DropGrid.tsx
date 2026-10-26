@@ -36,7 +36,7 @@ export default function DropGrid({ drops, showScores = false }: { drops: Drop[];
             )}
             {showScores && d.score != null && (
               <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-black text-sig backdrop-blur-sm">
-                {d.score}/10
+                {d.score}
               </span>
             )}
             {items.length > 1 && (

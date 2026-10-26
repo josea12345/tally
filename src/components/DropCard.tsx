@@ -131,7 +131,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
     <div className="flex items-baseline gap-1">
       <span className="text-lg font-black leading-none text-sig">{formatAvg(stats.ratingAvg ?? 0)}</span>
       <span className={`text-[10px] font-bold ${dark ? 'text-white/80' : 'text-mute'}`}>
-        /10 · {stats.ratingCount} rating{stats.ratingCount === 1 ? '' : 's'}
+        · {stats.ratingCount} rating{stats.ratingCount === 1 ? '' : 's'}
       </span>
       {stats.peaks > 0 && (
         <span className="ml-1 flex items-center gap-1 border-l border-current/20 pl-2 text-[10px] font-bold text-sig">
@@ -189,7 +189,6 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         title="Author's call"
       >
         <span className="text-xl font-black leading-none text-sig">{formatScore(drop.score)}</span>
-        <span className="text-[11px] font-bold text-mute">/10</span>
         {extSegs(false)}
       </div>
     ) : drop.imdb_rating != null ? (

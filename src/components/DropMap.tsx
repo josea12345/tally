@@ -99,7 +99,7 @@ export default function DropMap({
             <span className="block truncate text-sm font-bold">{selected.title}</span>
             <span className="block truncate text-xs text-mute">
               @{selected.author?.username ?? '?'} · {distMi < 0.1 ? 'right here' : `${distMi.toFixed(1)} mi`}
-              {selected.score != null && <span className="font-bold text-sig"> · their call {selected.score}/10</span>}
+              {selected.score != null && <span className="font-bold text-sig"> · {selected.score}</span>}
             </span>
           </span>
           <span className="shrink-0 text-lg font-black text-sig">→</span>
