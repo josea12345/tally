@@ -103,7 +103,8 @@ export default function AddToListSheet({
   }
 
   // ---- Build-a-list mode: stack drops (mine + ones I saved) in a
-  // deliberate order and post the run as a public list. The drop this
+  // deliberate order and create the run — private like every list
+  // (0054); it goes public only via Post on its page. The drop this
   // sheet was opened from starts as pick #1.
   const [build, setBuild] = useState(false)
   const [candidates, setCandidates] = useState<Drop[] | null>(null)
@@ -163,7 +164,7 @@ export default function AddToListSheet({
       .single()
     if (cErr || !data) {
       setPosting(false)
-      setError('Could not post the list — try again.')
+      setError('Could not create the list — try again.')
       return
     }
     const col = data as Collection
@@ -246,7 +247,7 @@ export default function AddToListSheet({
               disabled={posting || picks.length === 0}
               className="btn-pop press mt-4 w-full py-3 text-sm"
             >
-              {posting ? 'Posting…' : `Post list${picks.length > 0 ? ` · ${picks.length} drop${picks.length === 1 ? '' : 's'}` : ''}`}
+              {posting ? 'Creating…' : `Create list${picks.length > 0 ? ` · ${picks.length} drop${picks.length === 1 ? '' : 's'}` : ''}`}
             </button>
             <button onClick={() => setBuild(false)} className="mt-2 w-full text-center text-xs font-bold text-mute">
               ← Back to my lists

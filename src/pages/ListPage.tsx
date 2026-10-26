@@ -322,7 +322,19 @@ export default function ListPage({ id }: { id: string }) {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button onClick={share} className="rounded-full bg-sig px-4 py-2 text-sm font-black text-ink">
+          {isOwner && !col.is_public && (
+            <button onClick={togglePublic} className="btn-pop press rounded-full px-5 py-2 text-sm">
+              Post
+            </button>
+          )}
+          <button
+            onClick={share}
+            className={
+              isOwner && !col.is_public
+                ? 'rounded-full border border-line px-4 py-2 text-sm font-bold text-fog'
+                : 'rounded-full bg-sig px-4 py-2 text-sm font-black text-ink'
+            }
+          >
             {sharedNote ? 'Link copied!' : 'Share list'}
           </button>
           {!isOwner && drops.length > 0 && (
@@ -348,9 +360,11 @@ export default function ListPage({ id }: { id: string }) {
               <button onClick={() => setRenaming(true)} className="rounded-full border border-line px-4 py-2 text-sm font-bold text-fog">
                 Rename
               </button>
-              <button onClick={togglePublic} className="rounded-full border border-line px-4 py-2 text-sm font-bold text-fog">
-                Make {col.is_public ? 'private' : 'public'}
-              </button>
+              {col.is_public && (
+                <button onClick={togglePublic} className="rounded-full border border-line px-4 py-2 text-sm font-bold text-fog">
+                  Make private
+                </button>
+              )}
               {confirmDelete ? (
                 <button onClick={deleteList} className="rounded-full bg-miss px-4 py-2 text-sm font-black text-white">
                   Tap again to delete the list
@@ -363,9 +377,14 @@ export default function ListPage({ id }: { id: string }) {
             </>
           )}
         </div>
+        {isOwner && !col.is_public && (
+          <p className="mt-3 text-xs text-mute">
+            This list is private — only you can see it. Hit Post when it's ready and it goes live in the Lists section.
+          </p>
+        )}
         {isOwner && col.is_public && drops.length === 0 && (
           <p className="mt-3 text-xs text-mute">
-            Empty lists don't show in the Lists section yet — add a drop and it goes live.
+            Posted — but empty lists stay out of the Lists section until they have a drop in them.
           </p>
         )}
       </div>
