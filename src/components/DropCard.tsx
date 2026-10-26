@@ -16,6 +16,7 @@ import { dropMedia, isPlaceCategory } from '../lib/types'
 import { mapsUrlForPlace } from '../lib/geo'
 import { safeExternalUrl } from '../lib/urls'
 import BetIcon from './BetIcon'
+import { ChainIcon } from './icons'
 import ChatIcon from './ChatIcon'
 import DropMenu from './DropMenu'
 import ShareButton from './ShareButton'
@@ -235,10 +236,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, o
         title={topicCount != null ? `${topicCount} put-ons about this` : 'All posts about this'}
         className="press absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full border border-sig/40 bg-sig/10 p-1.5 text-sig"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-3.5 w-3.5" aria-hidden>
-          <rect x="9" y="9" width="11" height="11" rx="2.5" />
-          <path d="M5 15V6a2 2 0 0 1 2-2h9" strokeLinecap="round" />
-        </svg>
+        <ChainIcon className="h-4 w-4" />
       </button>
     </div>
   )
