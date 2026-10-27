@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CATEGORY_NAV_EVENT, takeCategoryNavStash, type CategoryNav } from '../lib/categoryNav'
+import { dragHintLearned } from '../lib/dragHint'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useRatings } from '../lib/useRatings'
@@ -448,6 +449,14 @@ export default function Discover() {
     return list
   }, [drops, tab, following, topicDrops, effective, stats, debounced])
 
+  // The drag hint rides on the first drop this user could rate —
+  // one card teaches, the rest of the feed stays clean. Gone for
+  // good once they've completed a drag-rate (lib/dragHint).
+  const hintDropId =
+    user && !dragHintLearned(user.id)
+      ? (visible.find((d) => d.author_id !== user.id && !myRatings.has(d.id))?.id ?? null)
+      : null
+
   const toggleSave = async (dropId: string) => {
     if (!user) {
       navigate('/auth')
@@ -745,6 +754,7 @@ export default function Discover() {
             changeSpent={myChanges.get(d.id) ?? false}
             onRate={(prefill) => setRateTarget({ drop: d, prefill: prefill ?? null })}
             onRateNow={(score) => void rate(d.id, score, setStats)}
+            dragHint={d.id === hintDropId}
             revealDelay={(i % 6) * 70}
             onAuthorBlocked={(authorId) => setDrops((ds) => ds.filter((x) => x.author_id !== authorId))}
             topicCount={d.topic_key ? (topicCounts.get(d.topic_key) ?? null) : null}

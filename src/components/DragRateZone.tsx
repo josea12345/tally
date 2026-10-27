@@ -39,6 +39,8 @@ export default function DragRateZone({
   onRate,
   disabled = false,
   changeSpent = false,
+  showHint = false,
+  onDragCommit,
   children,
 }: {
   current: number | null
@@ -46,6 +48,10 @@ export default function DragRateZone({
   disabled?: boolean
   /** The one allowed change is spent — the hold explains the lock. */
   changeSpent?: boolean
+  /** Show the "Press & hold to rate" pill (until the first drag-rate). */
+  showHint?: boolean
+  /** Fired when a rating actually commits through the drag path. */
+  onDragCommit?: () => void
   children: ReactNode
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
@@ -66,6 +72,19 @@ export default function DragRateZone({
   const suppressClickUntil = useRef(0)
   const [dragValue, setDragValue] = useState<number | null>(null)
   const [burst, setBurst] = useState(false)
+  // Layer-2 teaching: a finger RESTING on the photo (past ~130ms,
+  // before the 220ms arm) fades in a faint mountain — the surface
+  // answers back before the gesture even starts. Scrolls cancel it:
+  // they move past the slop limit long before the timer lands.
+  const [resting, setResting] = useState(false)
+  const restTimer = useRef<number | null>(null)
+  const clearRest = () => {
+    if (restTimer.current) {
+      window.clearTimeout(restTimer.current)
+      restTimer.current = null
+    }
+    setResting(false)
+  }
   // Re-rate guard (Jose's ask, 2026-10-26): once you've rated a drop,
   // a press-and-hold asks before it can change anything — a stray
   // touch-and-slide shouldn't silently rewrite a rating. Confirming
@@ -153,6 +172,10 @@ export default function DragRateZone({
     }
     cancelHold()
     holdTimer.current = window.setTimeout(arm, HOLD_MS)
+    if (restTimer.current) window.clearTimeout(restTimer.current)
+    restTimer.current = window.setTimeout(() => {
+      if (gesture.current && !gesture.current.armed) setResting(true)
+    }, 130)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -163,6 +186,7 @@ export default function DragRateZone({
       // Moved before the hold landed → this is a scroll / swipe / seek.
       if (Math.abs(e.clientX - g.startX) > SLOP_PX || Math.abs(e.clientY - g.startY) > SLOP_PX) {
         cancelHold()
+        clearRest()
         gesture.current = null
       }
       return
@@ -191,6 +215,7 @@ export default function DragRateZone({
 
   const endGesture = (commit: boolean) => {
     cancelHold()
+    clearRest()
     const g = gesture.current
     gesture.current = null
     const wasArmed = !!g?.armed
@@ -199,6 +224,7 @@ export default function DragRateZone({
       suppressClickUntil.current = Date.now() + 500
       if (commit && g.value !== current) {
         onRate(g.value)
+        onDragCommit?.()
         if (g.value === 10) {
           setBurst(true)
           peakHaptic()
@@ -230,6 +256,31 @@ export default function DragRateZone({
       }}
     >
       {children}
+      {showHint && current == null && dragValue == null && (
+        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+          <div className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm">
+            <span className="relative inline-block">
+              <PeakMark className="h-4 w-auto text-white/40" />
+              <span
+                className="absolute inset-0"
+                style={{ animation: 'hint-fill 2.2s ease-in-out infinite' }}
+              >
+                <PeakMark className="h-4 w-auto text-sig" />
+              </span>
+            </span>
+            <span className="whitespace-nowrap text-[11px] font-black tracking-wide text-white">
+              Press &amp; hold to rate
+            </span>
+          </div>
+        </div>
+      )}
+      {resting && dragValue == null && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <span className="animate-[viewer-in_.18s_ease-out] text-white/30 drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]">
+            <PeakMark className="h-20 w-auto" />
+          </span>
+        </div>
+      )}
       {dragValue != null && (
         <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center">
           <div className="absolute inset-0 bg-black/30" />

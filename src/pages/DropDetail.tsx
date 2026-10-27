@@ -5,6 +5,7 @@ import type { Drop, DropRating, DropStats, Profile } from '../lib/types'
 import { timeAgo, topicKeyFor } from '../lib/format'
 import { Avatar, navigate } from '../App'
 import { ACTION_PHRASE, CategoryNoun } from '../components/ActionByline'
+import { dragHintLearned, markDragHintLearned } from '../lib/dragHint'
 import PutOnChain from '../components/PutOnChain'
 import Comments from '../components/Comments'
 import LinkChips from '../components/LinkChips'
@@ -393,6 +394,8 @@ export default function DropDetail({ id }: { id: string }) {
             changeSpent={myChangeSpent}
             onRate={(score) => void applyRate(score)}
             disabled={!user || user.id === drop.author_id}
+            showHint={!!user && user.id !== drop.author_id && myRating == null && !dragHintLearned(user.id)}
+            onDragCommit={() => markDragHintLearned(user?.id)}
           >
           <MediaCarousel
             items={dropMedia(drop)}

@@ -10,6 +10,7 @@ import Reveal from './Reveal'
 import FeedVideo from './FeedVideo'
 import MediaCarousel from './MediaCarousel'
 import DragRateZone from './DragRateZone'
+import { markDragHintLearned } from '../lib/dragHint'
 import ArtworkImage, { isArtworkUrl } from './ArtworkImage'
 import MediaViewer from './MediaViewer'
 import SoundPill from './SoundPill'
@@ -37,6 +38,8 @@ interface Props {
   changeSpent?: boolean
   /** Commit a rating immediately (in-photo drag). Optional: without it the photo drag is off. */
   onRateNow?: (score: number) => void
+  /** Render the one-time 'Press & hold to rate' pill on this card. */
+  dragHint?: boolean
   /** Opens the rating sheet for this drop; prefill 10 comes from a double-tap. */
   onRate: (prefill?: number) => void
   revealDelay?: number
@@ -47,7 +50,7 @@ interface Props {
   viaTopic?: boolean
 }
 
-export default function DropCard({ drop, stats, saved, onToggleSave, myRating, changeSpent = false, onRate, onRateNow, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
+export default function DropCard({ drop, stats, saved, onToggleSave, myRating, changeSpent = false, onRate, onRateNow, dragHint = false, revealDelay = 0, onAuthorBlocked, topicCount = null, viaTopic = false }: Props) {
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
@@ -380,6 +383,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
               changeSpent={changeSpent}
               onRate={(score) => onRateNow?.(score)}
               disabled={isAuthor || !onRateNow}
+              showHint={dragHint}
+              onDragCommit={() => markDragHintLearned(user?.id)}
             >
             <MediaCarousel
               flush

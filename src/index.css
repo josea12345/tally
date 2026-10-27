@@ -276,6 +276,22 @@ body {
   }
 }
 
+/* the drag-hint pill's mini mountain: fills bottom-up, holds, resets */
+@keyframes hint-fill {
+  0% {
+    clip-path: inset(100% 0 0 0);
+  }
+  55% {
+    clip-path: inset(0% 0 0 0);
+  }
+  85% {
+    clip-path: inset(0% 0 0 0);
+  }
+  100% {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
 /* ---------- feel pass: motion system ---------- */
 
 /* scroll reveal (driven by <Reveal/> via IntersectionObserver) */
