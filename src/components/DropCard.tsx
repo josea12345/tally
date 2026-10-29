@@ -54,7 +54,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
-  const archMedia =
+  // User media rides in a square, round-edged frame inside the card
+  // (Jose's call 2026-10-29 — the tall arch cropped too much of the
+  // photo). Cover-art drops keep their exact fitted rectangles.
+  const squareMedia =
     items.length > 0 && !(items[0].type === 'photo' && isArtworkUrl(items[0].url))
   const isAuthor = !!user && user.id === drop.author_id
   const [selfNote, setSelfNote] = useState(false)
@@ -171,7 +174,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
       </div>
     ) : null
 
-  const metaBadge = !archMedia ? null : stats.ratingCount > 0 ? (
+  const metaBadge = !squareMedia ? null : stats.ratingCount > 0 ? (
     <div
       className="sticker-flat inline-block rounded-2xl border border-sig/50 bg-sig/10 px-3 py-1.5"
       title={blind ? 'Rate to reveal the crowd average' : 'Crowd average'}
@@ -365,7 +368,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
                 <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
               </button>
             </div>
-            {items.length > 0 && !archMedia && drop.score != null && (
+            {items.length > 0 && !squareMedia && drop.score != null && (
               <span className="text-sm font-black leading-none text-sig">{formatScore(drop.score)}</span>
             )}
           </div>
@@ -385,10 +388,10 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
         {/* full-bleed media with horizontal action bar overlaid at the bottom */}
         {items.length > 0 && (
           <div
-            className={archMedia ? 'relative mx-3 mt-5' : 'relative mx-3 mt-3 overflow-hidden rounded-[20px]'}
+            className={squareMedia ? 'relative mx-3 mt-5' : 'relative mx-3 mt-3 overflow-hidden rounded-[20px]'}
             onClick={(e) => e.stopPropagation()}
           >
-            {archMedia && drop.score != null && (
+            {squareMedia && drop.score != null && (
               <div className="absolute -top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-sig px-3 py-1 shadow-lg">
                 <PeakMark className="h-3 w-auto text-[#06283d]" />
                 <span className="text-[13px] font-black leading-none text-[#06283d]">
@@ -418,13 +421,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
               disabled={isAuthor || !onRateNow}
               showHint={dragHint}
               onDragCommit={() => markDragHintLearned(user?.id)}
-              frameClassName={archMedia ? 'rounded-t-[160px] rounded-b-[20px]' : undefined}
+              frameClassName={squareMedia ? 'rounded-[24px]' : undefined}
             >
             <MediaCarousel
               flush
-              arch={archMedia}
+              rounded={squareMedia}
               overlay={bottomBar}
-              topBadge={archMedia ? undefined : scoreBadge}
+              topBadge={squareMedia ? undefined : scoreBadge}
               items={items}
               frameClass={
                 items[0] && items[0].type === 'photo' && isArtworkUrl(items[0].url)
@@ -433,7 +436,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
                     : drop.category === 'movies' || drop.category === 'tv'
                       ? 'aspect-[2/3]'
                       : 'aspect-[9/16]'
-                  : 'aspect-[9/16]'
+                  : 'aspect-square'
               }
               renderItem={(it) =>
                 it.type === 'video' ? (

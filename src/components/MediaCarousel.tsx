@@ -13,7 +13,7 @@ export default function MediaCarousel({
   flush = false,
   topBadge,
   frameClass = 'aspect-[9/16]',
-  arch = false,
+  rounded = false,
 }: {
   items: CarouselItem[]
   renderItem: (item: CarouselItem, index: number) => React.ReactNode
@@ -24,8 +24,8 @@ export default function MediaCarousel({
   topBadge?: React.ReactNode
   /** Flush frame shape — fitted frames for cover art (square albums, 2:3 posters). */
   frameClass?: string
-  /** Summit Window: the frame's top becomes a tall arch (Peak's silhouette). */
-  arch?: boolean
+  /** Card mode: the frame gets big rounded corners (24px) inside a post card. */
+  rounded?: boolean
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
@@ -51,9 +51,9 @@ export default function MediaCarousel({
       <div
         className={`relative overflow-hidden ${
           flush
-            ? `w-full ${frameClass} max-h-[58svh] ${arch ? 'rounded-t-[160px] rounded-b-[20px] border border-line' : ''}`
-            : arch
-              ? 'rounded-t-[160px] rounded-b-[20px] border border-line bg-black'
+            ? `w-full ${frameClass} max-h-[58svh] ${rounded ? 'rounded-[24px] border border-line' : ''}`
+            : rounded
+              ? 'rounded-[24px] border border-line bg-black'
               : 'rounded-2xl border border-line bg-black'
         }`}
       >
@@ -69,19 +69,12 @@ export default function MediaCarousel({
             </div>
           ))}
         </div>
-        {arch ? (
-          <>
-            {topBadge && (
-              <div className="absolute left-1/2 top-[104px] flex -translate-x-1/2 flex-col items-center gap-1.5">
-                {topBadge}
-              </div>
-            )}
-            {items.length > 1 && (
-              <span className="absolute bottom-20 right-3 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-black tabular-nums text-white backdrop-blur-sm">
-                {index + 1}/{items.length}
-              </span>
-            )}
-          </>
+        {rounded && !topBadge ? (
+          items.length > 1 && (
+            <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-black tabular-nums text-white backdrop-blur-sm">
+              {index + 1}/{items.length}
+            </span>
+          )
         ) : (
           (topBadge || items.length > 1) && (
             <div className="absolute left-2 top-2 flex flex-col items-start gap-1.5">
