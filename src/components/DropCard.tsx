@@ -54,6 +54,8 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
   const { user } = useAuth()
   const author = drop.author
   const items = dropMedia(drop)
+  const archMedia =
+    items.length > 0 && !(items[0].type === 'photo' && isArtworkUrl(items[0].url))
   const isAuthor = !!user && user.id === drop.author_id
   const [selfNote, setSelfNote] = useState(false)
   const selfNoteTimer = useRef<number | null>(null)
@@ -168,6 +170,23 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
         <span className="text-[10px] font-bold text-white/80">IMDb</span>
       </div>
     ) : null
+
+  const metaBadge = !archMedia ? null : stats.ratingCount > 0 ? (
+    <div
+      className="sticker-flat inline-block rounded-2xl border border-sig/50 bg-sig/10 px-3 py-1.5"
+      title={blind ? 'Rate to reveal the crowd average' : 'Crowd average'}
+    >
+      {crowdLine(false)}
+    </div>
+  ) : drop.imdb_rating != null ? (
+    <div
+      className="inline-flex items-baseline gap-1 rounded-full border border-line bg-ink-3 px-3 py-1.5"
+      title="IMDb rating"
+    >
+      <span className="text-lg font-black leading-none">{drop.imdb_rating}</span>
+      <span className="text-[10px] font-bold text-mute">IMDb</span>
+    </div>
+  ) : null
 
   // Compact header score for text-only drops (no media to overlay).
   const headerScore =
@@ -321,7 +340,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
     <Reveal delay={revealDelay}>
       <article
         onClick={open}
-        className="relative cursor-pointer pb-8 [content-visibility:auto] [contain-intrinsic-size:auto_640px]"
+        className="relative mx-3 mb-5 cursor-pointer rounded-[32px] border border-line bg-ink-2 pb-5 pt-4 shadow-[0_10px_30px_rgba(20,16,40,0.10)] [content-visibility:auto] [contain-intrinsic-size:auto_640px]"
       >
         {selfNote && (
           <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
@@ -346,7 +365,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
                 <Avatar url={author?.avatar_url ?? null} name={author?.display_name ?? author?.username ?? '?'} size={40} />
               </button>
             </div>
-            {items.length > 0 && drop.score != null && (
+            {items.length > 0 && !archMedia && drop.score != null && (
               <span className="text-sm font-black leading-none text-sig">{formatScore(drop.score)}</span>
             )}
           </div>
@@ -365,7 +384,21 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
 
         {/* full-bleed media with horizontal action bar overlaid at the bottom */}
         {items.length > 0 && (
-          <div className="relative mt-3" onClick={(e) => e.stopPropagation()}>
+          <div
+            className={archMedia ? 'relative mx-3 mt-5' : 'relative mx-3 mt-3 overflow-hidden rounded-[20px]'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {archMedia && drop.score != null && (
+              <div className="absolute -top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-sig px-3 py-1 shadow-lg">
+                <PeakMark className="h-3 w-auto text-[#06283d]" />
+                <span className="text-[13px] font-black leading-none text-[#06283d]">
+                  {formatScore(drop.score)}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#06283d]/70">
+                  call
+                </span>
+              </div>
+            )}
             {drop.sound_preview_url && (
               <div className="absolute bottom-[64px] left-1/2 z-20 -translate-x-1/2">
                 <SoundPill
@@ -385,11 +418,13 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
               disabled={isAuthor || !onRateNow}
               showHint={dragHint}
               onDragCommit={() => markDragHintLearned(user?.id)}
+              frameClassName={archMedia ? 'rounded-t-[160px] rounded-b-[20px]' : undefined}
             >
             <MediaCarousel
               flush
+              arch={archMedia}
               overlay={bottomBar}
-              topBadge={scoreBadge}
+              topBadge={archMedia ? undefined : scoreBadge}
               items={items}
               frameClass={
                 items[0] && items[0].type === 'photo' && isArtworkUrl(items[0].url)
@@ -443,6 +478,7 @@ export default function DropCard({ drop, stats, saved, onToggleSave, myRating, c
 
         {/* caption */}
         <div className="px-4 pt-3">
+          {metaBadge && <div className="mb-2">{metaBadge}</div>}
           {drop.description ? (
             <p className="text-[15px] leading-snug">
               <span className="font-bold text-sig">Hear me out — </span>

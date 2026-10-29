@@ -41,6 +41,7 @@ export default function DragRateZone({
   changeSpent = false,
   showHint = false,
   onDragCommit,
+  frameClassName,
   children,
 }: {
   current: number | null
@@ -52,6 +53,9 @@ export default function DragRateZone({
   showHint?: boolean
   /** Fired when a rating actually commits through the drag path. */
   onDragCommit?: () => void
+  /** Extra classes for the drag overlay (e.g. the arch radii) so the
+   *  dim follows the media frame instead of covering its corners. */
+  frameClassName?: string
   children: ReactNode
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
@@ -282,7 +286,7 @@ export default function DragRateZone({
         </div>
       )}
       {dragValue != null && (
-        <div className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center">
+        <div className={`pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden ${frameClassName ?? ''}`}>
           <div className="absolute inset-0 bg-black/30" />
           {tier === 2 && <div className="absolute inset-0 bg-sig/10" />}
           <span

@@ -340,6 +340,9 @@ export default function DropDetail({ id }: { id: string }) {
     ? { start: drop.sound_start_sec ?? 0, end: drop.sound_end_sec }
     : null
   const isOwner = user?.id === drop.author_id
+  const heroItems = dropMedia(drop)
+  const heroArch =
+    heroItems.length > 0 && !(heroItems[0].type === 'photo' && isArtworkUrl(heroItems[0].url))
   const isPinned = !!profile && profile.pinned_drop_id === drop.id
   const togglePin = async () => {
     if (!user || pinBusy) return
@@ -396,8 +399,10 @@ export default function DropDetail({ id }: { id: string }) {
             disabled={!user || user.id === drop.author_id}
             showHint={!!user && user.id !== drop.author_id && myRating == null && !dragHintLearned(user.id)}
             onDragCommit={() => markDragHintLearned(user?.id)}
+            frameClassName={heroArch ? 'rounded-t-[160px] rounded-b-[20px]' : undefined}
           >
           <MediaCarousel
+            arch={heroArch}
             items={dropMedia(drop)}
             renderItem={(it) =>
               it.type === 'video' ? (
